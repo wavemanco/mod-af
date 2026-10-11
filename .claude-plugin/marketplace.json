@@ -1,0 +1,12 @@
+{
+  "name": "mod-af",
+  "owner": { "name": "wavemanco" },
+  "description": "A collection of Claude Code plugins (mods) built the mod route — independent slash commands and hooks.",
+  "plugins": [
+    {
+      "name": "detell",
+      "source": "./detell",
+      "description": "Adversarially strip AI-writing tells from a file, looping until a clean pass; re-checks the evolving tells source on a cadence."
+    }
+  ]
+}

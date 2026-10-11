@@ -1,0 +1,6 @@
+# Engine-generated editor type stubs — regenerated per build when a plugin is loaded for development
+**/.claude-plugin/types/
+# Dev tsconfig the engine writes beside a loaded plugin (extends the generated types)
+tsconfig.json
+**/tsconfig.json
+node_modules/

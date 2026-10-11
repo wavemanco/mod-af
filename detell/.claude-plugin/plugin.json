@@ -1,0 +1,6 @@
+{
+  "name": "detell",
+  "version": "0.1.0",
+  "description": "Adversarially strip AI-writing tells from a file, looping until a clean pass; re-checks the evolving tells source periodically.",
+  "author": { "name": "moondocksaint" }
+}
