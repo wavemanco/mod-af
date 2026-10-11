@@ -1,0 +1,6 @@
+{
+  "name": "loose-ends",
+  "version": "0.1.0",
+  "description": "Anti-decay audit: find everything that lives only in this conversation and should be implemented now or filed with a concrete trigger, so nothing important dies in the transcript.",
+  "author": { "name": "moondocksaint" }
+}

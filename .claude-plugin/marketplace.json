@@ -7,6 +7,21 @@
       "name": "detell",
       "source": "./detell",
       "description": "Adversarially strip AI-writing tells from a file, looping until a clean pass; re-checks the evolving tells source on a cadence."
+    },
+    {
+      "name": "decide",
+      "source": "./decide",
+      "description": "Decision brief for any choice: real options, honest pros/cons (reversibility + cost-if-wrong), a committed recommendation and why, plus a durable decision record. Non-technical-friendly."
+    },
+    {
+      "name": "loose-ends",
+      "source": "./loose-ends",
+      "description": "Anti-decay audit: find everything that lives only in this conversation and should be implemented now or filed with a concrete trigger."
+    },
+    {
+      "name": "route",
+      "source": "./route",
+      "description": "Route to a milestone: what's actually left, the real gate named plainly, hard-blockers vs nice-to-haves, and the critical path when several things remain."
     }
   ]
 }

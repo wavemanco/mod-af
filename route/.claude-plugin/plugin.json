@@ -1,0 +1,6 @@
+{
+  "name": "route",
+  "version": "0.1.0",
+  "description": "Route to a milestone: what's actually left between the current state and a named milestone, the real gate named plainly, hard-blockers vs nice-to-haves, and the critical path when several things remain.",
+  "author": { "name": "moondocksaint" }
+}
