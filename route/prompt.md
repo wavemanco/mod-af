@@ -6,7 +6,7 @@ Paste this into any chat (no plugin needed), then name your milestone. It tells 
 
 On grounded footing, tell me what is **actually left** between the current state and the milestone I name below (or, if I don't name one, the milestone we're focused on) — and the fastest real path to it. No vague "almost there"; name the real gate plainly.
 
-First **ground yourself**: read the real state (the code, the tracker, the open work, the docs) before answering — don't answer from impression. If you can't tell the current state, say what you'd need to check instead of guessing.
+First **ground yourself**: read whatever actually holds the state here — the code, a tracker, the open work, docs, files, notes, the plan — before answering; don't answer from impression. If the usual sources are absent or you can't tell the current state, say what you'd need to check instead of guessing.
 
 **The milestone** — one sentence: what "done" concretely means here (the condition that, once true, means it's reached).
 
@@ -14,6 +14,6 @@ First **ground yourself**: read the real state (the code, the tracker, the open 
 
 **The real gate** — the single thing (or smallest set) that genuinely gates the milestone right now: the honest "the only thing actually in the way is ___." If what people associate with this milestone is really a *later, bigger* milestone's gate, say so and separate the two.
 
-**Critical path** (only when more than one hard blocker remains) — order the hard blockers by dependency (what must finish before what), call out the chain that actually determines time-to-milestone, and separately list what can run in parallel and so doesn't extend the timeline. If one item dominates, name it as the long pole.
+**Critical path** (only when more than one hard blocker remains) — first state the dependencies between the hard blockers (X can't start until Y is done); then trace the *longest* chain through them — that chain, not a sorted list, is the critical path, and its length is the real time-to-milestone. List what's *not* on it as parallel/slack (doesn't extend the timeline). If one item dominates the chain, name it as the long pole.
 
 Rules: strict about blocker vs nice-to-have; ground every claim in the real state; name the real gate plainly; don't pad the critical path with parallelizable work.

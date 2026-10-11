@@ -9,7 +9,7 @@ const PROCEDURE = [
   "",
   "Produce a DECISION BRIEF for the decision named above (or, if none was given, the decision currently under discussion). The person wants to choose well — not a verdict with no alternatives, and not a bare menu with no guidance. Deliver both halves: the real options AND a committed recommendation.",
   "",
-  "Write it so a NON-TECHNICAL / product reader can follow every line. Lead with what each option means for the user and the product; put technical detail second, and only where it changes the choice. Define any unavoidable term in half a sentence.",
+  "Write it so a NON-TECHNICAL / product reader can follow every line. Lead with what each option means for the user and the product; put technical detail second, and only where it changes the choice. Define any unavoidable term in half a sentence. If the decision is inherently technical with no direct user or product angle, translate it into the consequence a non-technical stakeholder cares about — cost, speed, reliability, risk, future flexibility — but never demote or omit the real deciding factor just to stay product-first.",
   "",
   "## The decision",
   "One sentence: what is actually being decided, and why it matters now. Say whether it is reversible or a one-way door.",
@@ -22,7 +22,7 @@ const PROCEDURE = [
   "- Cost and effort — rough, in the time / money / complexity terms the person cares about.",
   "",
   "## Recommendation",
-  "Commit to one option (or a clear default) and say WHY — tie it to the person's actual goals and constraints, not to generic best practice. Do not fence-sit. If the call is genuinely theirs to make and you should not pre-empt it (it is irreversible, values-laden, or needs information only they hold), say so plainly and give them the single question that would settle it.",
+  "Commit to one option (or a clear default) and say WHY — tie it to the person's actual goals and constraints, not to generic best practice. Do not fence-sit. An irreversible / one-way-door decision is where a committed recommendation matters MOST: commit, make the caveats loud, and lean on 'What would change this' — never treat irreversibility itself as a reason to hand the call back. Defer only when the call is genuinely the person's to make (it is values-laden, or it needs information only they hold): then say so plainly and give them the single question that would settle it.",
   "",
   "## What would change this",
   "The one or two facts that, if they were different, would flip the recommendation — so the person knows what to watch for.",
@@ -34,7 +34,7 @@ const PROCEDURE = [
   "- Keep it as short as the decision allows.",
   "",
   "## Then: the decision record",
-  "After the brief — or once the person picks — offer to write a short DECISION RECORD they can keep, so the choice and its reasoning do not live only in chat. It captures: the date, the decision, the option chosen, the one-line why, the alternatives considered (and why not), and whether it is reversible. Put it where this project keeps such things (a decisions log, an ADR file, an issue, a doc); ask where, or write it inline if they have already said. A few lines — a record, not an essay.",
+  "After the brief — or once the person picks — offer to write a short DECISION RECORD they can keep, so the choice and its reasoning do not live only in chat. It captures: the date, the decision, the option chosen, the one-line why, the alternatives considered (and why not), and whether it is reversible. Put it where this project keeps such things (a decisions log, an ADR / decision-record file, an issue, a doc); ask where, or write it inline if they have already said. A few lines — a record, not an essay.",
 ].join("\n")
 
 export const register: Register = on => {

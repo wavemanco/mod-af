@@ -25,3 +25,7 @@ The checklist is distilled from [Wikipedia's *Signs of AI writing*](https://en.w
 ```
 /plugin install detell --marketplace wavemanco/mod-af
 ```
+
+## Or use the prompt
+
+Prefer not to install? [`prompt.md`](./prompt.md) is the same de-tell loop as a copy-paste prompt for any chat. (The plugin additionally manages the 14-day source re-check; the prompt form leaves that to you.)

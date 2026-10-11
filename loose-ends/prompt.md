@@ -9,7 +9,7 @@ Scan **this conversation** (and anything we did in it) for anything that exists 
 Sort every item into exactly one of three buckets:
 
 - **IMPLEMENT NOW** — small and in-scope enough to just do. Name it and offer to do it.
-- **FILE IT** — worth keeping but not now. For each, give: a one-line description; a **home** (where it should be recorded — an issue, task, backlog, decisions log, doc, ADR, or code comment, whatever this project already uses); and a **trigger** — the concrete event or condition that should bring it back ("next time X is touched", "before the next release", "when Y lands"), never a vague "later".
+- **FILE IT** — worth keeping but not now. For each, give: a one-line description; a **home** (where it should be recorded — an issue, task, backlog, decisions log, doc, ADR (decision-record file), or code comment, whatever this project already uses); and a **trigger** — the concrete event or condition that should bring it back ("next time X is touched", "before the next release", "when Y lands"), never a vague "later". If something genuinely has no concrete trigger (a "someday" idea), say so and file it to a backlog reviewed on a cadence (per release / per sprint) rather than inventing one.
 - **DROP** — raised but decided against, or now obsolete. One line, so it isn't re-litigated.
 
 Present the findings grouped under those three headings, most important first.
