@@ -1,0 +1,6 @@
+{
+  "name": "dynamics",
+  "version": "0.1.0",
+  "description": "Map any codebase, repo or product docs as a verified system-dynamics model (stocks, flows, feedback loops) and render it as an interactive stock-and-flow diagram.",
+  "author": { "name": "moondocksaint" }
+}
