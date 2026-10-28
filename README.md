@@ -28,10 +28,12 @@ In a Claude Code terminal session, for any plugin above:
 
 Press `y` to add the marketplace, then pick a scope. (Or skip the install and use that plugin's `prompt.md`.)
 
-## Adding a plugin to this collection
+## Pull requests
 
-Each plugin is a self-contained folder with its own `.claude-plugin/plugin.json` and `hooks/`, plus a `prompt.md` (the copy-paste form) and a `README.md`. To add one:
+This repository is in its startup phase. To keep early development focused and
+manageable, new pull requests are currently limited to repository collaborators
+with write access. We will revisit this policy as the project matures.
 
-1. Create `<plugin-name>/` holding `.claude-plugin/plugin.json`, `hooks/hooks.json`, and the hooks module it names.
-2. Add an entry to [`.claude-plugin/marketplace.json`](./.claude-plugin/marketplace.json): `{ "name": "<plugin-name>", "source": "./<plugin-name>" }`.
-3. Run `claude plugin validate <plugin-name>` before committing.
+## License
+
+[MIT](./LICENSE) © 2026 mod-af contributors.
