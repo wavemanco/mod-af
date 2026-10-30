@@ -1,0 +1,6 @@
+{
+  "name": "stockflow",
+  "version": "0.1.0",
+  "description": "Source-grounded system-dynamics (stock-and-flow) models of a codebase, repo or product docs: every element cited and quote-checked, every feedback loop found and typed, a rendered page with a generated legend, and a capped review.",
+  "author": { "name": "moondocksaint" }
+}
