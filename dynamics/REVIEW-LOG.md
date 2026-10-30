@@ -473,7 +473,9 @@ round 2 (commit `e09f4bc`): V01 now warns about it.
 and the documents. Each re-checked the round-1 fixes in its area, and what each fix touched, and
 nothing else.
 - **Code and tests:** all 13 fixes in its area hold, including the new V01 warning. The reviewer
-  undid each fix in a scratch copy, and its test failed every time.
+  undid each fix that has a test in a scratch copy, and its test failed every time; the two without
+  a test, the agent descriptions and the `agreed` field's description, were checked by probe and by
+  reading.
 - **Method and documents:** 24 of 29 hold. Five were only partly done:
   - the briefs still told the reviewers not to review the report's hypotheses;
   - the README still promised that each round is smaller than the last;
@@ -491,12 +493,13 @@ It found 14 new problems in what the fixes touched: 6 medium, 8 low, none high.
   - the overclaim stood in the README's opening, the repository README, the marketplace entry and the
     skill description. All now say "every observed", and the two install descriptions are identical;
   - this log's round-1 counts were wrong. They are corrected above;
-  - the sketch spec's guard read a flag that a hand edit can drop. It now reads the parts themselves:
-    in any mode, a loop in `answer.loops` with no observed or evidenced part is warned about and
-    marked. This is the root fix; the quick fix was to delete the claim the spec could not keep.
+  - the sketch spec's guard read a flag that a hand edit can drop. The spec (DYN-001, not built) now
+    has the guard read the parts themselves: once built, in any mode, a loop in `answer.loops` with no
+    observed or evidenced part is warned about and marked. This is the root fix; the quick fix was to
+    delete the claim the spec could not keep.
 - **Low:**
-  - the README and REFERENCES restated the rounds rule without round 1's changes. Both are now short
-    and point to step 7;
+  - the README and REFERENCES restated the rounds rule without round 1's changes. Both are now current
+    and point to steps 7 and 9;
   - "record the answer as `review.agreed`" could be read as the further rounds, not the total;
   - the paste form had no place for the review note;
   - this log did not record the yes for round 2;
@@ -517,3 +520,13 @@ The new test assertions each fail with their fix undone, in a scratch copy:
 
 **Not reviewed.** Two rounds were agreed and both have run, so under the method's rule the round-2
 fixes are not reviewed again. No high finding is open.
+
+**Closure check.** This was not a review round. One read-only reader confirmed that each round-2
+item is closed, and did not look for new problems. All 19 items are closed, and no fix contradicts
+the code. It found that this account overstated three things:
+- that every round-1 fix had a test;
+- that the restated rules became shorter;
+- that the sketch guard already runs.
+
+It also found three wording leftovers in README and REFERENCES: "two reproductions", "every element
+carries evidence", and "step 7" where the correction rule is in step 9. All six were corrected.

@@ -46,7 +46,7 @@ result, because it runs none.
    finds nothing serious, and it never runs a round you did not agree to. If serious findings remain,
    it recommends more rounds, says why and what they cost, and waits for your answer. The page footer
    shows rounds run against rounds agreed, and the fixes no round reviewed. A later correction is
-   reviewed only if you say yes. The full rule is step 7 of [`prompt.md`](./prompt.md).
+   reviewed only if you say yes. The full rule is steps 7 and 9 of [`prompt.md`](./prompt.md).
 6. **Report.** The one-line answer, the page, the model file and the record, plus what the structure
    suggests, each marked as a hypothesis: the two or three leverage points, the missing feedback, and,
    where a reference mode gives a basis, which loop likely dominates when, with what would test it.
@@ -205,8 +205,8 @@ checker or the method enforces it; "guided" means it shaped a step without being
 | Hines, MIT 15.879 "Standard Method" | Guided: the order of elicitation (variables, reference modes, problem, hypotheses), and naming a variable as something that can go up or down (the checker requires only a label). |
 | Trimble 2014 | Rule: exogenous inputs (on the boundary) and excluded items (outside it) are kept as separate lists. |
 | Vensim and Stella (isee) documentation | Rule: a shadow (ghost) copy of an element adds no structure and nothing points into it. |
-| Forrester & Senge 1980 (read through two reproductions, Shreckengost among them) | Rules: the structure tests that need no simulation, among them the extreme-condition test (what stops each outflow when its stock is empty), boundary adequacy, and dimensional consistency (flows counted in their stock's units per time unit). |
-| Shreckengost, MIT D-4463 | Rule: "every element of the model should have a real-world counterpart", the reason every element carries evidence. |
+| Forrester & Senge 1980 (read through two secondary accounts, Shreckengost's reproduction among them) | Rules: the structure tests that need no simulation, among them the extreme-condition test (what stops each outflow when its stock is empty), boundary adequacy, and dimensional consistency (flows counted in their stock's units per time unit). |
+| Shreckengost, MIT D-4463 | Rule: "every element of the model should have a real-world counterpart", the reason every observed element carries evidence and every inferred one a claim. |
 | Schwaninger & Groesser 2009 | The line between what the plugin checks (structure) and what it states only as a labelled hypothesis with a test (behaviour, sensitivity, loop dominance, which need simulation). |
 | Barlas 1996; Lane 2008 | Guided: structure is validated first, and a diagram alone does not establish behaviour, so every page says it is not a simulation. |
 | Richardson 2011 | Rule (a warning): the endogenous point of view: a behaviour explained from outside the model is flagged. |
