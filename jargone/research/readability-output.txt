@@ -1,0 +1,4 @@
+plugin README, before words  2002  avg sentence 17.0  longest  90  Flesch ease  70.1  FK grade  7.7
+plugin README, after  words  1533  avg sentence 13.4  longest  40  Flesch ease  70.3  FK grade  6.8
+repo entry, before    words    78  avg sentence 13.0  longest  45  Flesch ease  75.4  FK grade  6.0
+repo entry, after     words    56  avg sentence 11.2  longest  29  Flesch ease  68.6  FK grade  6.5
