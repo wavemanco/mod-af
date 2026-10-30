@@ -1,7 +1,7 @@
 // The dynamics/1 checker. One parse, staged checks, everything derived once and handed to the
 // renderer. Pure apart from `check`, which reads files through the `Io` it is given.
 //
-// Rule codes and the sources behind them are listed in REFERENCES.md and the README.
+// Rule codes and the sources behind them are listed in REFERENCES.md and DETAILS.md.
 
 import { SECTIONS, STATUS_DOC, type Field, type SectionName } from './fields.ts'
 import { enumerateCycles, loopType, type Edge, type Sign } from './graph.ts'

@@ -1,127 +1,131 @@
 # dynamics
 
-A system-dynamics picture of a codebase, a repository or a set of product docs that you can trust: a
-stock-and-flow model in which every observed part points at the line of code or the sentence it
-comes from and every inferred part is marked as modelled, every feedback loop is found and typed
-mechanically, and the page explains every mark it draws.
+`dynamics` explains why a software system or product behaves the way it does over time: why a
+backlog keeps growing, why each round of fixes produces new defects, why costs creep up, why adoption
+stalls. It does this by building a system-dynamics model of the system from its code or documents,
+checking the model against those sources, and drawing it.
 
-`/dynamics <what to model> — <the question>` produces:
+## What system dynamics is
 
-- **A page** with the question and a short answer first, then a legend in plain words ("a box is
-  something that piles up…"), then one to three figures in stock-and-flow notation. Select any element
-  to see its source; select a loop to trace it.
-- **The model file** (`model.json`), the single source everything on the page is derived from.
-- **A plain-text reader view** of the page, for reviewing without a browser (returned by the tools, not
-  written to disk).
-- **A short record** of how it was reviewed, what was accepted as a known limit, and what was not
-  checked.
+System dynamics, developed by Jay Forrester at MIT, explains behaviour over time by a system's
+structure rather than by individual events. A model has three kinds of part:
+- **Stocks:** quantities that accumulate, such as jobs waiting in a queue, open bugs or active users.
+  A stock changes only through its flows.
+- **Flows:** the rates that fill or drain a stock, such as jobs arriving per minute or bugs fixed per
+  week.
+- **Causal links:** one quantity affecting another, marked + (more of A makes B higher than it would
+  otherwise be) or − (lower).
 
-It is written for people who have never seen system dynamics, and it is a model of **structure**: it
-shows what is wired to what, not how the numbers will move over time. It never presents a simulation
-result, because it runs none.
+When a chain of links and flows leads from a stock back to its own flows, it forms a **feedback
+loop**. A **reinforcing** loop amplifies change: more of something produces still more of it. A
+**balancing** loop pushes toward a limit or a goal. The method's premise is that growth, stalls and
+overshoot come mainly from these loops, and from which of them dominates at a given time, rather than
+from any single part.
+
+## What the plugin does
+
+You ask a question about a codebase, a repository or a set of product documents. `dynamics` reads
+the sources, builds the model that answers the question, checks it and renders it as a web page.
+- **Grounded in the sources.** Each part that the sources show to exist quotes the exact words of
+  the code or document it comes from (usually with line numbers), and the checker opens the file and
+  confirms the quote is there. A part
+  that is inferred is labelled *modelled* and says what was assumed. A part that is documented but not
+  built, or missing, is labelled as such and kept out of the working loops.
+- **Loops found mechanically.** The checker finds the feedback loops in the model, reports any the
+  model did not declare, and works out from the signs of its links whether each one reinforces or
+  balances.
+- **A readable page.** The page starts with the question and a short answer naming the loops that
+  carry it, then the diagrams, with a legend that explains every symbol in plain words.
+
+**Example** (the worked example that ships with the plugin). Asked "Why can failures keep the queue
+long even though the workers are busy?" about a small job runner, the model finds:
+- a reinforcing loop: more jobs in flight mean more failures, and each failure under the retry limit
+  puts a job back in the queue;
+- balancing loops: the worker limit caps how fast jobs leave the queue.
+
+So requeued jobs compete with new ones for the same worker slots. It also shows that paging watches
+the queue but feeds nothing back into the runner: a missing feedback loop.
+
+**What it does not do.** It models structure only. It runs no simulation and makes no numerical
+forecast. The short answer, the suggested leverage points (places where a change would act on a loop
+the answer rests on) and any view on which loop dominates are stated as hypotheses, each with what
+would test it.
+
+## When to use it, and when to use something else
+
+Use `dynamics` when the question is **why something keeps happening over time**, and the answer is
+likely to lie in accumulation and feedback.
+
+Use an architecture or flow diagramming tool (for example
+[Archify](https://github.com/tt-a1i/archify)) when the question is **what the parts are and how they
+connect**: a service map, a request path, a sequence, a data flow. In those diagrams a connection
+means "is connected to" (calls, sends data to, contains). In a `dynamics` model a link means "more of
+this causes more, or less, of that", which is what lets it find reinforcing and balancing loops,
+leverage points and missing feedback. Archify can also cite a repository, with file and line ranges
+pinned to a commit; `dynamics` checks the quoted words themselves. The two work well together: the
+architecture map shows what is wired, the dynamics model shows why it behaves as it does.
+
+It is the wrong tool for a stateless utility or a one-off script, and it says so.
+
+## Usage
+
+```
+/dynamics <what to model> — <the question>
+```
+
+Run `/dynamics` with nothing after it and it proposes two or three questions for the current
+repository. `/dynamics-check <model.json>` re-checks a model you edited by hand and re-renders its
+page.
+
+You get:
+- **a page** with the question, the short answer, a plain-language legend and one to three diagrams.
+  Select any part to see its source; select a loop to trace it;
+- **the model file** (`model.json`), the single source everything on the page is derived from;
+- **a plain-text reader view** of the page, for reviewing without a browser (returned by the tools,
+  not written to disk);
+- **a short record** of how the model was reviewed, what was accepted as a known limit, and what was
+  not checked.
 
 ## How it works
 
 1. **Ask the question, and decide whether to model at all.** A model answers a question; it is not an
-   inventory. Run `/dynamics` with nothing after it and it proposes two or three questions for the
-   current repo. If nothing accumulates and nothing feeds back, it says so and stops (or offers a plain
-   architecture map). It also asks how many review rounds you want (2 by default; see step 5).
-2. **Survey from three angles, then map.** One pass follows a single unit of work (the engine), one what
-   accumulates over time (growth and memory), one the gates, budgets and incentives (control); each
-   also notes missing feedback. Accumulations become stocks, rates become flows, settings become
-   constants, and "the code reads X to decide Y" becomes a link, each with an exact quote of where it
-   shows. Something documented but not built, or missing, is drawn as such and kept out of the live
-   loops. Where a guess carries the answer, it looks for evidence and cites it.
-3. **Check.** The `check` tool opens every cited file and confirms each quote is there (in the cited
-   lines, when given), enforces the notation, finds every closed causal path (feedback loop) and works
-   out whether it reinforces or balances, checks numbers and units, and derives the model boundary. A loop the model forgot is
-   reported with its route (each step's mechanism) and a declaration to complete: the modeller traces
-   it and decides whether it reinforces or balances, and the check compares that with the signs.
-4. **Render.** The `render` tool lays the figures out, avoids overlaps where it can and reports where
-   it cannot, and builds the legend from the marks actually drawn.
-5. **Review, converging, with you deciding.** A draft is shown first. Then independent reviewers check
-   it through three lenses: facts against the sources, system-dynamics rules, and a cold reader who sees
-   only the page. You set the number of rounds up front (2 by default: one full round, then one on
-   the fixes and what they touched). The agreed number ends the review: it stops early when a round
-   finds nothing serious, and it never runs a round you did not agree to. If serious findings remain,
-   it recommends more rounds, says why and what they cost, and waits for your answer. The page footer
-   shows rounds run against rounds agreed, and the fixes no round reviewed. A later correction is
-   reviewed only if you say yes. The full rule is steps 7 and 9 of [`prompt.md`](./prompt.md).
+   inventory. If nothing accumulates and nothing feeds back, it says so and stops (or offers a plain
+   architecture map). It also asks how many review rounds you want (step 5).
+2. **Survey, then map.** It reads the sources from three angles: how a single unit of work moves
+   through the system, what accumulates over time, and the gates, budgets and incentives that control
+   it. Accumulations become stocks, rates become flows, settings become constants, and "the code reads
+   X to decide Y" becomes a link, each with an exact quote of where it shows.
+3. **Check.** The `check` tool confirms every quote is in its cited file, enforces the notation, finds
+   every feedback loop and its type, and checks numbers and units. A loop the model missed is reported
+   with its route, for the modeller to trace and declare.
+4. **Render.** The `render` tool lays out the diagrams and builds the legend from the symbols actually
+   drawn.
+5. **Review, with you deciding how much.** You choose the number of review rounds at the start (2 by
+   default). Independent reviewers check the facts against the sources, the system-dynamics rules, and
+   whether someone new to the method can read the page. Later rounds check only the fixes. It never
+   runs more rounds than you agreed: if serious problems remain, it recommends more and waits for your
+   answer. The page footer shows how the model was reviewed and anything left unreviewed. The full rule
+   is steps 7 and 9 of [`prompt.md`](./prompt.md).
 6. **Report.** The one-line answer, the page, the model file and the record, plus what the structure
-   suggests, each marked as a hypothesis: the two or three leverage points, the missing feedback, and,
-   where a reference mode gives a basis, which loop likely dominates when, with what would test it.
+   suggests, each marked as a hypothesis: two or three leverage points, the missing feedback and, where
+   the sources describe a pattern over time, which loop likely dominates when.
 
-`/dynamics-check <model.json>` re-checks a model you edited by hand and re-renders its page.
+## What is checked
 
-## What it checks, and what it does not
+The checker tests, with a published source for each rule (a few findings are errors; most are
+warnings that the model must resolve or explain):
+- **notation:** flows run between stocks; links never end on a stock; every link has one sign;
+- **evidence:** every quote is found in its cited file, and any number the page states as fact comes
+  from a checked quote or a labelled assumption;
+- **loops:** every feedback loop is found, declared and typed correctly, and every loop contains a
+  stock;
+- **structure tests that need no simulation:** what stops a stock from draining below empty, units,
+  parts that affect nothing, and inputs with no source;
+- **the page:** the legend lists exactly the symbols drawn.
 
-Checked mechanically, with the source for each rule (see [`REFERENCES.md`](./REFERENCES.md)):
-
-| Area | Rules |
-|---|---|
-| Notation | Flows run between stocks and clouds; every stock has a flow; links never end on a stock, constant, cloud or shadow; one sign per link, + or −; clouds say why they are outside; every element states its status, so a misspelt field cannot turn something into "observed"; ids are unique regardless of case (Ford 2019; MIT D-4498; Sterman 2001; Richardson 1997) |
-| Evidence | Every observed element has at least one exact quote that the check finds in its cited file, as whole words and whole numbers, in the cited lines when they are given (lines are recommended, and a warning says where the quote sits); a web address alone is not enough; inferred parts carry a claim; a number the page states as fact that is in no checked quote or modelled claim is flagged, the page and its sources being read by one reader and a quote lending only the numbers its file gives inside the quote, the file read as a whole (so a quote cut from a call or list opened on an earlier line lends that call's or list's items) (an element's own text against its own sources; a loop's name and story against the elements on the loop and those that link into them; a behaviour pattern against its own checked quotes, and a suspected one's "why"; page-wide prose, cloud labels included, against the whole model; title, question, horizon, loop goals, units and component names excepted); observed code backed only by documents is flagged, judged by the file's extension or name (a document's name such as README, CHANGELOG or HISTORY counts with no extension, a document extension or .txt, whatever "kind" says), and for any other .txt or .html file by its declared "kind", or with none by its folder or a saved extract's "from"; a file Claude Code refuses to read is reported in its words, except that a notebook, PDF or image is named for what it is, with the tool's first sentence when it names another problem; a person's refusal is reported in their words (Shreckengost; Naugle 2024) |
-| Loops | Every closed causal path is a declared loop; a loop the model missed is reported with its route and no verdict, so the modeller traces it first; loop ids are R1… or B1…, and the letter must match the type, which is the product of the signs with a flow + into the stock it fills and − out of the one it drains; every loop contains a stock; loops through parts that are not built are listed separately; at most 40 loops a figure (Naugle 2024; Sterman 2000; Sterman 2001; Ford 2019; Johnson 1975) |
-| Structure tests without simulation | What stops each outflow when its stock is empty (a net + path from the stock to its outflow, built or recorded as intended or missing; a stock that reaches its outflow only through net − paths, built or not, is flagged); information delays on loops, which hide a stock; units of flows against their stocks; elements that affect nothing; variables with no inputs (Forrester & Senge 1980; Schwaninger & Groesser 2009; Sterman 2001; Trimble 2014) |
-| Page | The legend lists exactly the marks drawn, one entry per combination; a copy of an element (a shadow) shows that element's status and highlight, and selecting it shows the claim and sources of what it copies; layout warnings for overlaps and crossings; a figure that cannot be drawn is not written |
-
-Not machine-checked, and said so on every run: whether a quote supports what is drawn (the facts
-review does that), whether prose is true, whether a text extract of a web page or PDF matches the
-original (the method requires a tool-made extract and records the command), whether a number in
-page-wide prose comes from the element it is about, numbers in prose written as compound durations
-or versions with more than two parts (hex and scientific forms are compared by value), numbers in a
-locale's own format (every number is read the English way: "1.000" is 1, "3,5" is 3 and 5), digits
-in brackets on the page, which are read as a list in code ("[1,500]" is 1 and 500), which text in a
-source is a comment (guessed by its marker, `#`, `//`, `--` or `/*`, and read as prose), and
-anything about behaviour over time. Most of these checks are warnings: the model must resolve each one
-or say why it stands.
-
-Numbers are read one way on the page and in its sources, and a checked quote lends the numbers its
-file gives inside the quote, the file read as a whole. Digits joined by commas in threes are one
-number, quoted or not, unless they are an item of a list in code: between commas or brackets (spaces
-and line breaks allowed) inside `[ ]`, `{ }`, or a `(` that follows `=`, a comma, an opening bracket, a
-name with no space (a call), or SQL's `IN` or `VALUES` in capitals, and not inside a string or a
-comment opened after that bracket. A comment is read as prose, as a string is, and is guessed by its
-marker alone, outside a string: `#`, `//` or `--` to the end of the line, and `/*` to `*/`; quote
-marks inside a comment are not counted. So
-`[100,250,500]`, `range(1,100)` and `IN (500,502,503)` give their items, while "(up to 1,500 jobs)",
-`limit (1,500)` and `log("over 1,500 jobs")` give 1500, and `// waits 500, 1,000, 2,000 ms` inside a
-function body gives 500, 1000 and 2000. The page is read the same way: "[1,500]" in the answer is 1
-and 500, and a warning for such an item names the list it came from; write one number outside
-brackets, and a list as plain numbers (`[1000, 5000]`). Known limits: a CSV row `8,120` reads as 8120;
-a list held in a string (`"retry_on": "500,502,503"`) is one number; a bracket written inside a string
-or a comment still opens a list (`"see [1,000, 5,000]"` gives 1, 0, 5 and 0, and a Lua `--[[ ]]` block
-is read as code on every line); a marker that is no comment (Python's floor division `//`, a `#` that
-is not a comment, a decrement `--`) makes the items after it, in a bracket opened before it, read as
-prose to the end of its line (after `/*`, to the next `*/`), so such a list is one number; a `/*` that
-opens no comment stops the count of quote marks until the next `*/`, so a string after it may be read
-as code; a `(` after a name and a space (`return (1,500)`, `x (1,500)`), after a colon, after
-lower-case `in` or after a closing bracket (`handlers[0](1,500)`, `make_clamp(n)(1,500)`) is prose, so
-its digits are one number. A page number taken from any of these is flagged (E04); accept the warning
-and say why.
-
-## When to use it, and when to use something else
-
-Use `dynamics` when the question is **why something keeps happening over time**: why a backlog keeps
-growing, why each round of fixes produces new defects, why costs creep up, why adoption stalls. It
-maps what accumulates, what fills and drains it, and the feedback loops that push the behaviour
-forward or hold it back, with a sign on every link and each loop typed as reinforcing or balancing.
-Every observed part points at the line of code or sentence it comes from, and the checker confirms
-each quote is really there; anything inferred is marked modelled and says what was assumed.
-
-Use an architecture or flow diagramming tool (for example
-[Archify](https://github.com/tt-a1i/archify)) when the question is **what the parts are and how they
-connect**: a service map, a request path, a sequence, a data flow, a plan. Those tools draw
-topology and paths, often from a plain description; they do not model accumulation or feedback, and a
-connection there means "is connected to" (calls, sends data to, moves to, contains), not "more of this
-causes more (or less) of that". Archify can also cite a repository: its nodes carry file and line
-ranges pinned to a commit, which it checks exist, and its explainer pages answer questions in prose
-and diagrams. `dynamics` checks the quoted words themselves, cites every observed link and flow (marking the rest modelled), signs every
-link and types every loop, which is what lets it name the reinforcing loop behind a runaway problem,
-the leverage points and the missing feedback. The two work well together: the architecture map shows
-what is wired, the dynamics map shows why it behaves as it does.
-
-It is the wrong tool for a stateless utility or a one-off script, and it says so.
+Not machine-checked, and said so on every run: whether a quote supports what is drawn (a reviewer
+checks that), whether prose is true, and anything about behaviour over time. The full rules, how
+numbers in quotes are read, and their known limits are in [`DETAILS.md`](./DETAILS.md).
 
 ## Install
 
@@ -129,36 +133,9 @@ It is the wrong tool for a stateless utility or a one-off script, and it says so
 /plugin install dynamics --marketplace wavemanco/mod-af
 ```
 
-The plugin's two tools (`mcp__dynamics__check`, `mcp__dynamics__render`) work under your own
-permission settings:
-- Every file they read, the model included, is read through Claude Code's own Read tool, and the page
-  is written through its Write tool. Your rules, permission mode, hooks and dialogs therefore decide
-  each read and write exactly as they would for Claude's own calls: in default mode you are asked
-  before the page is written; in accept-edits mode it is written.
-- `render` writes only where the page lands inside the model file's folder, never onto a symbolic link,
-  and never over a
-  file dynamics did not write or one changed since. The page carries a fingerprint of its own
-  content, so this holds on any machine and after a git checkout; reformatting that only changes
-  whitespace is not counted as a change. A hook that strips comments from the page as it is written
-  removes the fingerprint; the render says so, and later renders will not replace that page until it
-  is deleted. While such a hook runs, each new page loses its fingerprint too, so also exclude the page
-  from the hook.
-- An explicit allow, ask or deny rule for the tools themselves is honoured (an ask rule is put to you
-  as a question). Known limit: a PreToolUse hook that matches the tools' own names
-  (`mcp__dynamics__…`) is not run for them, because a plugin's own tool is answered by the plugin;
-  hooks on Read and Write still run for every file the tools touch.
-- Nothing is read past 2 MB or from anything but a regular file. One Read call returns about 25,000
-  tokens by default (`CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS` changes it) and dynamics asks for at
-  most 2,000 lines, so a large file takes several calls (a
-  1.5 MB file of mostly 270-character lines took 30 in a real session; a file of very short lines takes one
-  call per 2,000 lines). In default mode a file outside the working folder is asked about on each Read
-  call; adding its folder with `/add-dir` avoids that.
-- Known limits of reading through the Read tool: it reads whole lines, so a file with a very long line
-  (minified JSON, a one-line bundle) cannot be read, and it returns PDFs and images as non-text.
-  Notebooks are cited through an extract by choice: dynamics cites line numbers, which a notebook's
-  cells do not have and a script extract does. Cite a text extract made with a tool instead (a
-  pretty-printed copy, `jupyter nbconvert --to script`, `pdftotext`), and record the command in the
-  evidence's `from`.
+The plugin's tools read and write files only through Claude Code's own Read and Write tools, so your
+permission settings apply to every file they touch. The details and limits are in
+[`DETAILS.md`](./DETAILS.md#permissions-and-file-access).
 
 A headless browser is optional: with one, the model inspects screenshots of the page in light and
 dark mode and at phone width; without one, it reviews the reader view and says the page was not
