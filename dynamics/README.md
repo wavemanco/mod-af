@@ -116,7 +116,7 @@ topology and paths, often from a plain description; they do not model accumulati
 connection there means "is connected to" (calls, sends data to, moves to, contains), not "more of this
 causes more (or less) of that". Archify can also cite a repository: its nodes carry file and line
 ranges pinned to a commit, which it checks exist, and its explainer pages answer questions in prose
-and diagrams. `dynamics` checks the quoted words themselves, cites every link and flow, signs every
+and diagrams. `dynamics` checks the quoted words themselves, cites every observed link and flow (marking the rest modelled), signs every
 link and types every loop, which is what lets it name the reinforcing loop behind a runaway problem,
 the leverage points and the missing feedback. The two work well together: the architecture map shows
 what is wired, the dynamics map shows why it behaves as it does.

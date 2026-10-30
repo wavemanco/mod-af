@@ -419,7 +419,7 @@ have not had an independent review of their own; the next change to this plugin 
   Revisit if that many permission requests outside the working folder becomes a problem: the Read
   tool accepts more than 2,000 lines per call.
 
-## The merge into `dynamics` (2026-10-30): two review rounds, as agreed
+## The merge into `dynamics` (2026-10-30): three review rounds, as agreed
 
 **What changed.** `stockflow` became `dynamics` and took the earlier prototype's method: three survey
 angles, reference modes as patterns, the "should this be modelled at all?" check, the research step,
@@ -518,8 +518,8 @@ The new test assertions each fail with their fix undone, in a scratch copy:
 
 365 tests pass, and both validators pass.
 
-**Not reviewed.** Two rounds were agreed and both have run, so under the method's rule the round-2
-fixes are not reviewed again. No high finding is open.
+**Not reviewed, until round 3.** Two rounds were agreed and both had run, so under the method's rule
+the round-2 fixes were not reviewed again until the maintainer agreed a third round (below).
 
 **Closure check.** This was not a review round. One read-only reader confirmed that each round-2
 item is closed, and did not look for new problems. All 19 items are closed, and no fix contradicts
@@ -530,3 +530,27 @@ the code. It found that this account overstated three things:
 
 It also found three wording leftovers in README and REFERENCES: "two reproductions", "every element
 carries evidence", and "step 7" where the correction rule is in step 9. All six were corrected.
+
+**Round 3, on the round-2 fixes only.** The maintainer asked for a third round (agreed raised from 2
+to 3), on the round-2 fixes and the closure check's wording fixes, and what each touched. As in round 2,
+it used two read-only reviewers, one on the code and tests and one on the method and the documents.
+
+Every round-2 fix holds: 24 verdicts across the two reviewers, with some items checked from both sides.
+The reviewers undid each new test's fix in a scratch copy, and each test failed.
+
+Round 3 found three new problems, all low:
+- step 9 said to "say in" the review note, so a model could overwrite earlier disclosures, and the
+  field's description still read "one line, e.g. a known limit". The root fix was taken: step 7 of the
+  method now defines the review note once (every gap in the review, added to and never dropped), and
+  step 0, step 9, the paste form and the field's description point to it instead of each listing part
+  of it;
+- the README's Archify comparison said `dynamics` "cites every link and flow". It now says every
+  observed one, with the rest marked modelled;
+- the sketch spec's guard relied on `answer.loops`, which can be empty. The root fix was taken in the
+  spec (DYN-001, not built): the check also warns when no part of the whole model is observed or
+  carries evidence, and a test covers the empty case.
+
+365 tests pass, and both validators pass.
+
+**Not reviewed.** Three rounds were agreed and all have run, so round 3's fixes are not reviewed again.
+No finding of any severity is open.

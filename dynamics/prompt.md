@@ -51,7 +51,7 @@ Two rules govern everything:
   review round take for a system this size, and ask how many review rounds they want: **2 by default**
   (one full round, one on the fixes), 1 for a quicker result, 0 for a draft marked unreviewed. If the
   target's house rules impose their own review process, offer it as the alternative; if the person
-  picks it, record that in `review.note` and agree one round at a time. Either way, note the number
+  picks it, add that to the review note (step 7) and agree one round at a time. Either way, note the number
   agreed: it becomes the model's `review.agreed` when you write the model (step 4), always the total
   agreed so far, raised by each further round the person agrees to. You never start a round beyond it
   without their yes (step 7). Then post a one-line note at each step.
@@ -226,8 +226,12 @@ review is the agreed number of rounds.
 
 **The person sets the number of rounds** (`review.agreed`, step 0; 2 by default):
 - Stop early when a round finds nothing high or medium.
-- **After the last agreed round,** fix what it found, then say in `review.note` (the footer shows it)
-  that these last fixes were not reviewed, and list any high finding still open.
+- **After the last agreed round,** fix what it found, then add to the review note that these last
+  fixes were not reviewed, and any high finding still open.
+- **The review note** (`review.note`, shown in the page footer) discloses every gap in the review:
+  fixes no round reviewed (the last round's, or a correction the person chose not to review, step 9),
+  high findings still open, and a house review process if one was chosen (step 0). Add to it; never
+  drop an earlier item.
 - **Never start a round beyond the agreed number on your own.** If high or medium findings remain after
   the last agreed round, recommend a number of further rounds (usually one), and say why: what is
   still wrong, whether a reader would be misled, and the time it takes. Then wait. The person decides;
@@ -264,8 +268,8 @@ finding; that needs a calibrated simulation (Schwaninger & Groesser 2009; Barlas
 
 When the person corrects something later ("that arrow is wrong"): change the model, check and render,
 then ask whether to review the correction (recommend one corrections-only round, and say what it
-costs). If they agree, raise `review.agreed` by one (it holds the total); if they decline, say in
-`review.note` that the correction was not reviewed. Then update the same page and record.
+costs). If they agree, raise `review.agreed` by one (it holds the total); if they decline, add to the
+review note (step 7) that the correction was not reviewed. Then update the same page and record.
 <!-- method:end -->
 
 <!-- lenses:start -->
@@ -384,8 +388,7 @@ substitutions:
   legend, and each figure described in words (its stocks, flows, links and loops).
 - **"Write the review into the model so the page footer shows it"** means: end the page with how it was
   reviewed (rounds run of rounds agreed, independent or not, inspected visually or not), then the
-  review note: fixes no round reviewed, high findings still open, and a house review process if one
-  was chosen.
+  review note (step 7).
 - **The review lenses** are the briefs above, each given to a separate reviewer or done as a separate,
   labelled pass of your own.
 
