@@ -2,8 +2,8 @@
 
 `dynamics` explains why a software system or product behaves the way it does over time: why a
 backlog keeps growing, why each round of fixes produces new defects, why costs creep up, why adoption
-stalls. It does this by building a system-dynamics model of the system from its code or documents,
-checking the model against those sources, and drawing it.
+stalls. It builds a system-dynamics model of the system from its code or documents, checks that
+every quote the model rests on is really in its file, and draws the model as a web page.
 
 ## What system dynamics is
 
@@ -27,29 +27,32 @@ from any single part.
 You ask a question about a codebase, a repository or a set of product documents. `dynamics` reads
 the sources, builds the model that answers the question, checks it and renders it as a web page.
 - **Grounded in the sources.** Each part that the sources show to exist quotes the exact words of
-  the code or document it comes from (usually with line numbers), and the checker opens the file and
-  confirms the quote is there. A part
-  that is inferred is labelled *modelled* and says what was assumed. A part that is documented but not
-  built, or missing, is labelled as such and kept out of the working loops.
-- **Loops found mechanically.** The checker finds the feedback loops in the model, reports any the
-  model did not declare, and works out from the signs of its links whether each one reinforces or
-  balances.
+  the code or document it comes from (usually with line numbers), and the plugin's built-in checker
+  opens the file and confirms the quote is there. A part that is inferred is labelled *modelled* and
+  says what was assumed. A part that is documented but not built, or one the system lacks (such as a
+  check nobody wrote), is labelled as such and kept out of the loops that exist today.
+- **Loops found mechanically.** The checker finds every feedback loop in the model and reports an
+  error for any loop the model has not declared. For each declared loop it works out from the signs
+  of its links whether the loop reinforces or balances, and reports an error if the declaration says
+  otherwise.
 - **A readable page.** The page starts with the question and a short answer naming the loops that
   carry it, then the diagrams, with a legend that explains every symbol in plain words.
 
 **Example** (the worked example that ships with the plugin). Asked "Why can failures keep the queue
 long even though the workers are busy?" about a small job runner, the model finds:
-- a reinforcing loop: more jobs in flight mean more failures, and each failure under the retry limit
-  puts a job back in the queue;
-- balancing loops: the worker limit caps how fast jobs leave the queue.
+- a reinforcing loop (R1): more queued jobs mean more jobs dispatched and running, so more failures,
+  and every failure under the retry limit goes back into the queue;
+- two balancing loops (B1, B2): dispatching drains the queue, but only into free worker slots, and the
+  slots fill up as jobs run.
 
-So requeued jobs compete with new ones for the same worker slots. It also shows that paging watches
-the queue but feeds nothing back into the runner: a missing feedback loop.
+So retried jobs compete with new ones for the same eight worker slots. It also shows that paging
+watches the queue but feeds nothing back into the runner.
 
-**What it does not do.** It models structure only. It runs no simulation and makes no numerical
-forecast. The short answer, the suggested leverage points (places where a change would act on a loop
-the answer rests on) and any view on which loop dominates are stated as hypotheses, each with what
-would test it.
+**What it does not do.** It describes how the parts are connected; it runs no simulation and makes
+no numerical forecast. The short answer and the suggested leverage points (places where a change
+would act on a loop the answer rests on) are hypotheses read from the diagram, not measured results.
+It says which loop probably dominates only where there is data, or a stated suspicion, about how the
+behaviour changes over time, and then it names the data that would test it.
 
 ## When to use it, and when to use something else
 
@@ -61,8 +64,7 @@ Use an architecture or flow diagramming tool (for example
 connect**: a service map, a request path, a sequence, a data flow. In those diagrams a connection
 means "is connected to" (calls, sends data to, contains). In a `dynamics` model a link means "more of
 this causes more, or less, of that", which is what lets it find reinforcing and balancing loops,
-leverage points and missing feedback. Archify can also cite a repository, with file and line ranges
-pinned to a commit; `dynamics` checks the quoted words themselves. The two work well together: the
+leverage points and missing feedback. The two work well together: the
 architecture map shows what is wired, the dynamics model shows why it behaves as it does.
 
 It is the wrong tool for a stateless utility or a one-off script, and it says so.
@@ -94,7 +96,8 @@ You get:
 2. **Survey, then map.** It reads the sources from three angles: how a single unit of work moves
    through the system, what accumulates over time, and the gates, budgets and incentives that control
    it. Accumulations become stocks, rates become flows, settings become constants, and "the code reads
-   X to decide Y" becomes a link, each with an exact quote of where it shows.
+   X to decide Y" becomes a link. Each part seen in the sources quotes where it shows; each inferred
+   part is labelled *modelled* and says what was assumed.
 3. **Check.** The `check` tool confirms every quote is in its cited file, enforces the notation, finds
    every feedback loop and its type, and checks numbers and units. A loop the model missed is reported
    with its route, for the modeller to trace and declare.
@@ -102,25 +105,29 @@ You get:
    drawn.
 5. **Review, with you deciding how much.** You choose the number of review rounds at the start (2 by
    default). Independent reviewers check the facts against the sources, the system-dynamics rules, and
-   whether someone new to the method can read the page. Later rounds check only the fixes. It never
+   whether someone new to the method can read the page. Later rounds check only the fixes and what they touched. It never
    runs more rounds than you agreed: if serious problems remain, it recommends more and waits for your
    answer. The page footer shows how the model was reviewed and anything left unreviewed. The full rule
    is steps 7 and 9 of [`prompt.md`](./prompt.md).
 6. **Report.** The one-line answer, the page, the model file and the record, plus what the structure
    suggests, each marked as a hypothesis: two or three leverage points, the missing feedback and, where
-   the sources describe a pattern over time, which loop likely dominates when.
+   there is data or a stated suspicion about how the behaviour changes over time, which loop likely
+   dominates when.
 
 ## What is checked
 
-The checker tests, with a published source for each rule (a few findings are errors; most are
-warnings that the model must resolve or explain):
-- **notation:** flows run between stocks; links never end on a stock; every link has one sign;
+The checker tests the following. Most rules cite a published source; the rest are the plugin's own
+rules, listed in [`REFERENCES.md`](./REFERENCES.md). Broken notation, a quote missing from its file, an
+undeclared or wrongly typed loop, and mismatched units are errors that must be fixed. The number check
+and the structure tests give warnings, which must be fixed or explained.
+- **notation and units:** flows run between stocks; links never end on a stock; every link has one
+  sign; a flow is counted in its stock's units per time unit;
 - **evidence:** every quote is found in its cited file, and any number the page states as fact comes
   from a checked quote or a labelled assumption;
 - **loops:** every feedback loop is found, declared and typed correctly, and every loop contains a
   stock;
-- **structure tests that need no simulation:** what stops a stock from draining below empty, units,
-  parts that affect nothing, and inputs with no source;
+- **structure tests that need no simulation:** whether anything stops a flow from draining a stock
+  that is already empty, parts that affect nothing, and variables that nothing feeds;
 - **the page:** the legend lists exactly the symbols drawn.
 
 Not machine-checked, and said so on every run: whether a quote supports what is drawn (a reviewer
@@ -137,7 +144,7 @@ The plugin's tools read and write files only through Claude Code's own Read and 
 permission settings apply to every file they touch. The details and limits are in
 [`DETAILS.md`](./DETAILS.md#permissions-and-file-access).
 
-A headless browser is optional: with one, the model inspects screenshots of the page in light and
+A headless browser is optional: with one, Claude checks screenshots of the page in light and
 dark mode and at phone width; without one, it reviews the reader view and says the page was not
 inspected visually.
 

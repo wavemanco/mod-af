@@ -18,8 +18,8 @@ Finds everything that exists only in the chat — decisions, ideas, noticed-in-p
 ### `detell` — strip AI-writing tells from a file
 An adversarial loop: scan for AI-writing tells, rewrite the hits, re-scan with fresh eyes, until two consecutive clean passes. The tells checklist is distilled from Wikipedia's *Signs of AI writing*, which evolves, so it re-checks that source on a 14-day cadence instead of every run. `/detell <file>` · `/detell-refresh`. See [`detell/`](./detell/README.md).
 
-### `dynamics` — why a system behaves the way it does over time
-Answers questions like "why does the bug backlog keep growing?" by building a system-dynamics model of a codebase or its docs: the quantities that accumulate (stocks), the rates that change them (flows), and the feedback loops that amplify or limit change. Parts taken from the sources are quoted and the quotes checked; inferred parts are labelled. It explains structure; it does not simulate. `/dynamics <what to model> — <the question>`. See [`dynamics/`](./dynamics/README.md).
+### `dynamics` — why a system keeps behaving the way it does
+Uses system dynamics to explain why something keeps happening in a codebase or product, such as a bug backlog that keeps growing: it maps what accumulates, what adds to or drains it, and the feedback loops between them, quoting the source behind each part it finds and labelling what it infers. No simulation. `/dynamics <what to model> — <the question>`. See [`dynamics/`](./dynamics/README.md).
 
 ## Install
 

@@ -1,10 +1,10 @@
 # dynamics: details
 
-The full rules the checker enforces, how it reads numbers in quotes, and how the plugin's tools use
+The full rules the checker applies, how it reads numbers in quotes, and how the plugin's tools use
 your Claude Code permissions. The [README](./README.md) explains what the plugin is for; the sources
 behind each rule are in [`REFERENCES.md`](./REFERENCES.md).
 
-## What the checker enforces, and what it does not
+## What the checker checks, and what it does not
 
 Checked mechanically, with the source for each rule (see [`REFERENCES.md`](./REFERENCES.md)):
 
