@@ -49,8 +49,8 @@ export function utf8Bytes(s: string): number {
 }
 
 const LENSES = [
-  { name: 'facts-reviewer', tools: ['Read', 'Grep', 'Glob'], description: 'dynamics review lens: checks every label, number, quote, mechanism, loop story and the answer of a dynamics model against its sources. Read-only.' },
-  { name: 'sd-reviewer', tools: ['Read', 'Grep', 'Glob', CHECK], description: 'dynamics review lens: checks a dynamics model against system-dynamics rules (stocks, flows, links, polarity, loops, boundary). Read-only.' },
+  { name: 'facts-reviewer', tools: ['Read', 'Grep', 'Glob'], description: 'dynamics review lens: checks the labels, numbers, quotes, mechanisms, loop stories and answer of a dynamics model against its sources (in a later round, only the fixes and what they touched). Read-only.' },
+  { name: 'sd-reviewer', tools: ['Read', 'Grep', 'Glob', CHECK], description: 'dynamics review lens: checks a dynamics model against system-dynamics rules (stocks, flows, links, polarity, loops, boundary; in a later round, only the fixes and what they touched). Read-only.' },
   { name: 'reader-reviewer', tools: ['Read'], description: 'dynamics review lens: a cold reader who sees only the rendered page (screenshots or its reader view) and lists every mark or sentence they cannot decode. Read-only.' },
 ] as const
 

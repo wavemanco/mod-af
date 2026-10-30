@@ -104,16 +104,20 @@ Use `dynamics` when the question is **why something keeps happening over time**:
 growing, why each round of fixes produces new defects, why costs creep up, why adoption stalls. It
 maps what accumulates, what fills and drains it, and the feedback loops that push the behaviour
 forward or hold it back, with a sign on every link and each loop typed as reinforcing or balancing.
-Every part points at the line of code or sentence it comes from, and the checker confirms each quote
-is really there.
+Every observed part points at the line of code or sentence it comes from, and the checker confirms
+each quote is really there; anything inferred is marked modelled and says what was assumed.
 
 Use an architecture or flow diagramming tool (for example
 [Archify](https://github.com/tt-a1i/archify)) when the question is **what the parts are and how they
 connect**: a service map, a request path, a sequence, a data flow, a plan. Those tools draw
 topology and paths, often from a plain description; they do not model accumulation or feedback, and a
-connection there means "talks to", not "more of this causes more (or less) of that". The two work
-well together: the architecture map shows what is wired, the dynamics map shows why it behaves as it
-does.
+connection there means "is connected to" (calls, sends data to, moves to, contains), not "more of this
+causes more (or less) of that". Archify can also cite a repository: its nodes carry file and line
+ranges pinned to a commit, which it checks exist, and its explainer pages answer questions in prose
+and diagrams. `dynamics` checks the quoted words themselves, cites every link and flow, signs every
+link and types every loop, which is what lets it name the reinforcing loop behind a runaway problem,
+the leverage points and the missing feedback. The two work well together: the architecture map shows
+what is wired, the dynamics map shows why it behaves as it does.
 
 It is the wrong tool for a stateless utility or a one-off script, and it says so.
 
@@ -170,14 +174,14 @@ checks by hand.
 and tests come from `stockflow` (its review history is in [`REVIEW-LOG.md`](./REVIEW-LOG.md)). From the
 earlier `dynamics` prototype (branch `add-dynamics-plugin`, never merged) it takes the three survey
 angles, reference modes named as patterns, the "should this be modelled at all?" check, the research
-step for key guesses, and the report's leverage points and missing feedback. That prototype cited no
+step for key guesses, and the report's leverage points, missing feedback and which loop likely dominates (as a hypothesis). That prototype cited no
 sources; the attributions below are this plugin's.
 
 The method generalizes a stock-and-flow model of a research codebase, built and reviewed in
 October 2026 over 21 review rounds. Most of that review effort went into hand-checking things this
 plugin now derives or checks mechanically: loop types, which elements belong to which loop, the
 legend, and whether each cited quote is real. What stayed manual is what only a reader can judge: is the
-cited source saying what the diagram claims? The review is capped because a diagram does not need
+cited source saying what the diagram claims? The review rounds are agreed with you because a diagram does not need
 production-code rigour. The system-dynamics rules come from the literature cited in
 [`REFERENCES.md`](./REFERENCES.md), with each source's verification status. How the plugin itself was
 reviewed, and what each round caught, is in [`REVIEW-LOG.md`](./REVIEW-LOG.md).
@@ -190,24 +194,24 @@ checker or the method enforces it; "guided" means it shaped a step without being
 | Source | What `dynamics` takes from it |
 |---|---|
 | Sterman 2000, *Business Dynamics* (read via Siddiqi 2011's MIT reproduction) | Rule: link polarity judged against "what it would otherwise have been", flows + into the stock they fill and − out of the one they drain. Guided: the order of the method (articulate the problem, dynamic hypothesis, formulate, test) and the boundary list. |
-| Sterman 2001, "Fine-Tuning Your Causal Loop Diagrams" | Rules: + and − signs, never s and o; loop type from counting negative links and from tracing a change around the loop; actual versus perceived kept apart; delay marks; named and numbered loops. Guided: a balancing loop names its goal; no single diagram holding every loop. |
-| Ford 2019, "A system dynamics glossary" | Rules: what a stock, flow, auxiliary, connector, cloud, conserved flow and delay are; loop polarity as the product of link signs; flows counted in their stock's units per time unit. Guided: reference mode and dynamic hypothesis. |
-| Naugle, Langarudi & Clancy 2024 | Rule: every feedback loop contains a stock. Guided: the four building blocks, and stating the source of, and confidence in, each part of the structure (the observed and modelled statuses). |
+| Sterman 2001, "Fine-Tuning Your Causal Loop Diagrams" | Rules: + and − signs, never s and o; loop type from counting negative links and from tracing a change around the loop; actual versus perceived kept apart; delay marks; named and numbered loops; no single diagram holding every loop (figure size limits, with the plugin's own thresholds). Guided: a balancing loop names its goal; links are causal, not correlational. |
+| Ford 2019, "A system dynamics glossary" | Rules: what a stock, flow, auxiliary, connector, cloud, conserved flow and delay are; loop polarity as the product of link signs. Guided: reference mode and dynamic hypothesis. |
+| Naugle, Langarudi & Clancy 2024 | Rules: every feedback loop contains a stock; every part states the source of, and confidence in, its structure (the observed and modelled statuses). Guided: the four building blocks. |
 | Richardson 1997 (and 1986, background) | Why + and − are used rather than s and o for flows into and out of stocks. |
 | Schaffernicht 2007 | The worked example behind defining polarity against the counterfactual. |
 | MIT D-4498, "Road Maps Glossary" | Rules: stocks change only through flows; links reach variables and flows, never stocks. |
-| Hines, MIT 15.879 "Standard Method" | Guided: the order of elicitation (variables, reference modes, problem, hypotheses); rule: a variable is named as something that can go up or down. |
+| Hines, MIT 15.879 "Standard Method" | Guided: the order of elicitation (variables, reference modes, problem, hypotheses), and naming a variable as something that can go up or down (the checker requires only a label). |
 | Trimble 2014 | Rule: exogenous inputs (on the boundary) and excluded items (outside it) are kept as separate lists. |
 | Vensim and Stella (isee) documentation | Rule: a shadow (ghost) copy of an element adds no structure and nothing points into it. |
-| Forrester & Senge 1980 (read via Shreckengost and Baik 1997) | Rules: the structure tests that need no simulation, among them the extreme-condition test (what stops each outflow when its stock is empty), boundary adequacy and dimensional consistency. |
+| Forrester & Senge 1980 (read through two reproductions, Shreckengost among them) | Rules: the structure tests that need no simulation, among them the extreme-condition test (what stops each outflow when its stock is empty), boundary adequacy, and dimensional consistency (flows counted in their stock's units per time unit). |
 | Shreckengost, MIT D-4463 | Rule: "every element of the model should have a real-world counterpart", the reason every element carries evidence. |
-| Schwaninger & Groesser 2009 | The line between what the plugin checks (structure) and what it refuses to claim (behaviour, sensitivity, loop dominance, which need simulation). |
+| Schwaninger & Groesser 2009 | The line between what the plugin checks (structure) and what it states only as a labelled hypothesis with a test (behaviour, sensitivity, loop dominance, which need simulation). |
 | Barlas 1996; Lane 2008 | Guided: structure is validated first, and a diagram alone does not establish behaviour, so every page says it is not a simulation. |
-| Richardson 2011 | Guided: the endogenous point of view: a behaviour explained from outside the model is flagged. |
+| Richardson 2011 | Rule (a warning): the endogenous point of view: a behaviour explained from outside the model is flagged. |
 | Martinez-Moyano & Richardson 2013 | Background only: practice organised by modelling stage. |
 | Abdel-Hamid & Madnick 1991; Abdel-Hamid 1989; Rahmandad & Weiss 2009; Madachy 2007; Franco et al. 2016 | Guided: the survey guide's examples of what accumulates and feeds back in software projects (staffing, rework, concurrent development, technical debt). |
 | Johnson 1975; Tarjan 1972 | The algorithms the checker uses to find every feedback loop (elementary circuits, via strongly connected components). |
-| Meadows 1999, "Leverage Points: Places to Intervene in a System" | Guided: the term and idea of leverage points in the report. Unverified here: cited from the prototype's usage and general knowledge, not re-read; nothing is checked against it. |
+| Meadows 1999, "Leverage Points: Places to Intervene in a System" | Guided: the term and idea of leverage points in the report. The prototype used the term without a citation; added here unverified (not re-read). The leverage points are offered as hypotheses read from the model's own structure, and nothing is checked against this source. |
 
 Rules with no external source (for example "requirement is not supply", the figure size limits and
-the review cap) are listed as plugin rules in [`REFERENCES.md`](./REFERENCES.md).
+the agreed review rounds) are listed as plugin rules in [`REFERENCES.md`](./REFERENCES.md).

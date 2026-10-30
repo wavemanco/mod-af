@@ -116,5 +116,5 @@ export const EXAMPLE_MODEL = {
     { id: 'B5', name: 'Jobs reach the limit', path: ['in_flight', 'dropped'], minor: true },
     { id: 'B6', name: 'Pages get closed', path: ['pages', 'resolved'], minor: true },
   ],
-  review: { rounds: 0, independent: false, visual: false, note: 'A worked example, not reviewed.' },
+  review: { rounds: 0, agreed: 0, independent: false, visual: false, note: 'A worked example, not reviewed.' },
 }

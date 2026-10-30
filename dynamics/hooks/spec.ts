@@ -218,7 +218,7 @@ function shapeOf(section: SectionName, v: unknown, where: string, issues: Issue[
     }
     if (!typeOk(f, val)) { issues.push({ code: 'S01', level: 'error', where: w, message: `"${f.name}" must be ${EXPECT[f.type]}; found ${JSON.stringify(val).slice(0, 60)}.` }); continue }
     if (f.enum && !f.enum.includes(String(val)) && !(f.name === 'polarity' && (val === '−' || val === '–')))
-      issues.push({ code: 'S01', level: 'error', where: w, message: `"${f.name}" must be one of ${f.enum.map(e => `"${e}"`).join(', ')}; found ${JSON.stringify(val)}.` })
+      issues.push({ code: 'S01', level: 'error', where: w, message: `"${f.name}" must be one of ${f.enum.map(e => `"${e}"`).join(', ')}; found ${JSON.stringify(val)}.${f.name === 'spec' && val === 'stockflow/1' ? ' The plugin was renamed: set it to "dynamics/1".' : ''}` })
     if (f.type === 'string' && f.required === true && isBlank(val)) issues.push({ code: 'S04', level: 'error', where: w, message: `"${f.name}" must not be blank.` })
     if (f.type === 'array' && f.of) (val as unknown[]).forEach((item, i) => shapeOf(f.of!, item, `${w}[${i}]`, issues))
     if (f.type === 'object' && f.of) shapeOf(f.of, val, w, issues)
@@ -291,7 +291,7 @@ function normalise(raw: Record<string, unknown>): Model {
       ref: str(subject.ref), dirty: subject.dirty === true ? true : undefined, date: txt(subject.date),
     },
     question: txt(raw.question),
-    answer: { text: txt(answer.text), loops: (answer.loops as string[]).map(String) },
+    answer: { text: typeof answer.text === 'string' ? answer.text.split(/\r?\n/).map(normWs).filter(Boolean).join('\n') : txt(answer.text), loops: (answer.loops as string[]).map(String) },
     horizon: str(raw.horizon), time_unit: str(raw.time_unit), audience: str(raw.audience),
     reference_modes: ((raw.reference_modes ?? []) as Record<string, unknown>[]).map(r => ({
       variable: String(r.variable), pattern: txt(r.pattern), basis: String(r.basis), why: str(r.why), evidence: ev(r.evidence),
@@ -654,6 +654,15 @@ export function analyse(model: Model, modelPath: string, files: ReadonlyMap<stri
   }
   if (model.title.trim().split(/\s+/).length > 4) warn('T01', 'title', 'keep the title to two to four words; put the rest in "question".')
   if (model.figures.length > 3) warn('T02', 'figures', `${model.figures.length} figures: the method plans one to three, each answering one sub-question.`)
+  const rv = model.review
+  if (rv) {
+    for (const k of ['rounds', 'agreed'] as const) {
+      const v = rv[k]
+      if (v !== undefined && (!Number.isInteger(v) || v < 0)) warn('V01', `review.${k}`, `"${k}" counts review rounds: a whole number, 0 or more; found ${v}.`)
+    }
+    const whole = (v: number | undefined): v is number => v !== undefined && Number.isInteger(v) && v >= 0
+    if (whole(rv.rounds) && whole(rv.agreed) && rv.rounds > rv.agreed) warn('V01', 'review.rounds', `${rv.rounds} rounds were run but ${rv.agreed} agreed: a round beyond the agreed number needs the person's yes. If they gave it, record the new number in "agreed".`)
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(model.subject.date)) warn('S06', 'subject.date', '"date" should be YYYY-MM-DD.')
   for (const n of model.nodes) if ((n.kind === 'cloud' || n.kind === 'shadow') && n.emphasis)
     err('P03', `node "${n.id}"`, `a ${n.kind} cannot carry "emphasis"; highlight ${n.kind === 'shadow' ? 'the element it copies' : 'the flow that crosses the boundary'} instead.`)

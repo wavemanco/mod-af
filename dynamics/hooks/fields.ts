@@ -67,7 +67,7 @@ export const SECTIONS: Record<SectionName, { title: string; doc: string; fields:
     title: 'answer',
     doc: 'Shown under the question. Behaviour claims belong here, labelled as a hypothesis, never in loop stories.',
     fields: [
-      { name: 'text', type: 'string', required: true, doc: 'Two to five plain sentences answering the question from the structure. Name the loops that carry the answer, or say that none does.' },
+      { name: 'text', type: 'string', required: true, doc: 'Two to five plain sentences answering the question from the structure, each on its own line (each line is shown as its own line). Name the loops that carry the answer, or say that none does.' },
       { name: 'loops', type: 'strings', required: true, doc: 'Ids of the declared loops the answer rests on (may be empty).' },
     ],
   },
@@ -97,7 +97,7 @@ export const SECTIONS: Record<SectionName, { title: string; doc: string; fields:
     doc: '',
     fields: [
       { name: 'rounds', type: 'number', doc: 'Review rounds run.' },
-      { name: 'agreed', type: 'number', doc: 'Review rounds the person agreed to before the review began; a round beyond it needs their yes.' },
+      { name: 'agreed', type: 'number', doc: 'Review rounds the person has agreed to (asked at the start, raised only with their yes). Rounds run beyond it are warned about (V01).' },
       { name: 'independent', type: 'boolean', doc: 'True when reviewers other than the builder ran them.' },
       { name: 'visual', type: 'boolean', doc: 'True when rendered screenshots were inspected.' },
       { name: 'note', type: 'string', doc: 'One line, e.g. what was accepted as a known limit.' },

@@ -1335,8 +1335,8 @@ function drawFigure(ctx: Ctx, figId: string, bendOverride: ReadonlyMap<string, n
   const vw = Math.ceil(maxX - minX + 2 * pad)
   const vh = Math.ceil(maxY - minY + 2 * pad)
   const fig = m.figures.find(f => f.id === figId)!
-  // below 80% of its natural size a figure's text is too small to read, so the frame scrolls instead
-  const svg = lines(`<svg class="sd" viewBox="${r1(vx)} ${r1(vy)} ${r1(vw)} ${r1(vh)}" style="min-width:${r1(Math.round(vw))}px" role="group" aria-label="${esc(`Figure: ${fig.title}`)}">${parts.join('')}${linkParts.join('')}<g class="labels">${textParts.join('')}</g><g class="signs">${signParts.join('')}</g><g class="marks">${markParts.join('')}</g></svg>`)
+  // drawn at about its natural size: never smaller (the frame scrolls instead) and at most 15% larger
+  const svg = lines(`<svg class="sd" viewBox="${r1(vx)} ${r1(vy)} ${r1(vw)} ${r1(vh)}" style="min-width:${r1(Math.round(vw))}px;max-width:${r1(Math.round(vw * 1.15))}px" role="group" aria-label="${esc(`Figure: ${fig.title}`)}">${parts.join('')}${linkParts.join('')}<g class="labels">${textParts.join('')}</g><g class="signs">${signParts.join('')}</g><g class="marks">${markParts.join('')}</g></svg>`)
   // a figure with a coordinate that is not a number would draw as an empty frame: refuse it, never ship it
   if (nonFinite > 0) layout.push({ code: 'G00', level: 'error', where: `figure "${figId}"`, message: 'the figure could not be drawn (a position came out as no number). Move the elements involved, or drop a "route" or "bend".' })
   return { svg, layout, marks, extras, highlighted, bends, tight }
@@ -1531,7 +1531,7 @@ function evRef(e: Evidence): string {
 // whether anyone changed it since, is read from the file itself (it travels with git, copies and other
 // machines). Whitespace is left out of the fingerprint, so a formatter that only re-indents keeps it.
 
-const SEAL = /<!-- dynamics:fp=([0-9a-f]+) -->/g
+const SEAL = /<!-- (?:dynamics|stockflow):fp=([0-9a-f]+) -->/g // stockflow was this plugin's name until 2026-10-30
 /** Lone surrogate halves become U+FFFD, as a file write stores them, so the seal matches what lands. */
 const wellFormed = (s: string): string => s.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '\uFFFD')
 const sealOf = (body: string): string => fingerprint(body.replace(/\s+/g, ''))
@@ -1586,19 +1586,17 @@ export function render(a: Analysis): Rendered {
     ? `Solid marks are what the code${subj.ref ? ` at ${subj.ref}` : ''} does, each with its source.`
     : 'Solid marks are what the cited documents state; they were not checked against the running product.'
 
-  // the short answer, one line per sentence, so two to five sentences do not read as one block
-  const answerHtml = (text: string): string => {
-    const parts = text.split(/(?<=[.!?])\s+(?=[A-Z"“(])/).filter(s => s.trim())
-    return parts.length > 1 ? `<ul class="answer-lines">${parts.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : `<p>${esc(text)}</p>`
-  }
+  // the short answer: each line the author wrote is its own line on the page and in the reader view
+  const answerLines = model.answer.text.split('\n').filter(s => s.trim())
+  const answerHtml = (): string => answerLines.length > 1 ? `<ul class="answer-lines">${answerLines.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : `<p>${esc(model.answer.text)}</p>`
   // header
   const eyebrow = `${subj.name} · ${subj.kind}${subj.ref ? ` · ${subj.ref}${subj.dirty ? ' (uncommitted changes)' : ''}` : ''} · sources read ${subj.date}`
   const disclaimer = `A hypothesis read from the structure below, not the result of a simulation.${model.horizon ? ` Time horizon: ${model.horizon}.` : ''}`
   both(
     nl('<header>', `<div class="eyebrow">${esc(eyebrow)}</div>`, `<h1>${esc(model.title)}</h1>`, `<p class="lead prose">${esc(model.question)}</p>`,
-      '<div class="answer">', '<h2>Short answer</h2>', answerHtml(model.answer.text), `<p class="muted" style="margin-top:6px">${esc(disclaimer)}</p>`, '</div>',
+      '<div class="answer">', '<h2>Short answer</h2>', answerHtml(), `<p class="muted" style="margin-top:6px">${esc(disclaimer)}</p>`, '</div>',
       model.emphasis ? `<p class="prose"><b>${esc(model.emphasis.name)}</b> marks, in the alert colour: ${esc(model.emphasis.rule)}</p>` : '', '</header>'),
-    [`# ${model.title}`, eyebrow, '', `Question: ${model.question}`, `Short answer: ${model.answer.text}`, disclaimer, ...(model.emphasis ? [`${model.emphasis.name} marks, in the alert colour: ${model.emphasis.rule}`] : [])].join('\n'),
+    [`# ${model.title}`, eyebrow, '', `Question: ${model.question}`, (answerLines.length > 1 ? `Short answer:\n${answerLines.map(s => `- ${s}`).join('\n')}` : `Short answer: ${model.answer.text}`), disclaimer, ...(model.emphasis ? [`${model.emphasis.name} marks, in the alert colour: ${model.emphasis.rule}`] : [])].join('\n'),
   )
 
   // figures are drawn first so the legend knows which marks they use; the legend is placed before them
@@ -1722,11 +1720,14 @@ export function render(a: Analysis): Rendered {
   details('Method and sources', nl(`<p class="prose">${esc(methodText)}</p>`, '<ul>', ...SOURCES.map(s => `<li>${s.html}</li>`), '</ul>'), [methodText, ...SOURCES.map(s => `- ${s.text}`)].join('\n'))
 
   const rv = model.review
-  const reviewLine = rv
+  const reviewLine = rv && (rv.rounds ?? 0) === 0
+    ? `Review: not reviewed${rv.agreed !== undefined ? ` (0 of ${rv.agreed} rounds agreed)` : ''}.${rv.note ? ` ${rv.note}` : ''}`
+    : rv
     ? `Review: ${rv.rounds ?? 0} round${rv.rounds === 1 ? '' : 's'}${rv.agreed !== undefined ? ` of ${rv.agreed} agreed` : ''}, ${rv.independent ? 'by reviewers other than the builder' : 'self-review only'}; ${rv.visual ? 'rendered page inspected' : 'rendered page not visually inspected'}.${rv.note ? ` ${rv.note}` : ''}`
     : 'Review: not recorded.'
   const n = (k: number | undefined, one: string, many: string) => `${k ?? 0} ${(k ?? 0) === 1 ? one : many}`
-  const built = `Built with the dynamics plugin from a checked model: ${n(c.stocks, 'stock', 'stocks')}, ${n(c.flows, 'flow', 'flows')}, ${n((c.variables ?? 0) + (c.constants ?? 0), 'variable or constant', 'variables and constants')}, ${n(c.links, 'link', 'links')}, ${n(c.loops, 'live feedback loop', 'live feedback loops')}. Loop types, loop membership, traces, the boundary and the legend are derived from the model. Not machine-checked: ${n(report.not_checked.length, 'kind of claim', 'kinds of claim')}, listed in the check report that comes with this page.`
+  const built = `Built with the dynamics plugin from a checked model: ${n(c.stocks, 'stock', 'stocks')}, ${n(c.flows, 'flow', 'flows')}, ${n((c.variables ?? 0) + (c.constants ?? 0), 'variable or constant', 'variables and constants')}, ${n(c.links, 'link', 'links')}, ${n(c.loops, 'live feedback loop', 'live feedback loops')}. Loop types, loop membership, traces, the boundary and the legend are derived from the model. Not machine-checked: ${n(report.not_checked.length, 'kind of claim', 'kinds of claim')}, listed under “What is not machine-checked” above.`
+  details(`What is not machine-checked (${report.not_checked.length})`, nl('<ul>', ...report.not_checked.map(s => `<li>${esc(s)}</li>`), '</ul>'), report.not_checked.map(s => `- ${s}`).join('\n'))
   both(nl('<footer>', `<p>${esc(reviewLine)}</p>`, `<p>${esc(built)}</p>`, '</footer>'), `\n${reviewLine}\n${built}`)
 
   const info: Record<string, unknown> = {}

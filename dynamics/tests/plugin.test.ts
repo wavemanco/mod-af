@@ -1444,21 +1444,43 @@ test('a missing flow\'s cross sits clear of its valve, and labels avoid arrowhea
   expect(Math.hypot(Number(x[1]) + 6 - Number(valve[1]), Number(x[2]) + 6 - Number(valve[2]))).toBeGreaterThan(18)
 })
 
-test('a short answer of several sentences is shown one sentence per line; one sentence stays a paragraph', async () => {
-  const two = render(await exampleAnalysis(m => { m.answer.text = 'Jobs pile up when workers are slow. More retries add more jobs, so the queue feeds itself.' })).html
-  expect(two).toContain('<ul class="answer-lines"><li>Jobs pile up when workers are slow.</li><li>More retries add more jobs, so the queue feeds itself.</li></ul>')
-  const one = render(await exampleAnalysis(m => { m.answer.text = 'Jobs pile up when workers are slow.' })).html
-  expect(one).toContain('<h2>Short answer</h2>\n<p>Jobs pile up when workers are slow.</p>')
+test('an answer written on several lines is shown one line each, on the page and in the reader view; one line stays a paragraph', async () => {
+  const two = render(await exampleAnalysis(m => { m.answer.text = "Jobs pile up when workers are slow (e.g. Mr. Lee's team).\nMore retries add more jobs, so the queue feeds itself." }))
+  expect(two.html).toContain("<ul class=\"answer-lines\"><li>Jobs pile up when workers are slow (e.g. Mr. Lee&#39;s team).</li><li>More retries add more jobs, so the queue feeds itself.</li></ul>")
+  expect(two.readerView).toContain("Short answer:\n- Jobs pile up when workers are slow (e.g. Mr. Lee's team).\n- More retries add more jobs, so the queue feeds itself.")
+  const one = render(await exampleAnalysis(m => { m.answer.text = 'Jobs pile up when workers are slow. More retries add more jobs.' })).html
+  expect(one).toContain('<h2>Short answer</h2>\n<p>Jobs pile up when workers are slow. More retries add more jobs.</p>')
 })
 
-test('the footer counts what is not machine-checked and leaves the list to the check report', async () => {
+test('the not-machine-checked list is on the page, folded under its own heading, and the footer counts it', async () => {
   const a = await exampleAnalysis()
   const page = render(a)
-  expect(page.html).toContain(`Not machine-checked: ${a.report.not_checked.length} kinds of claim, listed in the check report that comes with this page.`)
-  for (const item of a.report.not_checked) expect(page.html).not.toContain(item.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!))
+  const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+  expect(page.html).toContain(`<details><summary>What is not machine-checked (${a.report.not_checked.length})</summary>`)
+  for (const item of a.report.not_checked) { expect(page.html).toContain(`<li>${esc(item)}</li>`); expect(page.readerView).toContain(`- ${item}`) }
+  expect(page.html).toContain(`Not machine-checked: ${a.report.not_checked.length} kinds of claim, listed under “What is not machine-checked” above.`)
 })
 
-test('the footer shows the review rounds against the rounds the person agreed to', async () => {
-  const page = render(await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 2, agreed: 2, independent: true, visual: true } })).html
-  expect(page).toContain('Review: 2 rounds of 2 agreed, by reviewers other than the builder; rendered page inspected.')
+test('the footer shows the review rounds against the rounds agreed, and says "not reviewed" for none', async () => {
+  const two = render(await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 2, agreed: 2, independent: true, visual: true } })).html
+  expect(two).toContain('Review: 2 rounds of 2 agreed, by reviewers other than the builder; rendered page inspected.')
+  const none = render(await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 0, agreed: 2, independent: true, visual: false } })).html
+  expect(none).toContain('Review: not reviewed (0 of 2 rounds agreed).')
+  expect(none).not.toContain('by reviewers other than the builder')
+})
+
+test('V01: more rounds than agreed, or a count that is not a whole number, is warned about', async () => {
+  const over = await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 3, agreed: 2 } })
+  expect(over.report.warnings.some(w => w.code === 'V01' && w.where === 'review.rounds' && w.message.includes('3 rounds were run but 2 agreed'))).toBe(true)
+  const frac = await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 1.5, agreed: -1 } })
+  expect(frac.report.warnings.filter(w => w.code === 'V01').map(w => w.where).sort()).toEqual(['review.agreed', 'review.rounds'])
+  const ok = await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 2, agreed: 2 } })
+  expect(ok.report.warnings.some(w => w.code === 'V01')).toBe(false)
+})
+
+test('a page sealed under the plugin\'s old name (stockflow) still reads as intact; a stockflow/1 model is told the new spec', async () => {
+  const html = render(await exampleAnalysis()).html
+  expect(sealState(html.replace('<!-- dynamics:fp=', '<!-- stockflow:fp='))).toBe('intact')
+  const old = await exampleAnalysis(m => { ;(m as Record<string, unknown>).spec = 'stockflow/1' })
+  expect(old.report.errors.some(e => e.code === 'S01' && e.message.includes('The plugin was renamed: set it to "dynamics/1".'))).toBe(true)
 })

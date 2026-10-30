@@ -43,7 +43,7 @@ in full then.
 |---|---|---|---|
 | Forrester & Senge 1980 | Forrester, J. W., & Senge, P. M. (1980). "Tests for building confidence in system dynamics models". In A. A. Legasto, J. W. Forrester & J. M. Lyneis (Eds.), *System Dynamics*, TIMS Studies in the Management Sciences 14, North-Holland, pp. 209–228. | Read through two reproductions (Shreckengost; Baik 1997); original not seen | Structure verification, parameter verification, extreme conditions, boundary adequacy and dimensional consistency as structure tests. |
 | Shreckengost | Shreckengost, R. C. "Dynamic simulation models: how valid are they?" MIT System Dynamics in Education Project, D-4463. https://ocw.mit.edu/courses/15-988-system-dynamics-self-study-fall-1998-spring-1999/2a6354d179f7f6e46d9d192d7a7a6e27_dynamic.pdf | Full text | "Every element of the model should have a real-world counterpart" — the reason every element carries evidence. |
-| Schwaninger & Groesser 2009 | Schwaninger, M., & Groesser, S. (2009). "System Dynamics Modeling: Validation for Quality Assurance". In *Encyclopedia of Complexity and Systems Science*, Springer, pp. 9000–9014. doi:10.1007/978-0-387-30440-3_540. https://www.alexandria.unisg.ch/id/eprint/46696 | Full text | Which tests need no simulation (structure and parameter examination, direct extreme conditions, boundary adequacy of structure, dimensional consistency) and which do (behaviour, sensitivity, loop dominance) — the line between what the plugin checks and what it refuses to claim. |
+| Schwaninger & Groesser 2009 | Schwaninger, M., & Groesser, S. (2009). "System Dynamics Modeling: Validation for Quality Assurance". In *Encyclopedia of Complexity and Systems Science*, Springer, pp. 9000–9014. doi:10.1007/978-0-387-30440-3_540. https://www.alexandria.unisg.ch/id/eprint/46696 | Full text | Which tests need no simulation (structure and parameter examination, direct extreme conditions, boundary adequacy of structure, dimensional consistency) and which do (behaviour, sensitivity, loop dominance) — the line between what the plugin checks and what it states only as a labelled hypothesis. |
 | Barlas 1996 | Barlas, Y. (1996). "Formal aspects of model validity and validation in system dynamics". *System Dynamics Review* 12(3): 183–210. doi:10.1002/(SICI)1099-1727(199623)12:3<183::AID-SDR103>3.0.CO;2-4 | Record (abstract) | Structure validity comes first; behaviour tests need runs. |
 
 ## Process and practice
@@ -52,7 +52,7 @@ in full then.
 |---|---|---|---|
 | Martinez-Moyano & Richardson 2013 | Martinez-Moyano, I. J., & Richardson, G. P. (2013). "Best practices in system dynamics modeling". *System Dynamics Review* 29(2): 102–123. doi:10.1002/sdr.1495 | Record (abstract) | Background: practice is organised by modelling stage. No individual practice is quoted. |
 | Richardson 2011 | Richardson, G. P. (2011). "Reflections on the foundations of system dynamics". *System Dynamics Review* 27(3): 219–243. doi:10.1002/sdr.462 | Record | The endogenous point of view. |
-| Meadows 1999 | Meadows, D. H. (1999). "Leverage Points: Places to Intervene in a System". The Sustainability Institute. | Unverified | The idea and term of leverage points, named in the report as hypotheses. Nothing is checked against it. |
+| Meadows 1999 | Meadows, D. H. (1999). "Leverage Points: Places to Intervene in a System". The Sustainability Institute. | Unverified | The idea and term of leverage points. The prototype used the term without a citation; added here unverified. The report's leverage points are hypotheses read from the model's own structure, so nothing rests on this source alone. |
 
 ## System dynamics of software (background for the survey guide)
 
@@ -92,7 +92,7 @@ literature, and are tagged "plugin rule" where they appear:
 
 ## From the earlier `dynamics` prototype (no external source)
 
-The prototype on branch `add-dynamics-plugin` of this repository cited no sources. Taken from it: the three survey angles (the engine, growth and memory, control and governance) with their product-docs variants; reference modes named as patterns (growth, S-curve, decline, oscillation, overshoot); the "should this be modelled at all?" check; the research step for guesses that carry the answer; and leverage points and missing feedback in the report.
+The prototype on branch `add-dynamics-plugin` of this repository cited no sources. Taken from it: the three survey angles (the engine, growth and memory, control and governance) with their product-docs variants; reference modes named as patterns (growth, S-curve, decline, oscillation, overshoot); the "should this be modelled at all?" check; the research step for guesses that carry the answer; and leverage points, missing feedback and which loop likely dominates (a hypothesis) in the report.
 
 ## Considered, not used
 

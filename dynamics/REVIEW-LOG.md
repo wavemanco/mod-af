@@ -359,7 +359,7 @@ have not had an independent review of their own; the next change to this plugin 
 
 ## Known limits, accepted
 
-- A PreToolUse hook that matches the plugin's own tool names (`mcp__stockflow__…`) is not run for
+- A PreToolUse hook that matches the plugin's own tool names (`mcp__dynamics__…`) is not run for
   them: Claude Code answers a plugin's own tool through the plugin. Hooks on Read and Write still run
   for every file the tools touch, and explicit allow, ask and deny rules for the tools are honoured.
 - Numbers in page-wide prose (the answer, captions, notes) are checked against every checked quote
@@ -371,14 +371,14 @@ have not had an independent review of their own; the next change to this plugin 
 - A file with one line too long for one Read call (minified code, single-line JSON) cannot be read at
   any size, and PDFs and images are not read as lines: such sources are cited through a tool-made
   text extract. Revisit if the Read tool gains a way to read part of a line.
-- Notebooks are cited through an extract by choice: stockflow cites line ranges, and the Read tool's
+- Notebooks are cited through an extract by choice: dynamics cites line ranges, and the Read tool's
   view of a notebook is cells with no line numbers. Revisit when a model must cite a notebook and an
   extract will not do.
 - A refusal with no token count cannot tell a line too long for one call from a Read tool that does
-  not page the file; stockflow blames the line. With `CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS` lowered
+  not page the file; dynamics blames the line. With `CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS` lowered
   to about 5,000, a file near 2 MB of long lines in pairs between runs of short ones can need more than
   the 4,000-call stop. Revisit if either is met in a real model.
-- A size refusal in words stockflow does not know fails at once in the tool's words (E02), so a correct
+- A size refusal in words dynamics does not know fails at once in the tool's words (E02), so a correct
   model citing a large file is refused; and a file with no extension that the Read tool sniffs as an
   image is known as one only when the tool returns it. Revisit if the Read tool's wording changes.
 - The page is read as code too: digits in `[ ]` or `{ }` on the page are list items, so "[1,500]" in
@@ -394,7 +394,7 @@ have not had an independent review of their own; the next change to this plugin 
   the marker is still read as code. A `/*` that opens no comment stops the count of quote marks until
   the next `*/`, so a string after it may be read as code. A code item right after a comment, with no
   comma between them, is read as one number. Revisit when one of these is met in a real model.
-- A refusal is classed by its first sentence with only stockflow's spelling of the path masked: a
+- A refusal is classed by its first sentence with only dynamics's spelling of the path masked: a
   working folder, a file's first bytes or the path spelled another way still decide the class when
   they fall in that sentence.
 - A valve is tested as a 22 px square: the bowtie reaches 7 px along its pipe, so valves 14–22 px
@@ -418,3 +418,50 @@ have not had an independent review of their own; the next change to this plugin 
 - A file of very short lines takes one Read call per 2,000 lines (2 MB of empty lines, 1,000 calls).
   Revisit if that many permission requests outside the working folder becomes a problem: the Read
   tool accepts more than 2,000 lines per call.
+
+## The merge into `dynamics` (2026-10-30): one review round, as agreed
+
+**What changed.** `stockflow` became `dynamics` and took the earlier prototype's method: three survey
+angles, reference modes as patterns, the "should this be modelled at all?" check, the research step,
+and leverage points, missing feedback and a dominance hypothesis in the report. Review rounds are now
+agreed with the person up front. The page draws figures at about natural size in a wider column,
+folds the not-machine-checked list under its own heading, and shows an answer written on several
+lines one line each.
+
+**The round.** One independent round was agreed, with three reviewers (the method, the code and
+tests, the documentation), read-only. It found 34 issues: 3 high, 13 medium, 18 low.
+- **High:**
+  - the review agents' own briefs still said to re-check everything in every round;
+  - step 9 ran a review of a correction without asking;
+  - the page footer pointed to a "check report" nothing delivered.
+- **Medium,** among them:
+  - the last agreed round's fixes were not disclosed as unreviewed;
+  - the house-rules question and the rounds question could contradict;
+  - research findings were kept in unchecked claims rather than checked evidence;
+  - the report's hypotheses were written after the review, where no reviewer saw them;
+  - missing feedback had two homes;
+  - the paste form was not updated;
+  - 0 rounds showed "self-review only";
+  - nothing warned when more rounds ran than were agreed;
+  - the answer splitter guessed sentence ends from punctuation;
+  - the Archify comparison left out Archify's own source pinning;
+  - "every part is quote-checked" overclaimed;
+  - the sketch-mode spec's key test had no rule to give it teeth, and its trigger could not be
+    counted;
+  - the walk-through spec counted only − links, missing the drains that make most loops balancing.
+
+**Fixed.** All highs and mediums, and every low but one. The new tests were each shown to fail with
+their fix undone, in a scratch copy:
+- the not-checked list folded on the page;
+- the "not reviewed" footer;
+- V01 (rounds against agreed);
+- pages sealed under the old name;
+- answer lines.
+
+365 tests pass, and `claude plugin validate` passes.
+
+**Not reviewed.** Under the method's own rule, these fixes were not reviewed again: one round was
+agreed, and a further round needs the maintainer's yes.
+
+**Known limit (low).** A model with a `review` block but no `agreed` count draws no "of N agreed" and
+is not warned about. Revisit if delivered models omit it.

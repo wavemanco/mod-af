@@ -846,16 +846,18 @@ test('"under" goes below both ends, or round their right side when one lies abov
 
 // ------------------------------------------------------- R3-03: a wide figure scrolls at a legible scale
 
-test('a wide figure keeps 80% of its natural width and the frame scrolls, with the hint', async () => {
+test('a wide figure keeps its natural width and the frame scrolls, with the hint; the column is 1400px wide', async () => {
   const N = 8
   const nodes: Json[] = [{ id: 'in', kind: 'cloud', figure: 'f1', at: [0, 0] }, { id: 'out', kind: 'cloud', figure: 'f1', at: [2 * N + 2, 0] }]
   for (let i = 0; i < N; i++) nodes.push({ id: `s${i}`, kind: 'stock', figure: 'f1', at: [2 * i + 2, 0], label: `Stage ${i + 1} items`, units: 'items' })
   const flows: Json[] = []
   for (let i = 0; i <= N; i++) flows.push({ id: `move${i}`, from: i === 0 ? 'in' : `s${i - 1}`, to: i === N ? 'out' : `s${i}`, label: `moved ${i}`, units: 'items/day' })
   const page = render(await probe({ nodes, flows })).html
-  const [, vw, minW] = /viewBox="[-\d.]+ [-\d.]+ ([\d.]+) [\d.]+" style="min-width:([\d.]+)px"/.exec(page)!.map(Number)
+  const [, vw, minW, maxW] = /viewBox="[-\d.]+ [-\d.]+ ([\d.]+) [\d.]+" style="min-width:([\d.]+)px;max-width:([\d.]+)px"/.exec(page)!.map(Number)
   expect(vw).toBeGreaterThan(1375)
   expect(minW).toBe(Math.round(vw))
+  expect(maxW).toBe(Math.round(vw * 1.15))
+  expect(page).toContain('.wrap{max-width:1400px;')
   expect(page).toContain('.narrow{display:none}figure.scrolls .narrow{display:inline}')
   expect(page).toContain('<figcaption><span class="narrow">Scroll the figure sideways to see all of it. </span>')
 })
