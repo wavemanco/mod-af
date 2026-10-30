@@ -97,7 +97,7 @@ export const SECTIONS: Record<SectionName, { title: string; doc: string; fields:
     doc: '',
     fields: [
       { name: 'rounds', type: 'number', doc: 'Review rounds run.' },
-      { name: 'agreed', type: 'number', doc: 'Review rounds the person has agreed to (asked at the start, raised only with their yes). Rounds run beyond it are warned about (V01).' },
+      { name: 'agreed', type: 'number', doc: 'Review rounds the person has agreed to (asked at the start, raised only with their yes). A review without it, or with more rounds run than agreed, is warned about (V01).' },
       { name: 'independent', type: 'boolean', doc: 'True when reviewers other than the builder ran them.' },
       { name: 'visual', type: 'boolean', doc: 'True when rendered screenshots were inspected.' },
       { name: 'note', type: 'string', doc: 'One line, e.g. what was accepted as a known limit.' },

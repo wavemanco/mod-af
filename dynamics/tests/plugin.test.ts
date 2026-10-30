@@ -1474,6 +1474,8 @@ test('V01: more rounds than agreed, or a count that is not a whole number, is wa
   expect(over.report.warnings.some(w => w.code === 'V01' && w.where === 'review.rounds' && w.message.includes('3 rounds were run but 2 agreed'))).toBe(true)
   const frac = await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 1.5, agreed: -1 } })
   expect(frac.report.warnings.filter(w => w.code === 'V01').map(w => w.where).sort()).toEqual(['review.agreed', 'review.rounds'])
+  const unrecorded = await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 1, independent: true } })
+  expect(unrecorded.report.warnings.some(w => w.code === 'V01' && w.where === 'review.agreed' && w.message.includes('not recorded'))).toBe(true)
   const ok = await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 2, agreed: 2 } })
   expect(ok.report.warnings.some(w => w.code === 'V01')).toBe(false)
 })

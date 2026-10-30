@@ -661,6 +661,7 @@ export function analyse(model: Model, modelPath: string, files: ReadonlyMap<stri
       if (v !== undefined && (!Number.isInteger(v) || v < 0)) warn('V01', `review.${k}`, `"${k}" counts review rounds: a whole number, 0 or more; found ${v}.`)
     }
     const whole = (v: number | undefined): v is number => v !== undefined && Number.isInteger(v) && v >= 0
+    if (rv.agreed === undefined) warn('V01', 'review.agreed', 'The rounds the person agreed to are not recorded: ask at the start (2 by default) and record the number in "agreed", so the page can show rounds run against rounds agreed.')
     if (whole(rv.rounds) && whole(rv.agreed) && rv.rounds > rv.agreed) warn('V01', 'review.rounds', `${rv.rounds} rounds were run but ${rv.agreed} agreed: a round beyond the agreed number needs the person's yes. If they gave it, record the new number in "agreed".`)
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(model.subject.date)) warn('S06', 'subject.date', '"date" should be YYYY-MM-DD.')

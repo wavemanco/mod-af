@@ -463,5 +463,5 @@ their fix undone, in a scratch copy:
 **Not reviewed.** Under the method's own rule, these fixes were not reviewed again: one round was
 agreed, and a further round needs the maintainer's yes.
 
-**Known limit (low).** A model with a `review` block but no `agreed` count draws no "of N agreed" and
-is not warned about. Revisit if delivered models omit it.
+**The one low left open,** a model with a `review` block but no `agreed` count, was closed before
+round 2: V01 now warns about it.
