@@ -1,10 +1,10 @@
 # References
 
-Every external source behind `stockflow`: what it is, whether its content was checked, and which part
+Every external source behind `dynamics`: what it is, whether its content was checked, and which part
 of the plugin rests on it. Short tags such as *(Ford 2019)* in `prompt.md`, the checker's messages and
 the rendered page point here.
 
-**Verification status** (as of 2026-10-20):
+**Verification status** (as of 2026-10-20; Meadows 1999 added 2026-10-30):
 - **Full text**: the work itself, or a verbatim reproduction that names it, was read.
 - **Record**: the bibliographic record and/or abstract was read (Crossref, publisher or index page), not the full text.
 - **Unverified**: known only from search snippets or memory; nothing in the plugin depends on it alone.
@@ -52,6 +52,7 @@ in full then.
 |---|---|---|---|
 | Martinez-Moyano & Richardson 2013 | Martinez-Moyano, I. J., & Richardson, G. P. (2013). "Best practices in system dynamics modeling". *System Dynamics Review* 29(2): 102–123. doi:10.1002/sdr.1495 | Record (abstract) | Background: practice is organised by modelling stage. No individual practice is quoted. |
 | Richardson 2011 | Richardson, G. P. (2011). "Reflections on the foundations of system dynamics". *System Dynamics Review* 27(3): 219–243. doi:10.1002/sdr.462 | Record | The endogenous point of view. |
+| Meadows 1999 | Meadows, D. H. (1999). "Leverage Points: Places to Intervene in a System". The Sustainability Institute. | Unverified | The idea and term of leverage points, named in the report as hypotheses. Nothing is checked against it. |
 
 ## System dynamics of software (background for the survey guide)
 
@@ -87,7 +88,11 @@ literature, and are tagged "plugin rule" where they appear:
   comprehensive diagram is Sterman 2001's, the threshold is the plugin's);
 - titles of two to four words (T01);
 - the legend lists exactly the marks drawn, one entry per combination of shape, status and highlight;
-- review: a draft first, three lenses, two rounds by default, and a triage list for what is left.
+- review: a draft first, three lenses, the number of rounds agreed with the person up front (2 by default), later rounds on the fixes only, no round beyond the agreed number without the person's yes, and a triage list for what is left.
+
+## From the earlier `dynamics` prototype (no external source)
+
+The prototype on branch `add-dynamics-plugin` of this repository cited no sources. Taken from it: the three survey angles (the engine, growth and memory, control and governance) with their product-docs variants; reference modes named as patterns (growth, S-curve, decline, oscillation, overshoot); the "should this be modelled at all?" check; the research step for guesses that carry the answer; and leverage points and missing feedback in the report.
 
 ## Considered, not used
 

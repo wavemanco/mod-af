@@ -107,8 +107,8 @@ function world(on: On, w: World) {
   const overCap = (tokens: number) => ({ result: [], isError: true, text: `<tool_use_error>${w.capWords ?? `File content (${tokens} tokens) exceeds maximum allowed tokens (${cap}). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.`}</tool_use_error>` }) as never
   const ends = (list: string[] | undefined, p: string) => (list ?? []).some(d => p.endsWith(d))
   on('command.register', (_, e) => ({ value: { command: e.name } }))
-  on('tool.register', (_, e) => ({ value: { tool: `mcp__stockflow__${e.name}` } }))
-  on('agent.register', (_, e) => { if (w.agentsFail) throw new Error('refused'); return { value: { agent: `stockflow:${e.name}` } } })
+  on('tool.register', (_, e) => ({ value: { tool: `mcp__dynamics__${e.name}` } }))
+  on('agent.register', (_, e) => { if (w.agentsFail) throw new Error('refused'); return { value: { agent: `dynamics:${e.name}` } } })
   // the plugin reads only prompt.md with $.fs.read; everything else goes through the Read tool
   on('fs.read', (_, e) => {
     if (e.path.endsWith('/prompt.md') && '/plugin/prompt.md' in w.files) return { value: w.files['/plugin/prompt.md'] }
@@ -129,10 +129,10 @@ function world(on: On, w: World) {
     return { value: [...names].map(name => ({ name, kind: 'file' as const, size: 0, mtimeMs: 0, isLink: `${dir}/${name}` in links })) }
   })
   on('session.cwd', () => ({ value: cwd.value }))
-  on('tool.list', () => ({ value: ['Read', 'Write', 'Bash', 'mcp__stockflow__check', 'mcp__stockflow__render'].filter(t => !w.noTool?.includes(t)).map(name => ({ name, description: name, mcp: name.startsWith('mcp__') })) }))
+  on('tool.list', () => ({ value: ['Read', 'Write', 'Bash', 'mcp__dynamics__check', 'mcp__dynamics__render'].filter(t => !w.noTool?.includes(t)).map(name => ({ name, description: name, mcp: name.startsWith('mcp__') })) }))
   on('tool.check', (_, e) => {
     if (w.noTool?.includes(e.tool)) throw new Error(`no tool named "${e.tool}" in this session`)
-    if (e.tool === 'mcp__stockflow__check' || e.tool === 'mcp__stockflow__render') return w.toolVerdict ?? { decision: 'allow' }
+    if (e.tool === 'mcp__dynamics__check' || e.tool === 'mcp__dynamics__render') return w.toolVerdict ?? { decision: 'allow' }
     const p = String((e.input as { file_path?: string }).file_path ?? '')
     // like Read, the real Write tool refuses a path its deny rules cover with its own error (below); only a
     // query gets the deny
@@ -221,8 +221,8 @@ const START = { cwd: '/w', surface: 'terminal', isInteractive: true } as const
 const RUN = { origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } } as const
 const json = (r: { result?: unknown }) => JSON.parse(String(r.result))
 const said = (r: { deny?: unknown; text?: unknown; result?: unknown }) => String(r.deny ?? r.text ?? r.result)
-const checkTool = (path: string, extra: Record<string, unknown> = {}) => ({ tool: 'mcp__stockflow__check' as const, path, ...extra })
-const renderTool = (path: string, extra: Record<string, unknown> = {}) => ({ tool: 'mcp__stockflow__render' as const, path, ...extra })
+const checkTool = (path: string, extra: Record<string, unknown> = {}) => ({ tool: 'mcp__dynamics__check' as const, path, ...extra })
+const renderTool = (path: string, extra: Record<string, unknown> = {}) => ({ tool: 'mcp__dynamics__render' as const, path, ...extra })
 
 // ------------------------------------------------------------------------------------ helpers
 
@@ -234,7 +234,7 @@ test('section() reads marked text, with CRLF line ends too', () => {
 })
 
 test('requestOf() keeps every line, and tags inside the request', () => {
-  const wrap = (req: string) => `Base directory: /p\n\nWhat to model, as typed after /stockflow:\n\n<request>\n${req}\n</request>\n\nIf you can read this paragraph, ...`
+  const wrap = (req: string) => `Base directory: /p\n\nWhat to model, as typed after /dynamics:\n\n<request>\n${req}\n</request>\n\nIf you can read this paragraph, ...`
   expect(requestOf(wrap('the billing service\nQuestion: why do refunds pile up?'))).toBe('the billing service\nQuestion: why do refunds pile up?')
   expect(requestOf(wrap('model the <request> parser and its </request> handling'))).toBe('model the <request> parser and its </request> handling')
   expect(requestOf('<request>\n\n</request>')).toBe('')
@@ -250,45 +250,45 @@ test('utf8Bytes() counts what lands on disk', () => {
   expect(utf8Bytes('aé€😀')).toBe(1 + 2 + 3 + 4)
 })
 
-// ------------------------------------------------------------------------- the /stockflow skill
+// ------------------------------------------------------------------------- the /dynamics skill
 
-test('/stockflow injects the request, the method, the lens briefs, the field reference and the example', async ($, on) => {
+test('/dynamics injects the request, the method, the lens briefs, the field reference and the example', async ($, on) => {
   world(on, { files: folder() })
   on('skill.prompt', (_, e) => ({ text: e.text }))
   await $.session.start(START)
-  const r = await $.skill.prompt({ skill: 'stockflow:stockflow', text: 'Base directory for this skill: /plugin/skills/stockflow\n\nWhat to model, as typed after /stockflow:\n\n<request>\nthe job runner\nQuestion: why does the queue stay long?\n</request>\n\nIf you can read this paragraph, fallback text' })
+  const r = await $.skill.prompt({ skill: 'dynamics:dynamics', text: 'Base directory for this skill: /plugin/skills/dynamics\n\nWhat to model, as typed after /dynamics:\n\n<request>\nthe job runner\nQuestion: why does the queue stay long?\n</request>\n\nIf you can read this paragraph, fallback text' })
   expect(r.text).toContain('the job runner\nQuestion: why does the queue stay long?')
   expect(r.text).toContain('the method body')
   expect(r.text).toContain('facts lens brief')
   expect(r.text).toContain('reader lens brief')
-  expect(r.text).toContain('`stockflow:facts-reviewer`')
-  expect(r.text).toContain('# The stockflow/1 model format')
-  expect(r.text).toContain('"spec": "stockflow/1"')
+  expect(r.text).toContain('`dynamics:facts-reviewer`')
+  expect(r.text).toContain('# The dynamics/1 model format')
+  expect(r.text).toContain('"spec": "dynamics/1"')
   expect(r.text).not.toContain('fallback text')
 })
 
-test('/stockflow still carries the lens briefs, and says so, when no review agent registered', async ($, on) => {
+test('/dynamics still carries the lens briefs, and says so, when no review agent registered', async ($, on) => {
   world(on, { files: folder(), agentsFail: true })
   on('skill.prompt', (_, e) => ({ text: e.text }))
   await $.session.start(START)
-  const r = await $.skill.prompt({ skill: 'stockflow:stockflow', text: '<request>\nx\n</request>' })
+  const r = await $.skill.prompt({ skill: 'dynamics:dynamics', text: '<request>\nx\n</request>' })
   expect(r.text).toContain('No review agents registered')
   expect(r.text).toContain('facts lens brief')
-  expect(r.text).not.toContain('`stockflow:facts-reviewer`')
+  expect(r.text).not.toContain('`dynamics:facts-reviewer`')
 })
 
-test('/stockflow says so, and injects no method, when prompt.md is missing or lacks the lens briefs', async ($, on) => {
+test('/dynamics says so, and injects no method, when prompt.md is missing or lacks the lens briefs', async ($, on) => {
   const files = folder()
   world(on, { files })
   on('skill.prompt', (_, e) => ({ text: e.text }))
   await $.session.start(START)
   files['/plugin/prompt.md'] = PROMPT.replace(/<!-- lenses:start -->[\s\S]*<!-- lenses:end -->/, '')
-  const noLenses = await $.skill.prompt({ skill: 'stockflow:stockflow', text: '<request>\nx\n</request>' })
+  const noLenses = await $.skill.prompt({ skill: 'dynamics:dynamics', text: '<request>\nx\n</request>' })
   expect(noLenses.text).toContain('installed incorrectly')
   delete files['/plugin/prompt.md']
-  const missing = await $.skill.prompt({ skill: 'stockflow:stockflow', text: '<request>\nx\n</request>' })
+  const missing = await $.skill.prompt({ skill: 'dynamics:dynamics', text: '<request>\nx\n</request>' })
   expect(missing.text).toContain('installed incorrectly')
-  expect(missing.text).not.toContain('# The stockflow/1 model format')
+  expect(missing.text).not.toContain('# The dynamics/1 model format')
 })
 
 // ------------------------------------------------------------------- reading through the Read tool
@@ -402,7 +402,7 @@ test('a path that starts with "~" is refused with what to give instead, never re
   world(on, { files: folder(), reads, writes })
   await $.session.start(START)
   expect(said(await $.tool.call(checkTool('~/m/model.json')))).toContain('give the path without ~: absolute, or relative to the working folder')
-  expect((await $.command.run({ command: 'stockflow-check', args: '~/m/model.json', ...RUN })).text).toContain('give the path without ~')
+  expect((await $.command.run({ command: 'dynamics-check', args: '~/m/model.json', ...RUN })).text).toContain('give the path without ~')
   expect(reads).toEqual([])
   expect(said(await $.tool.call(renderTool('/w/m/model.json', { out: '~/page.html' })))).toContain('give the path without ~: absolute, or relative to the model\'s folder')
   expect(writes).toEqual({})
@@ -601,7 +601,7 @@ test('a notebook, a PDF or an image is named for what it is, with what to cite i
   world(on, { files, readTypes: { 'tune.ipynb': 'notebook', 'runbook.pdf': 'pdf', 'shot.png': 'image' } })
   await $.session.start(START)
   const said3 = json(await $.tool.call(checkTool('/w/m/model.json'))).errors.map((i: { message: string }) => i.message).join('\n')
-  expect(said3).toContain('/w/m/src/tune.ipynb is a Jupyter notebook. stockflow cites lines and a notebook has cells, so cite a text extract (for example: jupyter nbconvert --to script /w/m/src/tune.ipynb) and record the command in "from".')
+  expect(said3).toContain('/w/m/src/tune.ipynb is a Jupyter notebook. dynamics cites lines and a notebook has cells, so cite a text extract (for example: jupyter nbconvert --to script /w/m/src/tune.ipynb) and record the command in "from".')
   expect(said3).not.toContain('the Read tool returns its cells')
   expect(said3).toContain('/w/m/src/runbook.pdf is a PDF; the Read tool returns its pages, not its lines. Cite a text extract made with pdftotext')
   expect(said3).toContain('/w/m/src/shot.png is an image, and images cannot be quoted')
@@ -625,7 +625,7 @@ test('a notebook is named as one whether the Read tool returns its cells or refu
   expect(errors.length).toBe(4)
   for (const f of ['small.ipynb', 'mid.ipynb', 'big.ipynb', 'Tune.IPYNB']) {
     const e = errors.find(i => i.message.includes(`/w/m/src/${f})`))!
-    expect(e.message).toContain(`/w/m/src/${f} is a Jupyter notebook. stockflow cites lines and a notebook has cells, so cite a text extract (for example: jupyter nbconvert --to script /w/m/src/${f}) and record the command in "from".`)
+    expect(e.message).toContain(`/w/m/src/${f} is a Jupyter notebook. dynamics cites lines and a notebook has cells, so cite a text extract (for example: jupyter nbconvert --to script /w/m/src/${f}) and record the command in "from".`)
     expect(e.message).not.toContain('too long')
     // the first answer decides it: no smaller page is asked for
     expect(callsOn(pages, f).calls).toBe(1)
@@ -976,15 +976,15 @@ test('a long file is read in pages when one Read call would be too large', async
 test('the person\'s explicit rules for the plugin\'s own tools are honoured', async ($, on) => {
   world(on, { files: folder(), toolVerdict: { decision: 'deny', reason: 'blocked by a rule' } })
   await $.session.start(START)
-  expect(said(await $.tool.call(checkTool('/w/m/model.json')))).toContain('deny mcp__stockflow__check')
+  expect(said(await $.tool.call(checkTool('/w/m/model.json')))).toContain('deny mcp__dynamics__check')
 })
 
 test('an ask rule for the plugin\'s tool is put to the person; with no answer the tool does not run', async ($, on) => {
   const reads: string[] = []
-  world(on, { files: folder(), toolVerdict: { decision: 'ask', rule: 'mcp__stockflow__check' }, reads })
+  world(on, { files: folder(), toolVerdict: { decision: 'ask', rule: 'mcp__dynamics__check' }, reads })
   on('tool.call', { tool: 'AskUserQuestion' }, () => { throw new Error('no one to ask') })
   await $.session.start(START)
-  expect(said(await $.tool.call(checkTool('/w/m/model.json')))).toContain('ask before mcp__stockflow__check runs')
+  expect(said(await $.tool.call(checkTool('/w/m/model.json')))).toContain('ask before mcp__dynamics__check runs')
   expect(reads).toEqual([])
 })
 
@@ -1009,7 +1009,7 @@ test('the render tool writes one sealed page beside the model and returns the re
   expect(json(await $.tool.call(renderTool('/w/m/model.json'))).rendered).toBe(true)
 })
 
-test('a page changed after stockflow wrote it is not overwritten; a re-indented one is', async ($, on) => {
+test('a page changed after dynamics wrote it is not overwritten; a re-indented one is', async ($, on) => {
   const files = folder()
   world(on, { files })
   await $.session.start(START)
@@ -1017,20 +1017,20 @@ test('a page changed after stockflow wrote it is not overwritten; a re-indented 
   files['/w/m/model.html'] = files['/w/m/model.html'].replace('</main>', '\n\n  </main>')
   expect(json(await $.tool.call(renderTool('/w/m/model.json'))).rendered).toBe(true)
   files['/w/m/model.html'] = files['/w/m/model.html'].replace('</main>', '<p>my notes</p></main>')
-  expect(said(await $.tool.call(renderTool('/w/m/model.json')))).toContain('changed after stockflow wrote it')
+  expect(said(await $.tool.call(renderTool('/w/m/model.json')))).toContain('changed after dynamics wrote it')
 })
 
 test('a sealed page from another machine is replaced; a file with no seal never is', async ($, on) => {
   const files = folder()
   const a = await check(JSON.stringify(EXAMPLE_MODEL), '/w/m/model.json', { read: async p => (p in files ? { text: files[p] } : { failed: 'File does not exist.' }) })
   files['/w/m/ours.html'] = render(a).html
-  files['/w/m/notes.html'] = '<p>my notes</p><meta name="generator" content="stockflow">'
+  files['/w/m/notes.html'] = '<p>my notes</p><meta name="generator" content="dynamics">'
   world(on, { files })
   await $.session.start(START)
   expect(json(await $.tool.call(renderTool('/w/m/model.json', { out: 'ours.html' }))).rendered).toBe(true)
   const none = said(await $.tool.call(renderTool('/w/m/model.json', { out: 'notes.html' })))
-  expect(none).toContain('/w/m/notes.html exists without stockflow\'s seal, so stockflow cannot confirm it wrote the page and will not replace it (a hook may have removed the seal as the page was written, for example one that strips comments). Delete or move the file, or give the render tool another "out".')
-  expect(none).not.toContain('not written by stockflow')
+  expect(none).toContain('/w/m/notes.html exists without dynamics\'s seal, so dynamics cannot confirm it wrote the page and will not replace it (a hook may have removed the seal as the page was written, for example one that strips comments). Delete or move the file, or give the render tool another "out".')
+  expect(none).not.toContain('not written by dynamics')
 })
 
 test('a hook that rewrites the page as it is written is reported', async ($, on) => {
@@ -1051,7 +1051,7 @@ test('a page with a line too long for one Read call is never replaced, and the r
   expect(first.note).toContain('The page could not be read back through the Read tool (a line in /w/m/model.html is too long for Claude Code\'s Read tool')
   expect(first.note).toContain('the next render may not be able to replace it')
   delete writes['/w/m/model.html']
-  expect(said(await $.tool.call(renderTool('/w/m/model.json')))).toContain('/w/m/model.html exists and cannot be read to confirm stockflow wrote it: a line in /w/m/model.html is too long')
+  expect(said(await $.tool.call(renderTool('/w/m/model.json')))).toContain('/w/m/model.html exists and cannot be read to confirm dynamics wrote it: a line in /w/m/model.html is too long')
   expect(writes).toEqual({})
 })
 
@@ -1074,8 +1074,8 @@ test('an existing page that cannot be read through the Read tool is never overwr
   const writes: Files = {}
   world(on, { files, writes, charCap: 20_000, guardRead: { 'denied.html': 'secrets-guard: no' } })
   await $.session.start(START)
-  expect(said(await $.tool.call(renderTool('/w/m/model.json', { out: 'denied.html' })))).toContain('denied.html exists and cannot be read to confirm stockflow wrote it: reading it was refused: secrets-guard: no')
-  expect(said(await $.tool.call(renderTool('/w/m/model.json', { out: 'long.html' })))).toContain('long.html exists and cannot be read to confirm stockflow wrote it: a line in /w/m/long.html is too long')
+  expect(said(await $.tool.call(renderTool('/w/m/model.json', { out: 'denied.html' })))).toContain('denied.html exists and cannot be read to confirm dynamics wrote it: reading it was refused: secrets-guard: no')
+  expect(said(await $.tool.call(renderTool('/w/m/model.json', { out: 'long.html' })))).toContain('long.html exists and cannot be read to confirm dynamics wrote it: a line in /w/m/long.html is too long')
   expect(writes).toEqual({})
 })
 
@@ -1095,7 +1095,7 @@ for (const [what, rewrite] of [
   })
 }
 
-const STRIPPED = 'A hook removed stockflow\'s seal from the page as it was written (for example a formatter that strips comments). The page on disk can no longer be confirmed as stockflow\'s, so delete it before rendering again; while that hook runs, each new page loses its seal too, so also exclude the page from the hook.'
+const STRIPPED = 'A hook removed dynamics\'s seal from the page as it was written (for example a formatter that strips comments). The page on disk can no longer be confirmed as dynamics\'s, so delete it before rendering again; while that hook runs, each new page loses its seal too, so also exclude the page from the hook.'
 
 test('a page a hook strips the seal from as it is written: the render that wrote it names the hook, and the next refuses with advice both callers can follow', async ($, on) => {
   const writes: Files = {}
@@ -1110,8 +1110,8 @@ test('a page a hook strips the seal from as it is written: the render that wrote
   const next = said(await $.tool.call(renderTool('/w/m/model.json')))
   expect(next).toContain('a hook may have removed the seal as the page was written')
   expect(next).toContain(advice)
-  const command = (await $.command.run({ command: 'stockflow-check', args: '/w/m/model.json', ...RUN })).text
-  expect(command).toContain('Not rendered: /w/m/model.html exists without stockflow\'s seal')
+  const command = (await $.command.run({ command: 'dynamics-check', args: '/w/m/model.json', ...RUN })).text
+  expect(command).toContain('Not rendered: /w/m/model.html exists without dynamics\'s seal')
   expect(command).toContain(advice)
   expect(writes).toEqual({})
 })
@@ -1127,7 +1127,7 @@ test('after a hook stripped the seal, turning the hook off is not enough: the ne
   expect(first.note).not.toMatch(/exclude the page from (that|the) hook, or delete/)
   expect(first.note.indexOf('delete it before rendering again')).toBeLessThan(first.note.indexOf('also exclude the page from the hook'))
   w.rewriteOnWrite = undefined
-  expect(said(await $.tool.call(renderTool('/w/m/model.json')))).toContain('/w/m/model.html exists without stockflow\'s seal')
+  expect(said(await $.tool.call(renderTool('/w/m/model.json')))).toContain('/w/m/model.html exists without dynamics\'s seal')
   delete files['/w/m/model.html']
   const after = json(await $.tool.call(renderTool('/w/m/model.json')))
   expect(after.rendered).toBe(true)
@@ -1217,15 +1217,15 @@ test('a Write tool error is reported, not taken for success', async ($, on) => {
   expect(out.why).toContain('EACCES')
 })
 
-// ------------------------------------------------------------------------- /stockflow-check
+// ------------------------------------------------------------------------- /dynamics-check
 
-test('/stockflow-check re-renders a clean model, from a quoted path relative to the current folder', async ($, on) => {
+test('/dynamics-check re-renders a clean model, from a quoted path relative to the current folder', async ($, on) => {
   const writes: Files = {}
   const cwd = { value: '/w' }
   world(on, { files: folder(), writes, cwd })
   await $.session.start(START)
   cwd.value = '/w/m'
-  const r = await $.command.run({ command: 'stockflow-check', args: '"model.json"', ...RUN })
+  const r = await $.command.run({ command: 'dynamics-check', args: '"model.json"', ...RUN })
   expect(r.text).toContain('OK:')
   expect(r.text).toContain('Rendered /w/m/model.html')
 })
@@ -1235,13 +1235,13 @@ for (const [what, extra] of [
   ['cannot be read', { guardRead: { 'model.html': 'secrets-guard: no' } }],
   ['has no seal', {}],
 ] as [string, Partial<World>][]) {
-  test(`/stockflow-check, which has no "out", is told what it can do when the page's file ${what}`, async ($, on) => {
+  test(`/dynamics-check, which has no "out", is told what it can do when the page's file ${what}`, async ($, on) => {
     const files = folder()
     files['/w/m/model.html'] = '<p>my notes</p>'
     const writes: Files = {}
     world(on, { files, writes, ...extra })
     await $.session.start(START)
-    const r = (await $.command.run({ command: 'stockflow-check', args: '/w/m/model.json', ...RUN })).text
+    const r = (await $.command.run({ command: 'dynamics-check', args: '/w/m/model.json', ...RUN })).text
     expect(r).toContain('Not rendered: /w/m/model.html ')
     expect(r).toContain('Delete or move the file, or give the render tool another "out".')
     expect(r).not.toContain('choose another "out"')
@@ -1249,11 +1249,11 @@ for (const [what, extra] of [
   })
 }
 
-test('/stockflow-check reads and writes under the same settings as the tools', async ($, on) => {
+test('/dynamics-check reads and writes under the same settings as the tools', async ($, on) => {
   const writes: Files = {}
   world(on, { files: folder(), writes, denyRead: ['alerting.py'] })
   await $.session.start(START)
-  const r = await $.command.run({ command: 'stockflow-check', args: '/w/m/model.json', ...RUN })
+  const r = await $.command.run({ command: 'dynamics-check', args: '/w/m/model.json', ...RUN })
   expect(r.text).toContain('E07')
   expect(writes).toEqual({})
 })
@@ -1442,4 +1442,23 @@ test('a missing flow\'s cross sits clear of its valve, and labels avoid arrowhea
   const valve = /class="valve-shape" d="M[^"]*? L[^"]*? L([\d.]+),([\d.]+)/.exec(g)!
   const x = /class="miss-x" d="M([\d.]+),([\d.]+)/.exec(g)!
   expect(Math.hypot(Number(x[1]) + 6 - Number(valve[1]), Number(x[2]) + 6 - Number(valve[2]))).toBeGreaterThan(18)
+})
+
+test('a short answer of several sentences is shown one sentence per line; one sentence stays a paragraph', async () => {
+  const two = render(await exampleAnalysis(m => { m.answer.text = 'Jobs pile up when workers are slow. More retries add more jobs, so the queue feeds itself.' })).html
+  expect(two).toContain('<ul class="answer-lines"><li>Jobs pile up when workers are slow.</li><li>More retries add more jobs, so the queue feeds itself.</li></ul>')
+  const one = render(await exampleAnalysis(m => { m.answer.text = 'Jobs pile up when workers are slow.' })).html
+  expect(one).toContain('<h2>Short answer</h2>\n<p>Jobs pile up when workers are slow.</p>')
+})
+
+test('the footer counts what is not machine-checked and leaves the list to the check report', async () => {
+  const a = await exampleAnalysis()
+  const page = render(a)
+  expect(page.html).toContain(`Not machine-checked: ${a.report.not_checked.length} kinds of claim, listed in the check report that comes with this page.`)
+  for (const item of a.report.not_checked) expect(page.html).not.toContain(item.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!))
+})
+
+test('the footer shows the review rounds against the rounds the person agreed to', async () => {
+  const page = render(await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 2, agreed: 2, independent: true, visual: true } })).html
+  expect(page).toContain('Review: 2 rounds of 2 agreed, by reviewers other than the builder; rendered page inspected.')
 })

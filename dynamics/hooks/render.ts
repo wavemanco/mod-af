@@ -1,4 +1,4 @@
-// Renders a checked stockflow/1 model to one self-contained HTML page, plus a plain-text reader view
+// Renders a checked dynamics/1 model to one self-contained HTML page, plus a plain-text reader view
 // built from the same section data. Pure: strings in, strings out.
 //
 // Everything structural on the page is read from the checker's Analysis (loop polarity, membership,
@@ -1336,7 +1336,7 @@ function drawFigure(ctx: Ctx, figId: string, bendOverride: ReadonlyMap<string, n
   const vh = Math.ceil(maxY - minY + 2 * pad)
   const fig = m.figures.find(f => f.id === figId)!
   // below 80% of its natural size a figure's text is too small to read, so the frame scrolls instead
-  const svg = lines(`<svg class="sd" viewBox="${r1(vx)} ${r1(vy)} ${r1(vw)} ${r1(vh)}" style="min-width:${r1(Math.round(vw * 0.8))}px" role="group" aria-label="${esc(`Figure: ${fig.title}`)}">${parts.join('')}${linkParts.join('')}<g class="labels">${textParts.join('')}</g><g class="signs">${signParts.join('')}</g><g class="marks">${markParts.join('')}</g></svg>`)
+  const svg = lines(`<svg class="sd" viewBox="${r1(vx)} ${r1(vy)} ${r1(vw)} ${r1(vh)}" style="min-width:${r1(Math.round(vw))}px" role="group" aria-label="${esc(`Figure: ${fig.title}`)}">${parts.join('')}${linkParts.join('')}<g class="labels">${textParts.join('')}</g><g class="signs">${signParts.join('')}</g><g class="marks">${markParts.join('')}</g></svg>`)
   // a figure with a coordinate that is not a number would draw as an empty frame: refuse it, never ship it
   if (nonFinite > 0) layout.push({ code: 'G00', level: 'error', where: `figure "${figId}"`, message: 'the figure could not be drawn (a position came out as no number). Move the elements involved, or drop a "route" or "bend".' })
   return { svg, layout, marks, extras, highlighted, bends, tight }
@@ -1397,12 +1397,12 @@ const CSS = `
 :root[data-theme="dark"]{--bg:#151514;--surface:#1d1d1b;--fg:#ecebe7;--muted:#a5a29b;--rule:#3a3936;--accent:#7aa7f0;--alert:#f08466;--hyp:#96938c;--r:#d58ccb;--b:#6cc7a3;--on-tag:#151514;--halo:#1d1d1b}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg)}
 body{font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
-.wrap{max-width:1180px;margin:0 auto;padding:28px 24px 64px;overflow-wrap:anywhere}
+.wrap{max-width:1400px;margin:0 auto;padding:28px 24px 64px;overflow-wrap:anywhere}
 @media (max-width:560px){.wrap{padding:20px 16px 48px}}
 h1{font-size:28px;line-height:1.2;margin:4px 0 10px}h2{font-size:20px;margin:36px 0 6px}h3{font-size:16px;margin:16px 0 6px}
 .eyebrow{color:var(--muted);font-size:13px}.prose{max-width:72ch}.lead{font-size:18px;margin:6px 0}.muted{color:var(--muted)}
 .answer{max-width:72ch;margin:14px 0;padding:12px 16px;border-left:3px solid var(--accent);background:var(--surface)}
-.answer h2{font-size:15px;margin:0 0 4px}.answer p{margin:0}
+.answer h2{font-size:15px;margin:0 0 4px}.answer p{margin:0}.answer-lines{margin:0;padding-left:20px}.answer-lines li{margin:2px 0}
 code{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
 .legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px 22px;margin:10px 0 0;padding:14px;border:1px solid var(--rule);border-radius:8px;background:var(--surface)}
 .key{display:flex;gap:10px;align-items:flex-start;font-size:13.5px}.key .sw{flex:0 0 64px;width:64px;height:36px}
@@ -1499,7 +1499,7 @@ const safeJson = (v: unknown): string => JSON.stringify(v).replace(/</g, '\\u003
 
 export type Rendered = { html: string; readerView: string; layout: Issue[]; legend: string[] }
 
-const GENERATOR_META = '<meta name="generator" content="stockflow">'
+const GENERATOR_META = '<meta name="generator" content="dynamics">'
 /** The start of every page this renderer writes. */
 const PAGE_PREFIX = ['<!doctype html>', '<html lang="en">', '<head>', '<meta charset="utf-8">', '<meta name="viewport" content="width=device-width, initial-scale=1">', GENERATOR_META].join('\n')
 /**
@@ -1527,11 +1527,11 @@ function evRef(e: Evidence): string {
   return `${e.root ? `${e.root}:` : ''}${e.path ?? ''}${at}`
 }
 
-// ---- the seal: a page carries the fingerprint of its own content, so whether stockflow wrote it, and
+// ---- the seal: a page carries the fingerprint of its own content, so whether dynamics wrote it, and
 // whether anyone changed it since, is read from the file itself (it travels with git, copies and other
 // machines). Whitespace is left out of the fingerprint, so a formatter that only re-indents keeps it.
 
-const SEAL = /<!-- stockflow:fp=([0-9a-f]+) -->/g
+const SEAL = /<!-- dynamics:fp=([0-9a-f]+) -->/g
 /** Lone surrogate halves become U+FFFD, as a file write stores them, so the seal matches what lands. */
 const wellFormed = (s: string): string => s.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '\uFFFD')
 const sealOf = (body: string): string => fingerprint(body.replace(/\s+/g, ''))
@@ -1539,12 +1539,12 @@ const sealOf = (body: string): string => fingerprint(body.replace(/\s+/g, ''))
 /** The page with its seal appended. */
 export function seal(html: string): string {
   const body = wellFormed(html)
-  return `${body}<!-- stockflow:fp=${sealOf(body)} -->\n`
+  return `${body}<!-- dynamics:fp=${sealOf(body)} -->\n`
 }
 
 /**
- * intact: stockflow wrote it and nothing but whitespace changed since; changed: sealed, then edited (text
- * added after the seal counts); none: no seal anywhere. The last seal is the one stockflow wrote last.
+ * intact: dynamics wrote it and nothing but whitespace changed since; changed: sealed, then edited (text
+ * added after the seal counts); none: no seal anywhere. The last seal is the one dynamics wrote last.
  */
 export function sealState(text: string): 'intact' | 'changed' | 'none' {
   let m: RegExpMatchArray | undefined
@@ -1586,12 +1586,17 @@ export function render(a: Analysis): Rendered {
     ? `Solid marks are what the code${subj.ref ? ` at ${subj.ref}` : ''} does, each with its source.`
     : 'Solid marks are what the cited documents state; they were not checked against the running product.'
 
+  // the short answer, one line per sentence, so two to five sentences do not read as one block
+  const answerHtml = (text: string): string => {
+    const parts = text.split(/(?<=[.!?])\s+(?=[A-Z"“(])/).filter(s => s.trim())
+    return parts.length > 1 ? `<ul class="answer-lines">${parts.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : `<p>${esc(text)}</p>`
+  }
   // header
   const eyebrow = `${subj.name} · ${subj.kind}${subj.ref ? ` · ${subj.ref}${subj.dirty ? ' (uncommitted changes)' : ''}` : ''} · sources read ${subj.date}`
   const disclaimer = `A hypothesis read from the structure below, not the result of a simulation.${model.horizon ? ` Time horizon: ${model.horizon}.` : ''}`
   both(
     nl('<header>', `<div class="eyebrow">${esc(eyebrow)}</div>`, `<h1>${esc(model.title)}</h1>`, `<p class="lead prose">${esc(model.question)}</p>`,
-      '<div class="answer">', '<h2>Short answer</h2>', `<p>${esc(model.answer.text)}</p>`, `<p class="muted" style="margin-top:6px">${esc(disclaimer)}</p>`, '</div>',
+      '<div class="answer">', '<h2>Short answer</h2>', answerHtml(model.answer.text), `<p class="muted" style="margin-top:6px">${esc(disclaimer)}</p>`, '</div>',
       model.emphasis ? `<p class="prose"><b>${esc(model.emphasis.name)}</b> marks, in the alert colour: ${esc(model.emphasis.rule)}</p>` : '', '</header>'),
     [`# ${model.title}`, eyebrow, '', `Question: ${model.question}`, `Short answer: ${model.answer.text}`, disclaimer, ...(model.emphasis ? [`${model.emphasis.name} marks, in the alert colour: ${model.emphasis.rule}`] : [])].join('\n'),
   )
@@ -1718,10 +1723,10 @@ export function render(a: Analysis): Rendered {
 
   const rv = model.review
   const reviewLine = rv
-    ? `Review: ${rv.rounds ?? 0} round${rv.rounds === 1 ? '' : 's'}, ${rv.independent ? 'by reviewers other than the builder' : 'self-review only'}; ${rv.visual ? 'rendered page inspected' : 'rendered page not visually inspected'}.${rv.note ? ` ${rv.note}` : ''}`
+    ? `Review: ${rv.rounds ?? 0} round${rv.rounds === 1 ? '' : 's'}${rv.agreed !== undefined ? ` of ${rv.agreed} agreed` : ''}, ${rv.independent ? 'by reviewers other than the builder' : 'self-review only'}; ${rv.visual ? 'rendered page inspected' : 'rendered page not visually inspected'}.${rv.note ? ` ${rv.note}` : ''}`
     : 'Review: not recorded.'
   const n = (k: number | undefined, one: string, many: string) => `${k ?? 0} ${(k ?? 0) === 1 ? one : many}`
-  const built = `Built with the stockflow plugin from a checked model: ${n(c.stocks, 'stock', 'stocks')}, ${n(c.flows, 'flow', 'flows')}, ${n((c.variables ?? 0) + (c.constants ?? 0), 'variable or constant', 'variables and constants')}, ${n(c.links, 'link', 'links')}, ${n(c.loops, 'live feedback loop', 'live feedback loops')}. Loop types, loop membership, traces, the boundary and the legend are derived from the model. Not machine-checked: ${report.not_checked.join('; ')}.`
+  const built = `Built with the dynamics plugin from a checked model: ${n(c.stocks, 'stock', 'stocks')}, ${n(c.flows, 'flow', 'flows')}, ${n((c.variables ?? 0) + (c.constants ?? 0), 'variable or constant', 'variables and constants')}, ${n(c.links, 'link', 'links')}, ${n(c.loops, 'live feedback loop', 'live feedback loops')}. Loop types, loop membership, traces, the boundary and the legend are derived from the model. Not machine-checked: ${n(report.not_checked.length, 'kind of claim', 'kinds of claim')}, listed in the check report that comes with this page.`
   both(nl('<footer>', `<p>${esc(reviewLine)}</p>`, `<p>${esc(built)}</p>`, '</footer>'), `\n${reviewLine}\n${built}`)
 
   const info: Record<string, unknown> = {}

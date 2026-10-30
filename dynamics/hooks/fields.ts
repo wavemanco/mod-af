@@ -1,4 +1,4 @@
-// The stockflow/1 model format, declared once. The checker validates shapes from this table and
+// The dynamics/1 model format, declared once. The checker validates shapes from this table and
 // the field reference the model reads is generated from it, so the two cannot disagree.
 
 export type FieldType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'cell' | 'strings' | 'map' | 'lines'
@@ -31,7 +31,7 @@ export const SECTIONS: Record<SectionName, { title: string; doc: string; fields:
     title: 'The model file',
     doc: 'One JSON object. Write it with your file tool; the check and render tools take its path.',
     fields: [
-      { name: 'spec', type: 'string', enum: ['stockflow/1'], required: true, doc: 'Always "stockflow/1".' },
+      { name: 'spec', type: 'string', enum: ['dynamics/1'], required: true, doc: 'Always "dynamics/1".' },
       { name: 'title', type: 'string', required: true, doc: 'Page title, two to four words ("Job Runner Dynamics").' },
       { name: 'subject', type: 'object', of: 'subject', required: true, doc: 'What is modelled and where its sources are.' },
       { name: 'question', type: 'string', required: true, doc: 'The question the model answers, in the person\'s words or your proposal.' },
@@ -97,6 +97,7 @@ export const SECTIONS: Record<SectionName, { title: string; doc: string; fields:
     doc: '',
     fields: [
       { name: 'rounds', type: 'number', doc: 'Review rounds run.' },
+      { name: 'agreed', type: 'number', doc: 'Review rounds the person agreed to before the review began; a round beyond it needs their yes.' },
       { name: 'independent', type: 'boolean', doc: 'True when reviewers other than the builder ran them.' },
       { name: 'visual', type: 'boolean', doc: 'True when rendered screenshots were inspected.' },
       { name: 'note', type: 'string', doc: 'One line, e.g. what was accepted as a known limit.' },
@@ -218,7 +219,7 @@ const TYPE_TEXT: Record<FieldType, string> = {
 
 /** The field reference injected into the session: generated, so it matches the checker. */
 export function fieldReference(): string {
-  const out: string[] = ['# The stockflow/1 model format', '', 'Generated from the checker\'s own field table. "Required" conditions are enforced by the check.', '']
+  const out: string[] = ['# The dynamics/1 model format', '', 'Generated from the checker\'s own field table. "Required" conditions are enforced by the check.', '']
   for (const [, s] of Object.entries(SECTIONS)) {
     out.push(`## ${s.title}`)
     if (s.doc) out.push(s.doc)

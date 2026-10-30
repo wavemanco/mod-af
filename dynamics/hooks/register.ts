@@ -5,20 +5,20 @@ import { render, sealState } from './render.ts'
 import { check, MAX_SOURCE_BYTES, type Analysis, type Issue, type ReadResult } from './spec.ts'
 import { basename, dirname, isAbsPath, isInside, joinPath } from './text.ts'
 
-// /stockflow is a skill (a skill starts a model turn; a hook-answered command does not). Its
+// /dynamics is a skill (a skill starts a model turn; a hook-answered command does not). Its
 // skill.prompt hook replaces the skill's text with the method and the review lens briefs, read from
 // ../prompt.md between their markers, plus the field reference and worked example generated from the
-// checker's own tables. The check and render tools and /stockflow-check run the same pure core.
+// checker's own tables. The check and render tools and /dynamics-check run the same pure core.
 //
 // Every file is read through Claude Code's own Read tool and the page is written through its Write
 // tool ($.tool.call), so the person's rules, permission mode, PreToolUse hooks and dialogs decide each
 // read and write exactly as they would for the model's own calls. The plugin keeps no copy of that
 // logic: it only adds its own limits (the page stays in the model's folder, never over a file
-// stockflow did not write).
+// dynamics did not write).
 
-const SKILL = 'stockflow:stockflow'
-const CHECK = 'mcp__stockflow__check'
-const RENDER = 'mcp__stockflow__render'
+const SKILL = 'dynamics:dynamics'
+const CHECK = 'mcp__dynamics__check'
+const RENDER = 'mcp__dynamics__render'
 
 /** The text between <!-- name:start --> and <!-- name:end -->, or null. Tolerates CRLF and spacing. */
 export function section(md: string, name: string): string | null {
@@ -49,9 +49,9 @@ export function utf8Bytes(s: string): number {
 }
 
 const LENSES = [
-  { name: 'facts-reviewer', tools: ['Read', 'Grep', 'Glob'], description: 'stockflow review lens: checks every label, number, quote, mechanism, loop story and the answer of a stockflow model against its sources. Read-only.' },
-  { name: 'sd-reviewer', tools: ['Read', 'Grep', 'Glob', CHECK], description: 'stockflow review lens: checks a stockflow model against system-dynamics rules (stocks, flows, links, polarity, loops, boundary). Read-only.' },
-  { name: 'reader-reviewer', tools: ['Read'], description: 'stockflow review lens: a cold reader who sees only the rendered page (screenshots or its reader view) and lists every mark or sentence they cannot decode. Read-only.' },
+  { name: 'facts-reviewer', tools: ['Read', 'Grep', 'Glob'], description: 'dynamics review lens: checks every label, number, quote, mechanism, loop story and the answer of a dynamics model against its sources. Read-only.' },
+  { name: 'sd-reviewer', tools: ['Read', 'Grep', 'Glob', CHECK], description: 'dynamics review lens: checks a dynamics model against system-dynamics rules (stocks, flows, links, polarity, loops, boundary). Read-only.' },
+  { name: 'reader-reviewer', tools: ['Read'], description: 'dynamics review lens: a cold reader who sees only the rendered page (screenshots or its reader view) and lists every mark or sentence they cannot decode. Read-only.' },
 ] as const
 
 /** What registration returned this session: the names the engine gave, not the names we asked for. */
@@ -61,12 +61,12 @@ function header(reg: Registered): string {
   const check = reg.tools.check
   const rend = reg.tools.render
   const tools = check === CHECK && rend === RENDER
-    ? `Tools: \`${CHECK}\` { path, reader_view? } checks a model file (quotes against files, notation, every feedback loop and its type, numbers, units, boundary); with reader_view: true and no errors it also returns the page's plain-text reader view. \`${RENDER}\` { path, out? } writes the page once the check has no errors (a file write the person may be asked to approve), and returns the reader view and any layout warnings. If either is not in your tool list, load it with ToolSearch ("stockflow"). Where the method says "run the check", call \`${CHECK}\`; where it says "render", call \`${RENDER}\`.`
-    : `The stockflow tools did not register as expected (got ${check ?? 'nothing'} and ${rend ?? 'nothing'}). Tell the person, and use the "In the paste form" substitutions.`
+    ? `Tools: \`${CHECK}\` { path, reader_view? } checks a model file (quotes against files, notation, every feedback loop and its type, numbers, units, boundary); with reader_view: true and no errors it also returns the page's plain-text reader view. \`${RENDER}\` { path, out? } writes the page once the check has no errors (a file write the person may be asked to approve), and returns the reader view and any layout warnings. If either is not in your tool list, load it with ToolSearch ("dynamics"). Where the method says "run the check", call \`${CHECK}\`; where it says "render", call \`${RENDER}\`.`
+    : `The dynamics tools did not register as expected (got ${check ?? 'nothing'} and ${rend ?? 'nothing'}). Tell the person, and use the "In the paste form" substitutions.`
   const agents = reg.agents.length
     ? `Review agents (read-only): ${reg.agents.map(a => `\`${a}\``).join(', ')}. ${reg.agents.length < LENSES.length ? 'For a lens without an agent, brief a general subagent with that lens\'s brief below.' : 'Their briefs are below, so you know what each checks.'} Give the cold reader the reader view text (or screenshots), never the model or the HTML.`
     : 'No review agents registered: brief a general subagent with each lens brief below, or do each lens yourself as a separate pass.'
-  return ['# stockflow in this session', '', tools, agents, 'The person can re-check and re-render a hand-edited model with /stockflow-check <model.json>.'].join('\n')
+  return ['# dynamics in this session', '', tools, agents, 'The person can re-check and re-render a hand-edited model with /dynamics-check <model.json>.'].join('\n')
 }
 
 /** What a tool call through the engine came back with. */
@@ -146,7 +146,7 @@ const firstSentence = (why: string): string => /^.*?[.!?](?=\s|$)/.exec(why)?.[0
 /**
  * The one value a refusal is classed and told by: its first sentence, found with the file's path masked so
  * a ". " in the path does not end it. `words` (the path left out) is what SIZE_REFUSAL, WHOLE_REFUSAL and
- * COUNT read; `told` (the path put back) is what is said. Only stockflow's spelling of the path is masked:
+ * COUNT read; `told` (the path put back) is what is said. Only dynamics's spelling of the path is masked:
  * other text the tool quotes (a working folder, a file's first bytes, the path spelled another way) is not
  * removed, and decides the class when it falls in the first sentence.
  */
@@ -188,7 +188,7 @@ function notText(p: string, type: unknown, use: Use): string {
   const other = `the Read tool reads ${p} as ${typeof type === 'string' ? `"${type}"` : 'something'}, not as lines of text`
   if (use !== 'source') return `${other}.`
   // a quote is cited by line number, which a notebook's cells do not have and an extract does
-  if (type === 'notebook') return `${p} is a Jupyter notebook. stockflow cites lines and a notebook has cells, so cite a text extract (for example: jupyter nbconvert --to script ${p}) and record the command in "from".`
+  if (type === 'notebook') return `${p} is a Jupyter notebook. dynamics cites lines and a notebook has cells, so cite a text extract (for example: jupyter nbconvert --to script ${p}) and record the command in "from".`
   if (type === 'pdf' || type === 'parts') return `${p} is a PDF; the Read tool returns its pages, not its lines. Cite a text extract made with pdftotext (for example: pdftotext ${p}) and record the command in "from".`
   if (type === 'image') return `${p} is an image, and images cannot be quoted; cite a text source for what it shows.`
   return `${other}; cite a text extract made with a tool and record the command in "from".`
@@ -341,13 +341,13 @@ async function load(h: Host, given: string): Promise<{ abs: string; analysis?: A
   return { abs, analysis: await check(r.text, abs, { read: p => readFile(h, p, 'source') }) }
 }
 
-/** What to do about a file where the page would go: advice both callers can follow (/stockflow-check has no "out"). */
+/** What to do about a file where the page would go: advice both callers can follow (/dynamics-check has no "out"). */
 const MOVE_IT = 'Delete or move the file, or give the render tool another "out".'
 
 /**
  * Where the page goes: `out` (relative to the model's folder) or beside the model, as the person would
  * spell it. It must land inside the model's folder and not through a symbolic link, and it may replace
- * only a page whose seal is intact (stockflow wrote it and nobody changed it since).
+ * only a page whose seal is intact (dynamics wrote it and nobody changed it since).
  */
 async function placePage(h: Host, model: string, out: string | undefined): Promise<{ page?: string; problem?: string }> {
   const folder = dirname(model)
@@ -358,14 +358,14 @@ async function placePage(h: Host, model: string, out: string | undefined): Promi
   if (!/\.html$/i.test(page)) return { problem: '"out" must end in .html.' }
   const realFolder = await h.real(folder)
   if (!realFolder) return { problem: `cannot resolve the model's folder ${folder}.` }
-  if (await h.isLink(page)) return { problem: `${page} is a symbolic link, and stockflow does not write a page through one. ${MOVE_IT}` }
+  if (await h.isLink(page)) return { problem: `${page} is a symbolic link, and dynamics does not write a page through one. ${MOVE_IT}` }
   const parent = await h.real(dirname(page))
   if (!parent) return { problem: `the folder ${dirname(page)} does not exist.` }
   const land = (await h.real(page)) ?? joinPath(parent, basename(page))
   if (!isInside(realFolder, land)) return { problem: `the page must be written inside the model's folder (${folder}).` }
   if (await h.exists(page)) {
     const r = await readFile(h, page, 'page')
-    if (!('text' in r)) return { problem: `${page} exists and cannot be read to confirm stockflow wrote it: ${unread(r)} ${MOVE_IT}` }
+    if (!('text' in r)) return { problem: `${page} exists and cannot be read to confirm dynamics wrote it: ${unread(r)} ${MOVE_IT}` }
     const problem = sealProblem(page, sealState(r.text))
     if (problem) return { problem }
   }
@@ -376,12 +376,12 @@ const unread = (r: { refused: string } | { failed: string }): string => ('refuse
 
 /**
  * Why a page may not be replaced, from its seal. Only an intact seal allows it; any other state refuses.
- * The advice suits both callers: /stockflow-check has no "out".
+ * The advice suits both callers: /dynamics-check has no "out".
  */
 function sealProblem(page: string, state: ReturnType<typeof sealState>): string | undefined {
   if (state === 'intact') return undefined
-  if (state === 'none') return `${page} exists without stockflow's seal, so stockflow cannot confirm it wrote the page and will not replace it (a hook may have removed the seal as the page was written, for example one that strips comments). ${MOVE_IT}`
-  return `${page} was changed after stockflow wrote it (edited, or rewritten by a hook). Move the edits into the model, or delete the file, then render again.`
+  if (state === 'none') return `${page} exists without dynamics's seal, so dynamics cannot confirm it wrote the page and will not replace it (a hook may have removed the seal as the page was written, for example one that strips comments). ${MOVE_IT}`
+  return `${page} was changed after dynamics wrote it (edited, or rewritten by a hook). Move the edits into the model, or delete the file, then render again.`
 }
 
 type Written = { bytes: number; layout: Issue[]; legend: string[]; readerView: string; problem?: string; note?: string }
@@ -399,10 +399,10 @@ async function writePage(h: Host, a: Analysis, page: string): Promise<Written> {
   const back = await readFile(h, page, 'page')
   if (!('text' in back)) return { ...base, note: `The page could not be read back through the Read tool (${unread(back)}); the next render may not be able to replace it.` }
   const state = sealState(back.text)
-  // stockflow sealed what it just wrote, so a page with no seal now lost it on the way to the disk. The page
+  // dynamics sealed what it just wrote, so a page with no seal now lost it on the way to the disk. The page
   // on disk is refused by every later render whether or not the hook still runs, so deleting it is what the
   // next render needs; excluding the page from the hook only keeps the pages written after that.
-  if (state === 'none') return { ...base, note: 'A hook removed stockflow\'s seal from the page as it was written (for example a formatter that strips comments). The page on disk can no longer be confirmed as stockflow\'s, so delete it before rendering again; while that hook runs, each new page loses its seal too, so also exclude the page from the hook.' }
+  if (state === 'none') return { ...base, note: 'A hook removed dynamics\'s seal from the page as it was written (for example a formatter that strips comments). The page on disk can no longer be confirmed as dynamics\'s, so delete it before rendering again; while that hook runs, each new page loses its seal too, so also exclude the page from the hook.' }
   const problem = sealProblem(page, state)
   return { ...base, note: problem ? `The page changed as it was written (a hook rewrote it), so the next render will refuse to replace it: ${problem}` : undefined }
 }
@@ -413,7 +413,7 @@ async function mayRun(h: Host, tool: string, input: Record<string, unknown>, wha
   if (v.decision === 'deny') return `the person's settings deny ${tool}${v.reason ? `: ${v.reason}` : '.'}`
   if (v.decision === 'ask' && v.rule) {
     const yes = 'Allow it'
-    const answer = await h.ask(`Your settings ask before ${tool} runs. Let stockflow ${what}?`, [yes, 'Do not allow it']).catch(() => '')
+    const answer = await h.ask(`Your settings ask before ${tool} runs. Let dynamics ${what}?`, [yes, 'Do not allow it']).catch(() => '')
     if (answer !== yes) return `the person's settings ask before ${tool} runs, and it was not allowed.`
   }
   return undefined
@@ -421,7 +421,7 @@ async function mayRun(h: Host, tool: string, input: Record<string, unknown>, wha
 
 function summaryText(a: Analysis): string {
   const r = a.report
-  const lines = [`stockflow-check: ${r.summary}`]
+  const lines = [`dynamics-check: ${r.summary}`]
   const show = (title: string, list: Issue[], more: number) => {
     if (!list.length) return
     lines.push(title, ...list.map(i => `  ${i.code} ${i.where}: ${i.message}`))
@@ -440,13 +440,13 @@ export const register: Register = on => {
     reg.tools = {}
     reg.agents = []
     await $.command.register({
-      name: 'stockflow-check',
-      description: 'Check a stockflow model file and, when it has no errors, re-render its page beside it.',
+      name: 'dynamics-check',
+      description: 'Check a dynamics model file and, when it has no errors, re-render its page beside it.',
       argumentHint: '<path to model.json>',
     })
     reg.tools.check = (await $.tool.register({
       name: 'check',
-      description: 'Check a stockflow/1 model file: verifies each cited quote against its file, enforces stock-and-flow notation, finds every feedback loop and derives its type, checks numbers and units, derives the model boundary. Reads through the Read tool, so the person\'s permission settings apply; it reads whole lines, so a file with a line too long for one Read call (minified or single-line JSON), a notebook, a PDF or an image must be cited through a text extract. Returns JSON with a one-line summary, errors and warnings (code, where, message, source), loops with generated traces, undeclared loops with their route and a declaration to complete, what is not checked, and (reader_view: true, no errors) the page\'s plain-text reader view.',
+      description: 'Check a dynamics/1 model file: verifies each cited quote against its file, enforces stock-and-flow notation, finds every feedback loop and derives its type, checks numbers and units, derives the model boundary. Reads through the Read tool, so the person\'s permission settings apply; it reads whole lines, so a file with a line too long for one Read call (minified or single-line JSON), a notebook, a PDF or an image must be cited through a text extract. Returns JSON with a one-line summary, errors and warnings (code, where, message, source), loops with generated traces, undeclared loops with their route and a declaration to complete, what is not checked, and (reader_view: true, no errors) the page\'s plain-text reader view.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -459,7 +459,7 @@ export const register: Register = on => {
     })).tool
     reg.tools.render = (await $.tool.register({
       name: 'render',
-      description: 'Render a stockflow/1 model to a self-contained HTML page (figures, generated legend, short answer, loops, boundary, sources). Refuses while the check has errors. Writes through the Write tool (the person\'s permission settings apply), only inside the model file\'s folder, never over a file stockflow did not write or one changed since. Returns JSON with the page path, the plain-text reader view, layout warnings and legend entries.',
+      description: 'Render a dynamics/1 model to a self-contained HTML page (figures, generated legend, short answer, loops, boundary, sources). Refuses while the check has errors. Writes through the Write tool (the person\'s permission settings apply), only inside the model file\'s folder, never over a file dynamics did not write or one changed since. Returns JSON with the page path, the plain-text reader view, layout warnings and legend entries.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -489,7 +489,7 @@ export const register: Register = on => {
     const method = section(md, 'method')
     const lenses = section(md, 'lenses')
     if (!method || !lenses) {
-      return { ...r, text: `The stockflow plugin is installed incorrectly: its method file (prompt.md) is missing or lacks its method or lens sections, so the method cannot run. Tell the person, and suggest reinstalling the plugin. What they asked to model: ${asked || '(nothing given)'}` }
+      return { ...r, text: `The dynamics plugin is installed incorrectly: its method file (prompt.md) is missing or lacks its method or lens sections, so the method cannot run. Tell the person, and suggest reinstalling the plugin. What they asked to model: ${asked || '(nothing given)'}` }
     }
     const head = asked
       ? `What to model, as the person put it:\n\n${asked}`
@@ -498,9 +498,9 @@ export const register: Register = on => {
     return { ...r, text: [head, header(reg), method, lenses, fieldReference(), example].join('\n\n') }
   })
 
-  on('command.run', { command: 'stockflow-check' }, async ($, e) => {
+  on('command.run', { command: 'dynamics-check' }, async ($, e) => {
     const given = argPath(e.args)
-    if (!given) return { text: 'stockflow-check: give the model file, e.g. /stockflow-check stockflow/model.json' }
+    if (!given) return { text: 'dynamics-check: give the model file, e.g. /dynamics-check dynamics/model.json' }
     const h: Host = {
       cwd: await $.session.cwd(),
       kind: p => $.fs.stat(p).then(x => ({ kind: x.kind, size: x.size }), () => undefined),
@@ -514,7 +514,7 @@ export const register: Register = on => {
       ask: (question, options) => $.ui.ask(question, options),
     }
     const { abs, analysis, failure } = await load(h, given)
-    if (!analysis) return { text: `stockflow-check: ${failure}` }
+    if (!analysis) return { text: `dynamics-check: ${failure}` }
     if (!analysis.report.ok) return { text: summaryText(analysis) }
     const place = await placePage(h, abs, undefined)
     if (!place.page) return { text: `${summaryText(analysis)}\nNot rendered: ${place.problem}` }

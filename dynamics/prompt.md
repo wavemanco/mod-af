@@ -1,8 +1,8 @@
-# stockflow — the prompt form
+# dynamics — the prompt form
 
 Paste everything below the line into any chat, then name what to model (a codebase, a repo, a set of
 product docs) and, if you have one, the question the model should answer. It runs the same method as
-the `/stockflow` plugin.
+the `/dynamics` plugin.
 
 > The installed plugin adds what a pasted prompt cannot: a checker that verifies every cited quote
 > against its file, finds every feedback loop and works out its type, and a renderer that draws the
@@ -33,8 +33,13 @@ Two rules govern everything:
 - **What and why.** Confirm what to model and the question. If nothing was named, take the current
   repository, look around briefly, and offer two or three candidate questions; or state the one you
   chose and invite a change. A model answers a question; it is not an inventory of a system.
+- **Should this be modelled at all?** Stock-and-flow modelling needs something that accumulates and
+  something that feeds back. If the target has neither (a stateless utility, a static site, a one-off
+  script), say so and stop, or offer a plain architecture map instead. If the sources are thin, say so
+  and ask for the missing context (metrics, a roadmap, incident notes) rather than filling the gaps with
+  modelled parts. If you cannot read the sources, stop: never model from a name alone.
 - **Where.** Work outside the target: the session's scratch folder if you have one, else a folder
-  such as `stockflow-<name>/` beside the target. Say the path. Do not edit the target unless asked.
+  such as `dynamics-<name>/` beside the target. Say the path. Do not edit the target unless asked.
   Producing the diagram is not a change to the target's code.
 - **House rules.** Read the target's own instructions (CLAUDE.md, CONTRIBUTING, review rules). If they
   impose a review or iteration process that would apply to this diagram, ask the person once whether
@@ -42,8 +47,11 @@ Two rules govern everything:
   code do not automatically suit a diagram.
 - **Pin what you read.** Record the commit (`git rev-parse HEAD`) and whether the tree had uncommitted
   changes (`git status --porcelain`), or the document versions, and today's date.
-- **Say how long.** Tell the person roughly how long a first draft and a review round will take for a
-  system this size, then post a one-line note at each step.
+- **Say how long, and agree the review rounds.** Tell the person roughly how long a first draft and one
+  review round take for a system this size, and ask how many review rounds they want: **2 by default**
+  (one full round, one on the fixes), 1 for a quicker result, 0 for a draft marked unreviewed. Record
+  the answer as the model's `review.agreed`. You never start a round beyond it without their yes (step
+  7). Then post a one-line note at each step.
 
 ## 1. Articulate the problem (Sterman 2000, Fig. 3-1; Hines)
 
@@ -52,14 +60,32 @@ Write down before mapping anything:
   that carry it. It is a hypothesis read from the structure (a dynamic hypothesis, Ford 2019), never a
   simulation result. If no loop explains the behaviour, say so: that is a finding.
 - **Key variables**, the **time horizon**, the **time unit** flows are counted per.
-- **Reference modes** only where there is a basis: *data* (a log, a metric, a report, cited) or a
-  stated suspicion, marked *hypothesised*. Do not invent a behaviour pattern to fill the slot.
+- **Reference modes**: the behaviour over time the question is about (growth, an S-curve, decline,
+  oscillation, overshoot and collapse), only where there is a basis: *data* (a log, a metric, a report,
+  cited) or a stated suspicion, marked *hypothesised*. Do not invent a behaviour pattern to fill the
+  slot.
 - **Figures**: one to three, each answering one sub-question. Plan them around stocks: a stock's
   inflows, outflows and the links into them live in its figure, and a feedback loop must lie within
   one figure. To use a variable from another figure, draw a shadow of it. Do not put every loop into one
   diagram (Sterman 2001).
 
 ## 2. Survey the sources for structure
+
+**Survey from three angles**, as separate passes (in parallel with subagents if you can, each given the
+target, the question, this section's rules and its angle), so one reading does not crowd out the rest:
+- **A, the engine:** one unit of work (a request, a run, a pull request, an order, a release), what it
+  fills and what it depletes, and the balancing loops that bound it.
+- **B, growth and memory:** what accumulates over time (users, data, content, knowledge, debt), the
+  reinforcing loops, and their delays.
+- **C, control and governance:** gates, tests, reviews, policies, budgets, attention, metrics and
+  incentives, including ones that can be gamed.
+
+For product or market docs: A is the customer's unit of work and what serving it consumes; B is
+acquisition, activation, retention, word of mouth and churn; C is pricing, support load, decision
+criteria, success metrics and stage gates, and competitors or substitutes. Each angle also notes
+**missing feedback**: a measurement never fed back, a gate the system lacks. Then merge: remove
+duplicates, keep what the question turns on, and say what you cut. If the passes ran one after
+another in one context, say they were not independent.
 
 Read for accumulations and the rates that change them. In software and product terms:
 
@@ -113,7 +139,7 @@ Rules that keep the structure honest (each one caught a real error in the build 
 
 ## 4. Write the model
 
-Write the model file (the plugin's `stockflow/1` format, indented so it has many short lines, or tables
+Write the model file (the plugin's `dynamics/1` format, indented so it has many short lines, or tables
 in the paste form): every element
 and link with an id, a label, its status (always written out, "observed" included) and its evidence;
 every link with its mechanism.
@@ -147,6 +173,10 @@ Run the check after every edit, and resolve what it reports:
 - Loops through modelled parts are shown as modelled; loops that need at least one intended or
   missing part are listed separately, as loops that would exist if built.
 - Resolve every warning, or say in the record why it stands.
+- **Evidence for the key guesses.** Where a modelled part carries the short answer, look for evidence:
+  the project's own data first, then its authors' write-ups, then reputable research. Cite what you
+  find in the part's claim. It stays *modelled* unless the evidence is about this system; research
+  about systems in general supports the guess, it does not make it observed.
 
 ## 6. Render, look, and show a draft
 
@@ -177,12 +207,19 @@ whether fixing it would widen the scope.
 - **low**: wording and layout polish.
 
 Fix every high finding, every in-scope medium finding and every false statement in the model itself,
-then check, render, and run **round 2**: each fixed finding re-checked by the lens that raised it
-(one reviewer may hold several lenses), plus the cold reader again. **Two rounds by default**; the
-person can ask for more. Findings that would add a mechanism, a figure or scope, and wording
-preferences, go to the person's triage list unfixed. Stop when a round finds nothing high or medium,
-or after the rounds agreed. Hand over the rest as a short list: what it is, whether a reader sees it,
-what fixing it costs, your recommendation. The person decides.
+then check and render. **Each later round reviews only the fixes**: each fixed finding re-checked by
+the lens that raised it (one reviewer may hold several lenses), plus the cold reader again. So every
+round is smaller than the one before, and the review converges.
+
+**The person sets the number of rounds** (`review.agreed`, step 0; 2 by default):
+- Stop early when a round finds nothing high or medium.
+- **Never start a round beyond the agreed number on your own.** If high or medium findings remain after
+  the last agreed round, recommend a number of further rounds (usually one), and say why: what is
+  still wrong, whether a reader would be misled, and the time it takes. Then wait. The person decides,
+  and records their answer as a new `review.agreed`.
+- Findings that would add a mechanism, a figure or scope, and wording preferences, go to the person's
+  triage list unfixed. Hand over the rest as a short list: what it is, whether a reader sees it, what
+  fixing it costs, your recommendation.
 
 ## 8. Deliver
 
@@ -192,7 +229,14 @@ End with:
   review round caught, what was accepted as a known limit, what was not checked);
 - how the model was reviewed (rounds, independent or not, visually inspected or not), also written
   into the model so the page footer shows it;
-- the triage list, if any.
+- the triage list, if any;
+- **what the structure suggests**, each marked as a hypothesis read from the structure:
+  - the two or three **leverage points**: a constant or policy that acts on a loop the answer rests
+    on, with the loop it acts on;
+  - **missing feedback**: measurements never fed back and gates the system lacks (the *missing* parts
+    of the model, and what each angle noted);
+  - **which loop likely dominates when**, stated as a hypothesis with what would test it (the data a
+    calibrated simulation would need).
 
 Offer to publish the page if your environment can share pages. Anything you tell the person about the
 model (what a mark means, why a loop exists) is a claim about the system: check it against the model
@@ -203,7 +247,8 @@ finding; that needs a calibrated simulation (Schwaninger & Groesser 2009; Barlas
 ## 9. Revise
 
 When the person corrects something later ("that arrow is wrong"): change the model, check, render,
-run one corrections-only review round, and update the same page and record.
+run one corrections-only review round (more only if the person agrees, as in step 7), and update the
+same page and record.
 <!-- method:end -->
 
 <!-- lenses:start -->
@@ -213,7 +258,7 @@ The plugin registers these as read-only agents. In the paste form, give each bri
 reviewer (or a separate pass of your own), together with the paths it needs.
 
 <!-- lens:facts-reviewer:start -->
-You are the facts reviewer for a stockflow model: a system-dynamics stock-and-flow model of a codebase,
+You are the facts reviewer for a dynamics model: a system-dynamics stock-and-flow model of a codebase,
 repository or set of product documents. You did not build it and you change nothing: read-only.
 
 You are given the model file (JSON), the folders its evidence paths are relative to (the subject's
@@ -238,9 +283,9 @@ low: wording), whether a reader of the page sees it, and whether fixing it would
 <!-- lens:facts-reviewer:end -->
 
 <!-- lens:sd-reviewer:start -->
-You are the system-dynamics reviewer for a stockflow model: a stock-and-flow model of a codebase,
+You are the system-dynamics reviewer for a dynamics model: a stock-and-flow model of a codebase,
 repository or set of product documents. You did not build it and you change nothing: read-only. If
-you have the stockflow check tool, you may run it on the model file; otherwise trace the loops yourself.
+you have the dynamics check tool, you may run it on the model file; otherwise trace the loops yourself.
 
 Check the model against system-dynamics practice (Sterman 2000 and 2001; Ford 2019; Naugle et al. 2024;
 Richardson 1997):

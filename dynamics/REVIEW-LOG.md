@@ -1,3 +1,6 @@
+> **Name.** This plugin was called `stockflow` until 2026-10-30, when it became `dynamics` and absorbed the method of the
+> `add-dynamics-plugin` prototype. The rounds below are its review history under the old name.
+
 # How stockflow was reviewed
 
 Each round below was run by reviewers who did not write the code, each with one lens, each working in

@@ -1,10 +1,10 @@
-# stockflow
+# dynamics
 
 A system-dynamics picture of a codebase, a repository or a set of product docs that you can trust: a
 stock-and-flow model in which every part points at the line of code or the sentence it comes from,
 every feedback loop is found and typed mechanically, and the page explains every mark it draws.
 
-`/stockflow <what to model> — <the question>` produces:
+`/dynamics <what to model> — <the question>` produces:
 
 - **A page** with the question and a short answer first, then a legend in plain words ("a box is
   something that piles up…"), then one to three figures in stock-and-flow notation. Select any element
@@ -21,11 +21,16 @@ result, because it runs none.
 
 ## How it works
 
-1. **Ask the question.** A model answers a question; it is not an inventory. Run `/stockflow` with
-   nothing after it and it proposes two or three questions for the current repo.
-2. **Survey and map.** Accumulations become stocks, rates become flows, settings become constants,
-   and "the code reads X to decide Y" becomes a link, each with an exact quote of where it shows.
-   Something documented but not built, or missing, is drawn as such and kept out of the live loops.
+1. **Ask the question, and decide whether to model at all.** A model answers a question; it is not an
+   inventory. Run `/dynamics` with nothing after it and it proposes two or three questions for the
+   current repo. If nothing accumulates and nothing feeds back, it says so and stops (or offers a plain
+   architecture map). It also asks how many review rounds you want (2 by default; see step 5).
+2. **Survey from three angles, then map.** One pass follows a single unit of work (the engine), one what
+   accumulates over time (growth and memory), one the gates, budgets and incentives (control); each
+   also notes missing feedback. Accumulations become stocks, rates become flows, settings become
+   constants, and "the code reads X to decide Y" becomes a link, each with an exact quote of where it
+   shows. Something documented but not built, or missing, is drawn as such and kept out of the live
+   loops. Where a guess carries the answer, it looks for evidence and cites it.
 3. **Check.** The `check` tool opens every cited file and confirms each quote is there (in the cited
    lines, when given), enforces the notation, finds every closed causal path (feedback loop) and works
    out whether it reinforces or balances, checks numbers and units, and derives the model boundary. A loop the model forgot is
@@ -33,12 +38,18 @@ result, because it runs none.
    it and decides whether it reinforces or balances, and the check compares that with the signs.
 4. **Render.** The `render` tool lays the figures out, avoids overlaps where it can and reports where
    it cannot, and builds the legend from the marks actually drawn.
-5. **Review, capped.** A draft is shown first. Then independent reviewers check it through three
-   lenses: facts against the sources, system-dynamics rules, and a cold reader who sees only the page.
-   There are two rounds by default; anything left over comes to you as a short triage list with
-   recommendations.
+5. **Review, converging, with you deciding.** A draft is shown first. Then independent reviewers check
+   it through three lenses: facts against the sources, system-dynamics rules, and a cold reader who sees
+   only the page. You set the number of rounds up front (2 by default: one full round, one on the
+   fixes only, so each round is smaller than the last). It stops early when a round finds nothing
+   serious, and it never runs a round you did not agree to: if serious findings remain, it recommends
+   more rounds, says why and what they cost, and waits for your answer. The page footer shows rounds
+   run against rounds agreed.
+6. **Report.** The one-line answer, the page, the model file and the record, plus what the structure
+   suggests, each marked as a hypothesis: the two or three leverage points, the missing feedback, and
+   which loop likely dominates when, with what would test it.
 
-`/stockflow-check <model.json>` re-checks a model you edited by hand and re-renders its page.
+`/dynamics-check <model.json>` re-checks a model you edited by hand and re-renders its page.
 
 ## What it checks, and what it does not
 
@@ -87,13 +98,32 @@ lower-case `in` or after a closing bracket (`handlers[0](1,500)`, `make_clamp(n)
 its digits are one number. A page number taken from any of these is flagged (E04); accept the warning
 and say why.
 
+## When to use it, and when to use something else
+
+Use `dynamics` when the question is **why something keeps happening over time**: why a backlog keeps
+growing, why each round of fixes produces new defects, why costs creep up, why adoption stalls. It
+maps what accumulates, what fills and drains it, and the feedback loops that push the behaviour
+forward or hold it back, with a sign on every link and each loop typed as reinforcing or balancing.
+Every part points at the line of code or sentence it comes from, and the checker confirms each quote
+is really there.
+
+Use an architecture or flow diagramming tool (for example
+[Archify](https://github.com/tt-a1i/archify)) when the question is **what the parts are and how they
+connect**: a service map, a request path, a sequence, a data flow, a plan. Those tools draw
+topology and paths, often from a plain description; they do not model accumulation or feedback, and a
+connection there means "talks to", not "more of this causes more (or less) of that". The two work
+well together: the architecture map shows what is wired, the dynamics map shows why it behaves as it
+does.
+
+It is the wrong tool for a stateless utility or a one-off script, and it says so.
+
 ## Install
 
 ```
-/plugin install stockflow --marketplace wavemanco/mod-af
+/plugin install dynamics --marketplace wavemanco/mod-af
 ```
 
-The plugin's two tools (`mcp__stockflow__check`, `mcp__stockflow__render`) work under your own
+The plugin's two tools (`mcp__dynamics__check`, `mcp__dynamics__render`) work under your own
 permission settings:
 - Every file they read, the model included, is read through Claude Code's own Read tool, and the page
   is written through its Write tool. Your rules, permission mode, hooks and dialogs therefore decide
@@ -101,7 +131,7 @@ permission settings:
   before the page is written; in accept-edits mode it is written.
 - `render` writes only where the page lands inside the model file's folder, never onto a symbolic link,
   and never over a
-  file stockflow did not write or one changed since. The page carries a fingerprint of its own
+  file dynamics did not write or one changed since. The page carries a fingerprint of its own
   content, so this holds on any machine and after a git checkout; reformatting that only changes
   whitespace is not counted as a change. A hook that strips comments from the page as it is written
   removes the fingerprint; the render says so, and later renders will not replace that page until it
@@ -109,17 +139,17 @@ permission settings:
   from the hook.
 - An explicit allow, ask or deny rule for the tools themselves is honoured (an ask rule is put to you
   as a question). Known limit: a PreToolUse hook that matches the tools' own names
-  (`mcp__stockflow__…`) is not run for them, because a plugin's own tool is answered by the plugin;
+  (`mcp__dynamics__…`) is not run for them, because a plugin's own tool is answered by the plugin;
   hooks on Read and Write still run for every file the tools touch.
 - Nothing is read past 2 MB or from anything but a regular file. One Read call returns about 25,000
-  tokens by default (`CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS` changes it) and stockflow asks for at
+  tokens by default (`CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS` changes it) and dynamics asks for at
   most 2,000 lines, so a large file takes several calls (a
   1.5 MB file of mostly 270-character lines took 30 in a real session; a file of very short lines takes one
   call per 2,000 lines). In default mode a file outside the working folder is asked about on each Read
   call; adding its folder with `/add-dir` avoids that.
 - Known limits of reading through the Read tool: it reads whole lines, so a file with a very long line
   (minified JSON, a one-line bundle) cannot be read, and it returns PDFs and images as non-text.
-  Notebooks are cited through an extract by choice: stockflow cites line numbers, which a notebook's
+  Notebooks are cited through an extract by choice: dynamics cites line numbers, which a notebook's
   cells do not have and a script extract does. Cite a text extract made with a tool instead (a
   pretty-printed copy, `jupyter nbconvert --to script`, `pdftotext`), and record the command in the
   evidence's `from`.
@@ -136,6 +166,13 @@ checks by hand.
 
 ## Where it comes from
 
+`dynamics` merges two plugins built for this collection in October 2026. Its base, checker, renderer
+and tests come from `stockflow` (its review history is in [`REVIEW-LOG.md`](./REVIEW-LOG.md)). From the
+earlier `dynamics` prototype (branch `add-dynamics-plugin`, never merged) it takes the three survey
+angles, reference modes named as patterns, the "should this be modelled at all?" check, the research
+step for key guesses, and the report's leverage points and missing feedback. That prototype cited no
+sources; the attributions below are this plugin's.
+
 The method generalizes a stock-and-flow model of a research codebase, built and reviewed in
 October 2026 over 21 review rounds. Most of that review effort went into hand-checking things this
 plugin now derives or checks mechanically: loop types, which elements belong to which loop, the
@@ -144,3 +181,33 @@ cited source saying what the diagram claims? The review is capped because a diag
 production-code rigour. The system-dynamics rules come from the literature cited in
 [`REFERENCES.md`](./REFERENCES.md), with each source's verification status. How the plugin itself was
 reviewed, and what each round caught, is in [`REVIEW-LOG.md`](./REVIEW-LOG.md).
+
+### Sources, and what each one gave the plugin
+
+Full citations and how far each was read are in [`REFERENCES.md`](./REFERENCES.md). "Rule" means the
+checker or the method enforces it; "guided" means it shaped a step without being enforced.
+
+| Source | What `dynamics` takes from it |
+|---|---|
+| Sterman 2000, *Business Dynamics* (read via Siddiqi 2011's MIT reproduction) | Rule: link polarity judged against "what it would otherwise have been", flows + into the stock they fill and − out of the one they drain. Guided: the order of the method (articulate the problem, dynamic hypothesis, formulate, test) and the boundary list. |
+| Sterman 2001, "Fine-Tuning Your Causal Loop Diagrams" | Rules: + and − signs, never s and o; loop type from counting negative links and from tracing a change around the loop; actual versus perceived kept apart; delay marks; named and numbered loops. Guided: a balancing loop names its goal; no single diagram holding every loop. |
+| Ford 2019, "A system dynamics glossary" | Rules: what a stock, flow, auxiliary, connector, cloud, conserved flow and delay are; loop polarity as the product of link signs; flows counted in their stock's units per time unit. Guided: reference mode and dynamic hypothesis. |
+| Naugle, Langarudi & Clancy 2024 | Rule: every feedback loop contains a stock. Guided: the four building blocks, and stating the source of, and confidence in, each part of the structure (the observed and modelled statuses). |
+| Richardson 1997 (and 1986, background) | Why + and − are used rather than s and o for flows into and out of stocks. |
+| Schaffernicht 2007 | The worked example behind defining polarity against the counterfactual. |
+| MIT D-4498, "Road Maps Glossary" | Rules: stocks change only through flows; links reach variables and flows, never stocks. |
+| Hines, MIT 15.879 "Standard Method" | Guided: the order of elicitation (variables, reference modes, problem, hypotheses); rule: a variable is named as something that can go up or down. |
+| Trimble 2014 | Rule: exogenous inputs (on the boundary) and excluded items (outside it) are kept as separate lists. |
+| Vensim and Stella (isee) documentation | Rule: a shadow (ghost) copy of an element adds no structure and nothing points into it. |
+| Forrester & Senge 1980 (read via Shreckengost and Baik 1997) | Rules: the structure tests that need no simulation, among them the extreme-condition test (what stops each outflow when its stock is empty), boundary adequacy and dimensional consistency. |
+| Shreckengost, MIT D-4463 | Rule: "every element of the model should have a real-world counterpart", the reason every element carries evidence. |
+| Schwaninger & Groesser 2009 | The line between what the plugin checks (structure) and what it refuses to claim (behaviour, sensitivity, loop dominance, which need simulation). |
+| Barlas 1996; Lane 2008 | Guided: structure is validated first, and a diagram alone does not establish behaviour, so every page says it is not a simulation. |
+| Richardson 2011 | Guided: the endogenous point of view: a behaviour explained from outside the model is flagged. |
+| Martinez-Moyano & Richardson 2013 | Background only: practice organised by modelling stage. |
+| Abdel-Hamid & Madnick 1991; Abdel-Hamid 1989; Rahmandad & Weiss 2009; Madachy 2007; Franco et al. 2016 | Guided: the survey guide's examples of what accumulates and feeds back in software projects (staffing, rework, concurrent development, technical debt). |
+| Johnson 1975; Tarjan 1972 | The algorithms the checker uses to find every feedback loop (elementary circuits, via strongly connected components). |
+| Meadows 1999, "Leverage Points: Places to Intervene in a System" | Guided: the term and idea of leverage points in the report. Unverified here: cited from the prototype's usage and general knowledge, not re-read; nothing is checked against it. |
+
+Rules with no external source (for example "requirement is not supply", the figure size limits and
+the review cap) are listed as plugin rules in [`REFERENCES.md`](./REFERENCES.md).

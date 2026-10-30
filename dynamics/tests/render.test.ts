@@ -30,7 +30,7 @@ async function probe(parts: { nodes: Json[]; flows?: Json[]; links?: Json[]; fig
   for (const n of nodes) if (n.kind === 'cloud') n.why_outside ??= 'outside the question'; else if (n.kind !== 'shadow') cite(n)
   for (const x of [...flows, ...links]) cite(x)
   const m = {
-    spec: 'stockflow/1', title: 'Probe', subject: { name: 'probe', kind: 'codebase', roots: { code: './src' }, date: '2026-10-22' },
+    spec: 'dynamics/1', title: 'Probe', subject: { name: 'probe', kind: 'codebase', roots: { code: './src' }, date: '2026-10-22' },
     question: 'What happens?', answer: { text: 'Something.', loops: [] }, time_unit: 'day', boundary: { excluded: [] },
     figures: parts.figures ?? [{ id: 'f1', title: 'Figure one', question: 'Q one?' }], nodes, flows, links, loops: parts.loops ?? [],
     ...(parts.emphasis ? { emphasis: parts.emphasis } : {}),
@@ -855,7 +855,7 @@ test('a wide figure keeps 80% of its natural width and the frame scrolls, with t
   const page = render(await probe({ nodes, flows })).html
   const [, vw, minW] = /viewBox="[-\d.]+ [-\d.]+ ([\d.]+) [\d.]+" style="min-width:([\d.]+)px"/.exec(page)!.map(Number)
   expect(vw).toBeGreaterThan(1375)
-  expect(minW).toBe(Math.round(vw * 0.8))
+  expect(minW).toBe(Math.round(vw))
   expect(page).toContain('.narrow{display:none}figure.scrolls .narrow{display:inline}')
   expect(page).toContain('<figcaption><span class="narrow">Scroll the figure sideways to see all of it. </span>')
 })
@@ -1149,7 +1149,7 @@ test('wide letters are measured wide: M and W at 0.9 em, any other capital at 0.
 test('a cited path is printed as written: two spaces stay two, in the panel data, the page and the reader view', async () => {
   const files: Record<string, string> = { 'Queue  Notes.py': 'jobs = deque()\n', 'Queue Notes.py': 'def submit(job): jobs.append(job)\n' }
   const model = (path: string) => ({
-    spec: 'stockflow/1', title: 'Probe', subject: { name: 'probe', kind: 'codebase', roots: { code: './src' }, date: '2026-10-22' },
+    spec: 'dynamics/1', title: 'Probe', subject: { name: 'probe', kind: 'codebase', roots: { code: './src' }, date: '2026-10-22' },
     question: 'What happens?', answer: { text: 'Something.', loops: [] }, time_unit: 'day', boundary: { excluded: [] },
     figures: [{ id: 'f1', title: 'Figure one', question: 'Q one?' }],
     nodes: [

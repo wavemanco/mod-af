@@ -50,7 +50,7 @@ const w = (lines: string, quote: string) => ({ path: 'worker.py', lines, quote }
 const a = (lines: string, quote: string) => ({ path: 'alerting.py', lines, quote })
 
 export const EXAMPLE_MODEL = {
-  spec: 'stockflow/1',
+  spec: 'dynamics/1',
   title: 'Job Runner Dynamics',
   subject: { name: 'job-runner (example)', kind: 'codebase', roots: { code: './src' }, date: '2026-10-22' },
   question: 'Why can failures keep the queue long even though the workers are busy?',

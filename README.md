@@ -18,8 +18,8 @@ Finds everything that exists only in the chat — decisions, ideas, noticed-in-p
 ### `detell` — strip AI-writing tells from a file
 An adversarial loop: scan for AI-writing tells, rewrite the hits, re-scan with fresh eyes, until two consecutive clean passes. The tells checklist is distilled from Wikipedia's *Signs of AI writing*, which evolves, so it re-checks that source on a 14-day cadence instead of every run. `/detell <file>` · `/detell-refresh`. See [`detell/`](./detell/README.md).
 
-### `stockflow` — a stock-and-flow model of a repo you can trust
-Asks a question first, then maps what piles up (stocks), what moves it (flows) and the feedback loops, with every element pointing at the line of code or sentence it comes from. A checker confirms each quote is really in its file and finds every loop; the page explains every mark it draws. `/stockflow <what to model> — <the question>`. See [`stockflow/`](./stockflow/README.md).
+### `dynamics` — why a system keeps behaving the way it does
+Maps what piles up (stocks), what fills and drains it (flows) and the feedback loops that push the behaviour forward or hold it back, with every element pointing at the line of code or sentence it comes from. A checker confirms each quote is in its file and finds and types every loop; the page explains every mark it draws; you set how many review rounds it runs. `/dynamics <what to model> — <the question>`. See [`dynamics/`](./dynamics/README.md).
 
 ## Install
 

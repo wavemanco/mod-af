@@ -1,4 +1,4 @@
-// The stockflow/1 checker. One parse, staged checks, everything derived once and handed to the
+// The dynamics/1 checker. One parse, staged checks, everything derived once and handed to the
 // renderer. Pure apart from `check`, which reads files through the `Io` it is given.
 //
 // Rule codes and the sources behind them are listed in REFERENCES.md and the README.
@@ -7,7 +7,7 @@ import { SECTIONS, STATUS_DOC, type Field, type SectionName } from './fields.ts'
 import { enumerateCycles, loopType, type Edge, type Sign } from './graph.ts'
 import { asciiDigits, basename, dirname, isAbsPath, isBlank, joinPath, listText, normWs, numberTokens, parseLines, signAt, splitLines, type NumberToken } from './text.ts'
 
-export const SPEC = 'stockflow/1'
+export const SPEC = 'dynamics/1'
 const MAX_CYCLES = 400
 const MAX_ISSUES = 40
 const BUSY_FIGURE = 12
@@ -58,7 +58,7 @@ export type Model = {
   flows: Flow[]
   links: Link[]
   loops: Loop[]
-  review?: { rounds?: number; independent?: boolean; visual?: boolean; note?: string }
+  review?: { rounds?: number; agreed?: number; independent?: boolean; visual?: boolean; note?: string }
   notes: string[]
 }
 
@@ -302,6 +302,7 @@ function normalise(raw: Record<string, unknown>): Model {
     nodes, flows, links, loops,
     review: isObj(raw.review) ? {
       rounds: typeof raw.review.rounds === 'number' ? raw.review.rounds : undefined,
+      agreed: typeof raw.review.agreed === 'number' ? raw.review.agreed : undefined,
       independent: typeof raw.review.independent === 'boolean' ? raw.review.independent : undefined,
       visual: typeof raw.review.visual === 'boolean' ? raw.review.visual : undefined,
       note: str(raw.review.note),
