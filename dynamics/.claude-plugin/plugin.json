@@ -1,0 +1,8 @@
+{
+  "name": "dynamics",
+  "version": "0.2.0",
+  "description": "System-dynamics (stock-and-flow) models of a codebase, repo or product docs: what piles up, what drains it and the feedback loops, every observed element cited and quote-checked, every loop found and typed, a rendered page with a generated legend, and a review whose rounds you agree.",
+  "author": {
+    "name": "moondocksaint"
+  }
+}
