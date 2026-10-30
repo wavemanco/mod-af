@@ -1,8 +1,9 @@
 # dynamics
 
 A system-dynamics picture of a codebase, a repository or a set of product docs that you can trust: a
-stock-and-flow model in which every part points at the line of code or the sentence it comes from,
-every feedback loop is found and typed mechanically, and the page explains every mark it draws.
+stock-and-flow model in which every observed part points at the line of code or the sentence it
+comes from and every inferred part is marked as modelled, every feedback loop is found and typed
+mechanically, and the page explains every mark it draws.
 
 `/dynamics <what to model> — <the question>` produces:
 
@@ -40,14 +41,15 @@ result, because it runs none.
    it cannot, and builds the legend from the marks actually drawn.
 5. **Review, converging, with you deciding.** A draft is shown first. Then independent reviewers check
    it through three lenses: facts against the sources, system-dynamics rules, and a cold reader who sees
-   only the page. You set the number of rounds up front (2 by default: one full round, one on the
-   fixes only, so each round is smaller than the last). It stops early when a round finds nothing
-   serious, and it never runs a round you did not agree to: if serious findings remain, it recommends
-   more rounds, says why and what they cost, and waits for your answer. The page footer shows rounds
-   run against rounds agreed.
+   only the page. You set the number of rounds up front (2 by default: one full round, then one on
+   the fixes and what they touched). The agreed number ends the review: it stops early when a round
+   finds nothing serious, and it never runs a round you did not agree to. If serious findings remain,
+   it recommends more rounds, says why and what they cost, and waits for your answer. The page footer
+   shows rounds run against rounds agreed, and the fixes no round reviewed. A later correction is
+   reviewed only if you say yes. The full rule is step 7 of [`prompt.md`](./prompt.md).
 6. **Report.** The one-line answer, the page, the model file and the record, plus what the structure
-   suggests, each marked as a hypothesis: the two or three leverage points, the missing feedback, and
-   which loop likely dominates when, with what would test it.
+   suggests, each marked as a hypothesis: the two or three leverage points, the missing feedback, and,
+   where a reference mode gives a basis, which loop likely dominates when, with what would test it.
 
 `/dynamics-check <model.json>` re-checks a model you edited by hand and re-renders its page.
 

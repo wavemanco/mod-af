@@ -55,7 +55,7 @@ export const EXAMPLE_MODEL = {
   subject: { name: 'job-runner (example)', kind: 'codebase', roots: { code: './src' }, date: '2026-10-22' },
   question: 'Why can failures keep the queue long even though the workers are busy?',
   answer: {
-    text: 'Failed jobs come back: more jobs in flight means more failures, and every failure under the retry limit puts a job back in the queue (R1). The worker limit caps how fast jobs leave the queue (B1, B2), so requeued jobs compete with new ones for the same slots. Paging watches the queue but feeds nothing back into the runner (see "Who notices a backlog").',
+    text: 'Failed jobs come back: more jobs in flight means more failures, and every failure under the retry limit puts a job back in the queue (R1).\nThe worker limit caps how fast jobs leave the queue (B1, B2), so requeued jobs compete with new ones for the same slots.\nPaging watches the queue but feeds nothing back into the runner (see "Who notices a backlog").',
     loops: ['R1', 'B1', 'B2'],
   },
   horizon: 'minutes to hours',

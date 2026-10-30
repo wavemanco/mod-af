@@ -419,7 +419,7 @@ have not had an independent review of their own; the next change to this plugin 
   Revisit if that many permission requests outside the working folder becomes a problem: the Read
   tool accepts more than 2,000 lines per call.
 
-## The merge into `dynamics` (2026-10-30): one review round, as agreed
+## The merge into `dynamics` (2026-10-30): two review rounds, as agreed
 
 **What changed.** `stockflow` became `dynamics` and took the earlier prototype's method: three survey
 angles, reference modes as patterns, the "should this be modelled at all?" check, the research step,
@@ -429,7 +429,9 @@ folds the not-machine-checked list under its own heading, and shows an answer wr
 lines one line each.
 
 **The round.** One independent round was agreed, with three reviewers (the method, the code and
-tests, the documentation), read-only. It found 34 issues: 3 high, 13 medium, 18 low.
+tests, the documentation), read-only. It found 34 findings: 4 high, 15 medium, 15 low. The footer
+defect was raised three times (twice as high, once as medium), so the three highs below are four
+findings.
 - **High:**
   - the review agents' own briefs still said to re-check everything in every round;
   - step 9 ran a review of a correction without asking;
@@ -450,8 +452,9 @@ tests, the documentation), read-only. It found 34 issues: 3 high, 13 medium, 18 
     counted;
   - the walk-through spec counted only − links, missing the drains that make most loops balancing.
 
-**Fixed.** All highs and mediums, and every low but one. The new tests were each shown to fail with
-their fix undone, in a scratch copy:
+**Fixed** in commit `c84c3e0`: all highs and mediums, and every low but one. Round 2 found five of
+these fixes only partly done (below). The new tests were each shown to fail with their fix undone, in
+a scratch copy:
 - the not-checked list folded on the page;
 - the "not reviewed" footer;
 - V01 (rounds against agreed);
@@ -460,8 +463,57 @@ their fix undone, in a scratch copy:
 
 365 tests pass, and `claude plugin validate` passes.
 
-**Not reviewed.** Under the method's own rule, these fixes were not reviewed again: one round was
-agreed, and a further round needs the maintainer's yes.
+**A second round was agreed.** One round had been agreed, so these fixes were first reported as not
+reviewed. The maintainer then said yes to a second round on the fixes only (agreed raised from 1 to 2).
 
 **The one low left open,** a model with a `review` block but no `agreed` count, was closed before
-round 2: V01 now warns about it.
+round 2 (commit `e09f4bc`): V01 now warns about it.
+
+**Round 2, on the fixes only.** Two reviewers, read-only: one on the code and tests, one on the method
+and the documents. Each re-checked the round-1 fixes in its area, and what each fix touched, and
+nothing else.
+- **Code and tests:** all 13 fixes in its area hold, including the new V01 warning. The reviewer
+  undid each fix in a scratch copy, and its test failed every time.
+- **Method and documents:** 24 of 29 hold. Five were only partly done:
+  - the briefs still told the reviewers not to review the report's hypotheses;
+  - the README still promised that each round is smaller than the last;
+  - "every element cited" survived in four places;
+  - the sketch spec's guard did not do what it claimed;
+  - two attribution leftovers remained.
+
+It found 14 new problems in what the fixes touched: 6 medium, 8 low, none high.
+- **Medium:**
+  - the new V01 warning contradicted step 0's house-review branch, which never set `agreed`. Fixed in
+    the method: `agreed` always holds the total agreed so far;
+  - a declined review of a later correction was not disclosed. Step 9 now says so in `review.note`;
+  - neither the facts brief nor the SD brief checked the hypotheses. Both now do, and the SD brief
+    receives the record;
+  - the overclaim stood in the README's opening, the repository README, the marketplace entry and the
+    skill description. All now say "every observed", and the two install descriptions are identical;
+  - this log's round-1 counts were wrong. They are corrected above;
+  - the sketch spec's guard read a flag that a hand edit can drop. It now reads the parts themselves:
+    in any mode, a loop in `answer.loops` with no observed or evidenced part is warned about and
+    marked. This is the root fix; the quick fix was to delete the claim the spec could not keep.
+- **Low:**
+  - the README and REFERENCES restated the rounds rule without round 1's changes. Both are now short
+    and point to step 7;
+  - "record the answer as `review.agreed`" could be read as the further rounds, not the total;
+  - the paste form had no place for the review note;
+  - this log did not record the yes for round 2;
+  - two attribution leftovers: "Baik 1997" had no citation (it is now marked as not traced to one),
+    and the units rule cited Ford 2019, whose entry does not list units (that citation is dropped);
+  - the sketch trigger assumed every run records its cost;
+  - the worked example's answer sat on one line, although the field asks for one line each. It now
+    has three lines, and a test checks the example's page;
+  - a page with no review rounds lost the "inspected visually or not" clause. It is restored, with a
+    test.
+
+The new test assertions each fail with their fix undone, in a scratch copy:
+- the example's answer lines;
+- the visual clause on an unreviewed page;
+- "round" or "rounds" by count.
+
+365 tests pass, and both validators pass.
+
+**Not reviewed.** Two rounds were agreed and both have run, so under the method's rule the round-2
+fixes are not reviewed again. No high finding is open.

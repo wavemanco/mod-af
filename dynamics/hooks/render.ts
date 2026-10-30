@@ -1720,10 +1720,11 @@ export function render(a: Analysis): Rendered {
   details('Method and sources', nl(`<p class="prose">${esc(methodText)}</p>`, '<ul>', ...SOURCES.map(s => `<li>${s.html}</li>`), '</ul>'), [methodText, ...SOURCES.map(s => `- ${s.text}`)].join('\n'))
 
   const rv = model.review
+  const looked = rv?.visual ? 'rendered page inspected' : 'rendered page not visually inspected'
   const reviewLine = rv && (rv.rounds ?? 0) === 0
-    ? `Review: not reviewed${rv.agreed !== undefined ? ` (0 of ${rv.agreed} rounds agreed)` : ''}.${rv.note ? ` ${rv.note}` : ''}`
+    ? `Review: not reviewed${rv.agreed !== undefined ? ` (0 of ${rv.agreed} round${rv.agreed === 1 ? '' : 's'} agreed)` : ''}; ${looked}.${rv.note ? ` ${rv.note}` : ''}`
     : rv
-    ? `Review: ${rv.rounds ?? 0} round${rv.rounds === 1 ? '' : 's'}${rv.agreed !== undefined ? ` of ${rv.agreed} agreed` : ''}, ${rv.independent ? 'by reviewers other than the builder' : 'self-review only'}; ${rv.visual ? 'rendered page inspected' : 'rendered page not visually inspected'}.${rv.note ? ` ${rv.note}` : ''}`
+    ? `Review: ${rv.rounds ?? 0} round${rv.rounds === 1 ? '' : 's'}${rv.agreed !== undefined ? ` of ${rv.agreed} agreed` : ''}, ${rv.independent ? 'by reviewers other than the builder' : 'self-review only'}; ${looked}.${rv.note ? ` ${rv.note}` : ''}`
     : 'Review: not recorded.'
   const n = (k: number | undefined, one: string, many: string) => `${k ?? 0} ${(k ?? 0) === 1 ? one : many}`
   const built = `Built with the dynamics plugin from a checked model: ${n(c.stocks, 'stock', 'stocks')}, ${n(c.flows, 'flow', 'flows')}, ${n((c.variables ?? 0) + (c.constants ?? 0), 'variable or constant', 'variables and constants')}, ${n(c.links, 'link', 'links')}, ${n(c.loops, 'live feedback loop', 'live feedback loops')}. Loop types, loop membership, traces, the boundary and the legend are derived from the model. Not machine-checked: ${n(report.not_checked.length, 'kind of claim', 'kinds of claim')}, listed under “What is not machine-checked” above.`

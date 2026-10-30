@@ -51,15 +51,16 @@ Two rules govern everything:
   review round take for a system this size, and ask how many review rounds they want: **2 by default**
   (one full round, one on the fixes), 1 for a quicker result, 0 for a draft marked unreviewed. If the
   target's house rules impose their own review process, offer it as the alternative; if the person
-  picks it, record that in `review.note` and agree the next round after each one. Note the answer: it
-  becomes the model's `review.agreed` when you write the model (step 4). You never start a round beyond
-  it without their yes (step 7). Then post a one-line note at each step.
+  picks it, record that in `review.note` and agree one round at a time. Either way, note the number
+  agreed: it becomes the model's `review.agreed` when you write the model (step 4), always the total
+  agreed so far, raised by each further round the person agrees to. You never start a round beyond it
+  without their yes (step 7). Then post a one-line note at each step.
 
 ## 1. Articulate the problem (Sterman 2000, Fig. 3-1; Hines)
 
 Write down before mapping anything:
-- **The question** and, as you go, the **short answer**: two to five plain sentences naming the loops
-  that carry it. It is a hypothesis read from the structure (a dynamic hypothesis, Ford 2019), never a
+- **The question** and, as you go, the **short answer**: two to five plain sentences, one per line, naming
+  the loops that carry it. It is a hypothesis read from the structure (a dynamic hypothesis, Ford 2019), never a
   simulation result. If no loop explains the behaviour, say so: that is a finding.
 - **Key variables**, the **time horizon**, the **time unit** flows are counted per.
 - **Reference modes**: the behaviour over time the question is about (growth, an S-curve, decline,
@@ -156,7 +157,7 @@ every link with its mechanism.
   pretty-printer), never by retyping it and never from a fetch tool that answers with a summary; save it under a root of its own, record in `from` the original's address and the command
   that made the extract, and cite the extract. The check verifies quotes against the extract only, so
   the extract must be the original's own words.
-- **Units**: a flow counts its stock's units per time unit (Forrester & Senge 1980; Ford 2019).
+- **Units**: a flow counts its stock's units per time unit (Forrester & Senge 1980).
 - **Emphasis** (optional, for example defects a review found): state the rule for what earns the
   highlight in one sentence before marking anything. The page shows the rule wherever the colour is.
 
@@ -230,7 +231,7 @@ review is the agreed number of rounds.
 - **Never start a round beyond the agreed number on your own.** If high or medium findings remain after
   the last agreed round, recommend a number of further rounds (usually one), and say why: what is
   still wrong, whether a reader would be misled, and the time it takes. Then wait. The person decides;
-  record their answer as the new `review.agreed`.
+  if they agree, raise `review.agreed` by the rounds they agree to (it holds the total).
 - Findings that would add a mechanism, a figure or scope, and wording preferences, go to the person's
   triage list unfixed. Hand over the rest as a short list: what it is, whether a reader sees it, what
   fixing it costs, your recommendation.
@@ -263,7 +264,8 @@ finding; that needs a calibrated simulation (Schwaninger & Groesser 2009; Barlas
 
 When the person corrects something later ("that arrow is wrong"): change the model, check and render,
 then ask whether to review the correction (recommend one corrections-only round, and say what it
-costs). Record the answer as `review.agreed`, and update the same page and record.
+costs). If they agree, raise `review.agreed` by one (it holds the total); if they decline, say in
+`review.note` that the correction was not reviewed. Then update the same page and record.
 <!-- method:end -->
 
 <!-- lenses:start -->
@@ -289,7 +291,9 @@ caused. Do not re-review the rest. In the first round, check EVERY statement, no
   documented-but-not-built rule drawn as if it runs?
 - each loop's story and the short answer: does every step hold in the sources? Is any behaviour over
   time claimed as fact?
-- figure questions, captions and notes.
+- figure questions, captions and notes;
+- what the structure suggests (in the record): does each leverage point and each missing-feedback
+  item hold in the sources?
 If you have the check report, its "not checked" list says where the tool cannot help you; spend your
 effort there.
 
@@ -297,13 +301,15 @@ Return findings only, one per problem, each with: where (element id or page sect
 the evidence (file:line and what it actually says), the fix, a severity (high: a false statement about
 the system or wrong structure; medium: misleading, or a quote that does not support what is drawn;
 low: wording), whether a reader of the page sees it, and whether fixing it would widen the scope. Say
-"no findings" if there are none. Do not review the plugin's code or the record's prose.
+"no findings" if there are none. Do not review the plugin's code; of the record, review only what the
+structure suggests.
 <!-- lens:facts-reviewer:end -->
 
 <!-- lens:sd-reviewer:start -->
 You are the system-dynamics reviewer for a dynamics model: a stock-and-flow model of a codebase,
-repository or set of product documents. You did not build it and you change nothing: read-only. If
-you have the dynamics check tool, you may run it on the model file; otherwise trace the loops yourself.
+repository or set of product documents. You did not build it and you change nothing: read-only. You
+are given the model file and the record of what the structure suggests. If you have the dynamics
+check tool, you may run it on the model file; otherwise trace the loops yourself.
 In a later round you are also given the findings fixed since the last round: then re-check only those
 fixes and what each fix touched in your area, and return for each one: fixed, not fixed, or a new
 problem the fix caused. Do not re-review the rest.
@@ -324,6 +330,9 @@ Richardson 1997):
   fixed input? Is perceived conflated with actual, or requirement with supply?
 - For each stock: when it is empty, what stops its outflows? Is that guard cited?
 - Is the short answer endogenous, and is it stated as a hypothesis, not a simulation result?
+- What the structure suggests: does each leverage point act on a loop the answer rests on? Is each
+  missing-feedback item a *missing* part of the model? Does any dominance hypothesis have a
+  reference-mode basis, and does it name what would test it?
 
 Return findings only, one per problem, each with: where, what is wrong, the evidence, the fix, a
 severity (high: wrong structure, a loop that is not there or is missing, a wrong sign; medium:
@@ -374,7 +383,9 @@ substitutions:
 - **The reader view** for the cold reader is the page's text: the question, the short answer, the
   legend, and each figure described in words (its stocks, flows, links and loops).
 - **"Write the review into the model so the page footer shows it"** means: end the page with how it was
-  reviewed (rounds run of rounds agreed, independent or not, inspected visually or not).
+  reviewed (rounds run of rounds agreed, independent or not, inspected visually or not), then the
+  review note: fixes no round reviewed, high findings still open, and a house review process if one
+  was chosen.
 - **The review lenses** are the briefs above, each given to a separate reviewer or done as a separate,
   labelled pass of your own.
 

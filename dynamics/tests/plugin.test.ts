@@ -1450,6 +1450,8 @@ test('an answer written on several lines is shown one line each, on the page and
   expect(two.readerView).toContain("Short answer:\n- Jobs pile up when workers are slow (e.g. Mr. Lee's team).\n- More retries add more jobs, so the queue feeds itself.")
   const one = render(await exampleAnalysis(m => { m.answer.text = 'Jobs pile up when workers are slow. More retries add more jobs.' })).html
   expect(one).toContain('<h2>Short answer</h2>\n<p>Jobs pile up when workers are slow. More retries add more jobs.</p>')
+  // the worked example, which every session is told to copy, shows its answer one line each
+  expect(render(await exampleAnalysis()).html).toContain('<ul class="answer-lines"><li>Failed jobs come back:')
 })
 
 test('the not-machine-checked list is on the page, folded under its own heading, and the footer counts it', async () => {
@@ -1465,7 +1467,9 @@ test('the footer shows the review rounds against the rounds agreed, and says "no
   const two = render(await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 2, agreed: 2, independent: true, visual: true } })).html
   expect(two).toContain('Review: 2 rounds of 2 agreed, by reviewers other than the builder; rendered page inspected.')
   const none = render(await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 0, agreed: 2, independent: true, visual: false } })).html
-  expect(none).toContain('Review: not reviewed (0 of 2 rounds agreed).')
+  expect(none).toContain('Review: not reviewed (0 of 2 rounds agreed); rendered page not visually inspected.')
+  const looked = render(await exampleAnalysis(m => { ;(m as Record<string, unknown>).review = { rounds: 0, agreed: 1, visual: true } })).html
+  expect(looked).toContain('Review: not reviewed (0 of 1 round agreed); rendered page inspected.')
   expect(none).not.toContain('by reviewers other than the builder')
 })
 

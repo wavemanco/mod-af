@@ -1,6 +1,6 @@
 ---
 name: dynamics
-description: Build a source-grounded system-dynamics (stock-and-flow) model of a codebase, repo or product docs, with every feedback loop checked, every element cited, and a rendered page. Use when someone asks for a system dynamics, stock-and-flow, causal-loop or feedback-loop picture of a system.
+description: Build a source-grounded system-dynamics (stock-and-flow) model of a codebase, repo or product docs, with every feedback loop checked, every observed element cited and quote-checked, and a rendered page. Use when someone asks for a system dynamics, stock-and-flow, causal-loop or feedback-loop picture of a system.
 ---
 What to model, as typed after /dynamics:
 
