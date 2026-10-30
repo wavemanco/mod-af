@@ -42,10 +42,10 @@ Everything after `for` is the reader, for example `/jargone README.md for a new 
   tree, may create or add to one reference file beside it (principle 2), and records each move in
   `.jargone/moves/<file>.json`. It never commits. It writes its report to `.jargone/reports/<file>.md`.
 - **`/jargone check`** runs J01–J04 and J06 on the file as it stands, and J05 too if an earlier
-  `/jargone` saved its original. It writes its findings to `.jargone/reports/<file>.md`, changes no
-  document, runs no reviewers and needs no reader.
+  `/jargone` saved its original. It writes its findings to `.jargone/reports/<file>.check.md`, changes
+  no document or rewrite report, runs no reviewers and needs no reader.
 - **When something fails.** If the checker finds a problem, jargone fixes the rewrite and runs the
-  checker again, until it passes or the same findings come back. This uses no review round and also
+  checker again, at most 3 times, stopping early when it passes or the same findings come back. This uses no review round and also
   happens with 0 rounds. If a reviewer finds a problem, jargone fixes it within the agreed rounds.
   Anything still failing is listed at the top of the report. jargone does not undo the rewrite; the
   person can discard it with git.
@@ -88,7 +88,7 @@ Each check has its own test, shown to fail when the check is removed.
   words inside a numbered procedure.
 - **J04 the opening.** Every word in the first paragraph after the title (skipping badges and
   images), other than the project's own name, is on the common-word list or the glossary's `known`
-  list, compared as in J01. A word defined there still fails.
+  list, compared as in J01. A word defined in the opening itself still fails.
 - **J05 nothing lost.** Every number, inline code span, fenced code block and link target of the
   saved original appears unchanged in the rewrite or in a file listed in `.jargone/moves/<file>.json`.
   Every link to the document or to one of its headings, from inside it or from elsewhere in the
@@ -138,10 +138,10 @@ often finds "a lot more readable", and sometimes asking for "80% of the way to A
 - **What it does not do:** the checker still measures jargone's own rules only. The output is not
   checked for STE conformance and is not STE.
 - **Why no STE content:** the Issue 9 copyright notice forbids copying or publishing any part without
-  written authority from an ASD officer, and says having the document grants no right to use it.
-  Free use is granted only to eight listed groups: aerospace and defence bodies and their customers,
-  Airlines for America, airworthiness authorities, and universities and research institutes for
-  educational purposes. So jargone ships none of its rules or dictionary, and does not read a user's
+  written authority from an ASD officer. The standard is free to request, but having it grants no
+  right to use it; free use is granted only to the groups the notice lists: aerospace and defence
+  bodies and their customers, Airlines for America, airworthiness authorities, and universities and
+  research institutes for educational purposes. So jargone ships none of its rules or dictionary, and does not read a user's
   own copy.
 - **Naming:** the README says jargone has "an opt-in style inspired by ASD-STE100", with this
   disclaimer: *jargone is not affiliated with, endorsed by or developed with ASD or the STEMG.
@@ -188,7 +188,8 @@ guidance. It gets its own specification when asked for.
 
 ## 11. Sources
 
-Each row names what a source shaped. jargone ships no text from any of them.
+Each row names what a source shaped. jargone ships no text from the ISO, IPLF, ASD-STE100 or
+Diátaxis sources.
 
 | Source | What it shaped |
 |---|---|
