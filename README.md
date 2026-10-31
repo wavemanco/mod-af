@@ -21,6 +21,9 @@ An adversarial loop: scan for AI-writing tells, rewrite the hits, re-scan with f
 ### `dynamics` — why a system keeps behaving the way it does
 Uses system dynamics to explain why something keeps happening in a codebase or product, such as a bug backlog that keeps growing: it maps what accumulates, what adds to or drains it, and the feedback loops between them, quoting the source behind each part it finds and labelling what it infers. No simulation. `/dynamics <what to model> — <the question>`. See [`dynamics/`](./dynamics/README.md).
 
+### `jargone` — rewrite a document for a named reader
+Rewrites a document for the reader you name: plain words, the purpose first, long detail moved to a linked page. It checks that nothing was lost or made false, and that a model playing your reader takes away the key points. `/jargone-voice` keeps replies plain for a whole session. `/jargone <file> for <reader>` · `/jargone-check <file>`. See [`jargone/`](./jargone/README.md).
+
 ## Install
 
 In a Claude Code terminal session, for any plugin above:

@@ -80,3 +80,39 @@ At the maintainer's request, after the word-list research:
 - the trial in build step 5: documents and sessions, coding and not.
 
 No review round has run on these additions.
+
+## The build (2026-10-31): version 0.1.0
+
+Built from the specification by five builders (data; checker; method and docs; wiring and session
+mode; integration), each checking its own work.
+- **Tests:** 217 pass (112 plugin, 85 checker, 19 data, 1 word-list smoke test). Both validators
+  pass.
+- **Every test guards something.** Each part of the code was broken on purpose in a scratch copy, and
+  at least one test failed each time:
+  - the checker: 122 breaks;
+  - the wiring: 199 breaks, 198 caught (the one left changes nothing);
+  - the data build: 20 breaks;
+  - integration: 42 breaks across J01–J07, the findings cap, the block-once rule and the system
+    prompt section, after it added tests for 3 that first went uncaught.
+- **Checked in the real engine** (`claude -p` with the plugin loaded): `/jargone-check` wrote its
+  report; J05 found a broken link and a lost number; the model called the check tool; with
+  `--rewrite` the rewrite request went back once, and the rewrite itself got a note, not a second
+  request.
+
+**Changes from the specification,** now reflected in it:
+- the instant commands are `/jargone-check` and `/jargone-voice`, because a slash command is either a
+  skill or answered by code, not both;
+- the word lists ship as the generated module `hooks/data.ts`, since the loader reads code only;
+- J05 counts content as moved only into `<name>-reference.md` listed in the moves file, so listing
+  the saved original cannot hide a loss.
+
+**Open for the maintainer:** what makes a reply "fail" in `--rewrite`. Today any finding does,
+warnings included, while the method says a check passes when it has no errors.
+
+**False alarms the builders saw,** for the trial: licence and standard names shaped like acronyms
+(MIT, CC0); a hyphenated name such as ASD-STE100 that no definition form accepts; "plugin" and
+"chose" missing from the familiarity list; J07's "it is" firing where it cannot be cut; J04 flagging
+"Claude" and "/jargone".
+
+**Not reviewed yet.** The integrator's own corrections, and the build as a whole, are owed an
+independent review.

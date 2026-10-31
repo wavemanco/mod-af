@@ -1,0 +1,9 @@
+{
+  "name": "jargone",
+  "version": "0.1.0",
+  "description": "Rewrites a document so a named reader can understand it: plain words, the purpose first, detail moved behind a link. Then it checks that nothing was lost or made false, and that a model playing that reader takes away the key points. It can also keep Claude's replies plain for a whole session.",
+  "author": {
+    "name": "moondocksaint"
+  },
+  "types": "./types/index.d.ts"
+}

@@ -27,6 +27,11 @@
       "name": "dynamics",
       "source": "./dynamics",
       "description": "System-dynamics (stock-and-flow) models of a codebase, repo or product docs: what piles up, what drains it and the feedback loops, every observed element cited and quote-checked, every loop found and typed, a rendered page with a generated legend, and a review whose rounds you agree."
+    },
+    {
+      "name": "jargone",
+      "source": "./jargone",
+      "description": "Rewrites a document so a named reader can understand it: plain words, the purpose first, detail moved behind a link. Then it checks that nothing was lost or made false, and that a model playing that reader takes away the key points. It can also keep Claude's replies plain for a whole session."
     }
   ]
 }

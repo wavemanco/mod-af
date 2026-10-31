@@ -1,11 +1,13 @@
-# jargone — specification (draft, not built)
+# jargone — specification (version 0.1.0 built; trial not yet run)
 
 `jargone` rewrites a document so that a named reader can understand it. It removes or defines
 jargon, puts the purpose first, and moves reference detail to a linked file. It then checks two
 things: that nothing was lost or made false, and that a cold reader (a model run acting as the named
 audience, given only the rewrite) takes away the key points the person confirmed.
 
-**How it runs.** jargone is a Claude Code plugin with a slash command. A model writes the rewrite,
+**How it runs.** jargone is a Claude Code plugin with three slash commands: `/jargone` is a skill
+(it starts a model turn), while `/jargone-check` and `/jargone-voice` are answered by code at once,
+with no model turn. A model writes the rewrite,
 following the method in `prompt.md`. The checker is a tool the plugin provides (code in `hooks/`),
 which jargone runs after each rewrite; it is not triggered by other edits. The two reviewers
 (section 5) are separate model runs, not people. Tests live in `tests/`. This is the same layout as
@@ -28,9 +30,10 @@ instruction to every request, one checks each reply. How this specification was 
 
 ```
 /jargone [--ste-inspired] <file> for <reader>
-/jargone check <file>
-/jargone voice on for <reader> [--rewrite] [--ste-inspired]
-/jargone voice off
+/jargone-check <file>
+/jargone-voice on for <reader> [--rewrite] [--ste-inspired]
+/jargone-voice off
+/jargone-voice
 ```
 
 Everything after `for` is the reader, for example `/jargone README.md for a new contributor`.
@@ -46,7 +49,7 @@ Everything after `for` is the reader, for example `/jargone README.md for a new 
 - **`/jargone`** saves the original to `.jargone/originals/<file>`, rewrites the file in the working
   tree, may create or add to one reference file beside it (principle 2), and records each move in
   `.jargone/moves/<file>.json`. It never commits. It writes its report to `.jargone/reports/<file>.md`.
-- **`/jargone check`** runs J01–J04, J06 and J07 on the file as it stands, and J05 too if an earlier
+- **`/jargone-check`** runs J01–J04, J06 and J07 on the file as it stands, and J05 too if an earlier
   `/jargone` saved its original. It writes its findings to `.jargone/reports/<file>.check.md`, changes
   no document or rewrite report, runs no reviewers and needs no reader.
 - **When something fails.** If the checker finds a problem, jargone fixes the rewrite and runs the
@@ -55,7 +58,8 @@ Everything after `for` is the reader, for example `/jargone README.md for a new 
   Anything still failing is listed at the top of the report. jargone does not undo the rewrite; the
   person can discard it with git.
 - **`--ste-inspired`** (off by default) asks for a plainer style inspired by ASD-STE100 (section 6).
-- **`/jargone voice`** turns session mode on or off (section 13).
+- **`/jargone-voice`** turns session mode on or off, or with nothing after it says whether it is on
+  (section 13).
 - **Without the plugin.** Like every plugin in this repository, `prompt.md` also works pasted into a
   chat. There the model applies J01–J05 by hand to what it can see, gives no readability scores (they
   need code), and the report says the checks were not run by code.
@@ -99,7 +103,8 @@ Each check has its own test, shown to fail when the check is removed.
   images), other than the project's own name, is on the common-word list or the glossary's `known`
   list, compared as in J01. A word defined in the opening itself still fails.
 - **J05 nothing lost.** Every number, inline code span, fenced code block and link target of the
-  saved original appears unchanged in the rewrite or in a file listed in `.jargone/moves/<file>.json`.
+  saved original appears unchanged in the rewrite, or in the reference file `<name>-reference.md`
+  beside it when `.jargone/moves/<file>.json` lists that file.
   Every link to the document or to one of its headings, from inside it or from elsewhere in the
   repository, still resolves. A heading may be reworded only if no link points to it; jargone does
   not edit other files' links.
@@ -124,7 +129,9 @@ whether a claim kept its meaning. The reviewers do those (section 5).
 
 ### Data files
 
-They live in `data/`, and `data/NOTICE.md` gives each one's source, licence and required credit.
+They ship as one generated code module, `hooks/data.ts`, built by `scripts/build_data.py`, because
+the plugin loader and the test kit read code files only. `data/NOTICE.md` gives each list's source,
+licence, required credit and every change made to it.
 - **Familiarity list,** for J01 and J04: the AI-generated estimates of English word familiarity by
   Brysbaert, Martínez and Reviriego ([OSF](https://osf.io/c2yef/), CC BY 4.0), cut down to single
   words and their rating from 1 (unknown) to 7 (very familiar). The **common-word list** is every
@@ -256,7 +263,7 @@ Diátaxis sources.
      default cut-off and decide whether rewriting replies stays opt-in.
 6. Write the README from section 9, then run jargone on its own README.
 
-## 13. Session mode (`/jargone voice`)
+## 13. Session mode (`/jargone-voice`)
 
 Session mode keeps a whole conversation plain, not just one document. It works in any kind of
 working session: research, planning, explaining, writing or coding.
