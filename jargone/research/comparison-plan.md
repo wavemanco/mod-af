@@ -61,3 +61,27 @@ the rule.
 If jargone fails the rule, the best simple instruction ships as a universal instruction for Claude
 Code and Claude chat. The document check for lost content (J05) may then be kept as a small,
 separate tool, if it alone proves worth it.
+
+## Addendum (2026-10-31): everyday, non-coding work
+
+Added after the first results were seen, at the maintainer's request: the first task set came from
+software work only, and jargone must also serve people drafting everyday documents, for example in
+Claude chat. This extension is fixed before any of its output is generated.
+
+- **Replies:** 20 self-contained requests of the kind people bring to Claude chat outside software:
+  health, money, housing, law, school, work, government services and science news. Each names its
+  reader (for example a tenant, a patient's relative, a parent, a small-business owner, a retired
+  person) and carries the facts the writer needs. Facts are taken from public-domain sources or are
+  clearly invented for the task.
+- **Documents:** 5 dense public-domain texts (United States government works: a regulation excerpt,
+  a court opinion excerpt, a benefits or coverage rule, an accident or safety report summary, a
+  federal notice), 300 to 900 words each, each for a named everyday reader.
+- **Conditions, measures and judging:** as above. The instruction lives in `CLAUDE.md` for the run;
+  in Claude chat it would live in the profile instructions or a project's instructions, which this
+  run approximates.
+- **Human check:** 10 more blind pairs for the maintainer: 5 replies (best of C2 to C4 against C5)
+  and 5 documents (best one-shot against `/jargone`, the reader-facing text only).
+- **Decision:** the rule above applies to this set separately. If jargone fails on both sets, the
+  best simple instruction ships everywhere. If it passes only on everyday documents, the
+  recommendation is a document tool (the chat Skill) plus the instruction for sessions. If it passes
+  on both, it stays a plugin.
