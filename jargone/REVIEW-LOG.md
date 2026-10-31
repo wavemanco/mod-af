@@ -116,3 +116,28 @@ warnings included, while the method says a check passes when it has no errors.
 
 **Not reviewed yet.** The integrator's own corrections, and the build as a whole, are owed an
 independent review.
+
+## Review of the build, and the trial (2026-10-31)
+
+**The trial** is summarised in [`research/trial.md`](./research/trial.md). In short: J01's and J07's
+word lists were wrong far more often than right (82% false alarms on documents, 93% on replies), J01
+missed most of the terms a reader would not know, and false alarms pushed the writer into worse
+text. The model cold reader found every key point; J03 and J05 earned their place.
+
+**The review:** three independent reviewers (code and safety; specification and documents; a cold
+read of the README), with every high and medium finding reproduced by a fourth. 28 findings: 4 high,
+10 medium, 14 low; all 14 high and medium were confirmed.
+- **High:**
+  - J05 counted a lost number as kept if the same digits appeared anywhere in the file;
+  - `/jargone-check` could write its report through a linked folder, outside where it should;
+  - J03 and the longest-sentence score ignored table cells and headings;
+  - plain-text files were read as Markdown, so an indented paragraph counted as code.
+- **Medium,** among them: a linked folder of saved originals made J05 compare the document with
+  itself; heading anchors differed from GitHub's in some cases; the reply check and the check tool
+  disagreed about the project's own name; multi-word glossary terms could not silence J07; a second
+  run reported the first run's moves as losses; the promised test fixtures were never used;
+  "fails" was undefined in the README; its undo advice dropped facts; and its opening never said
+  what jargone runs in.
+
+**Not fixed yet.** The trial calls the design of J01, J04 and J07 into question, so the maintainer
+decides the direction before these are fixed.
