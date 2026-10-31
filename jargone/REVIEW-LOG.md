@@ -69,3 +69,14 @@ All 6 were applied.
 
 **Not reviewed.** Three rounds ran, each agreed by the maintainer. The round-3 fixes have not been
 reviewed again.
+
+## Added after round 3 (2026-10-31): not reviewed
+
+At the maintainer's request, after the word-list research:
+- the data files: the familiarity list as the common-word gate, the replacement list, and the
+  technical-exceptions list, with their licences;
+- check J07, a plainer word is available;
+- session mode, section 13;
+- the trial in build step 5: documents and sessions, coding and not.
+
+No review round has run on these additions.
