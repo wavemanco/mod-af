@@ -81,6 +81,35 @@ test('a directory that is no git repository says what git said, exit 2', () => {
   assert.match(r.stdout, /not a git repository/)
 })
 
+test('survey needs no settings, prints the top candidate first, and writes nothing', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  git(dir, 'init', '-q', '-b', 'main')
+  writeFileSync(join(dir, 'TODO.md'), '## T-1 one\n## T-2 two\n## T-3 three\n- [ ] four\n') // 3 + 2*3 + 1
+  writeFileSync(join(dir, 'README.md'), 'Pending work goes in TODO.md.\n')
+  writeFileSync(join(dir, 'pnpm-lock.yaml'), 'lockfileVersion: 9\n')
+  git(dir, 'add', '.')
+  git(dir, 'commit', '-q', '-m', 'first')
+  const r = run('survey', '--repo', dir)
+  assert.equal(r.status, 0, r.stderr + r.stdout)
+  const first = r.stdout.split('\n').find(l => /^\s+\d/.test(l))
+  assert.match(first ?? '', /likely-tracker\s+TODO\.md/)
+  assert.match(r.stdout, /README\.md:1: Pending work goes in TODO\.md\./)
+  assert.match(r.stdout, /^and 1 more: lockfiles and binaries/m)
+  const j = run('survey', '--json', '--repo', dir)
+  assert.equal(j.status, 0, j.stderr)
+  const inv = JSON.parse(j.stdout)
+  assert.equal(inv.candidates[0].path, 'TODO.md')
+  assert.deepEqual(inv.skipped, [{ path: 'pnpm-lock.yaml', why: 'a lockfile' }])
+  assert.deepEqual(inv.references, [{ target: 'TODO.md', from: 'README.md', count: 1, machine: false }])
+  assert.equal(git(dir, 'status', '--porcelain', '--ignored'), '')
+})
+
+test('survey outside a git repository says what git said, exit 2', () => {
+  const r = run('survey', '--repo', mkdtempSync(join(tmpdir(), 'hk-cli-')))
+  assert.equal(r.status, 2)
+  assert.match(r.stdout, /not a git repository/)
+})
+
 test('brief counts duties due by today, not by the head commit date', () => {
   const dir = repo()
   const b = backlog.replace('| Whenever an agent picks it up. | — | **Why:** slow builds. |',

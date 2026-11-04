@@ -4,6 +4,7 @@ import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
 import { headArgs, logArgs, parseLog, showArgs, snapshot } from './core/history.ts'
 import { parseSettings } from './core/settings.ts'
+import { collect, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
 
 type Dollar = EngineInterface
@@ -106,4 +107,18 @@ export async function writePage($: Dollar, root: string, path: string, html: str
   } catch (err) {
     return String(err)
   }
+}
+
+// The survey's reader: the tracked files, under collect's rules. GIT_OPTIONAL_LOCKS=0: the survey writes nothing,
+// not even git's index refresh.
+export async function readTracked($: Dollar, root: string): Promise<{ files: SurveyFile[]; skipped: Skipped[] }> {
+  const r = await $.process.run(['git', 'ls-files', '-z'], { cwd: root, timeoutMs: TIMEOUT, env: { GIT_OPTIONAL_LOCKS: '0' } })
+  if (r.exitCode !== 0) return { files: [], skipped: [{ path: root, why: `git ls-files failed: ${r.stderr.split('\n')[0].trim()}` }] }
+  const paths = r.stdout.split('\0')
+  paths.pop() // the empty tail after the last NUL, or the entry the cut left half written
+  const got = await collect(paths,
+    p => $.fs.stat(`${root}/${p}`).then(s => ({ file: s.kind === 'file' && !s.isLink, size: s.size }), () => null),
+    p => $.fs.read(`${root}/${p}`).catch(() => null))
+  if (r.isStdoutTruncated) got.skipped.push({ path: root, why: 'the list of tracked files was cut short; the files after it were not read' })
+  return got
 }
