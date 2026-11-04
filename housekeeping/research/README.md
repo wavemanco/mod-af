@@ -22,3 +22,5 @@ machine where the work was done.
 | [existing-plugins.md](existing-plugins.md) | `loose-ends`, `route`, `decide`, `detell` and `dynamics`, and the pattern this repository's plugins share | Integration with no change to the three plugins, detell's "last checked" pattern for duties, and dynamics' pattern for a plugin that builds a page |
 
 Section 11 of the design covers what the checks of its first draft changed.
+
+The Phase 1 completion criteria, each marked pass or fail with its evidence, are in [phase-1-results.md](phase-1-results.md).

@@ -2,7 +2,7 @@
 
 ## Settings
 
-`housekeeping.json` in the repository, JSON. Every key, its default, one line each. Unknown keys give a recommendation, never an error.
+`.housekeeping.json` in the repository, JSON. Every key, its default, one line each. Unknown keys give a recommendation, never an error.
 
 - `version`: required, must be `1`.
 - `project`: required, the project's name.
