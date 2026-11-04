@@ -60,3 +60,11 @@ test('missing playbook blocks the page', () => {
   expect(o.html).toBeNull()
   expect(o.findings.some(f => f.level === 'error' && f.rule === 'file')).toBe(true)
 })
+
+test('a page over 1,000,000 bytes is written with a page-size warning', () => {
+  expect(build(input()).findings.some(f => f.rule === 'page-size')).toBe(false)
+  const big = small.backlog.replace('one client can exhaust it', 'word '.repeat(250000))
+  const o = build(input({ backlog: big }))
+  expect(o.html).not.toBeNull()
+  expect(o.findings.some(f => f.level === 'warning' && f.rule === 'page-size')).toBe(true)
+})

@@ -154,3 +154,12 @@ test('the switch buttons are real buttons and Light overrides a dark system', ()
   for (const m of ['system', 'light', 'dark']) assert.match(html, new RegExp(`<button type="button" id="theme-${m}" aria-pressed=`))
   assert.match(html, /:root:not\(\[data-theme="light"\]\)/)
 })
+
+test('a lane with no milestone says so, not "all reached"', () => {
+  const lane = SMALL.lanes[0]
+  const d: PageData = { ...SMALL, lanes: [{ ...lane, stations: [], next: null }] }
+  const lanes = all(runPage(renderPage(d)).el('views')!)
+  const when = lanes.find(e => attr(e, 'class') === 'when')
+  assert.ok(when)
+  assert.equal(text(when), 'no milestone yet')
+})

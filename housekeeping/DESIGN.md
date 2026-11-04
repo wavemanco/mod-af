@@ -73,7 +73,7 @@ The research added what the owner asked most often in the reference repository's
 - **Patterns borrowed from two more:**
   - `detell`: a "last checked" date and a re-check when due;
   - `dynamics`: a plugin that builds a page and touches files only through Claude Code's own Read and
-    Write tools.
+    Write tools (one exception: the page itself, written directly, 2026-11-03; section 9).
 - **Tested on the four repositories, all as clones.** What housekeeping learns about a repository goes into
   that repository's settings file, never into the plugin's code. That is how the plugin "adapt[s] the
   script for that specific repo" (the owner, 2026-10-31).
@@ -228,13 +228,17 @@ So the reference repository's files, unchanged, pass `check` with recommendation
 - The page reads no clock, no network, no CI and no chat.
 - It stamps the commit and the commit's date.
 - It reads the local main branch's files (`git show <main>:<file>`) and never fetches. If a remote copy of
-  main is known locally and differs, the header says so.
-- On another branch, the short view shows that branch's state, labelled as such.
+  main is known locally and differs, the short view and the command's output say so; the page does not (3.5).
+- On another branch, the short view still shows main's state, with the line "On branch X; the map shows
+  main." (Phase 2 ruling, Claude's, for the owner to check: building the branch's own state would mean a
+  second history walk on every prompt.)
 
 **Privacy:**
 - It refuses to write a page that holds an email address (apart from no-reply and example addresses) or a
   key-shaped string, and reports where it found it.
 - It never shows commit authors.
+- A privacy hit in a commit subject, which cannot be edited, is masked and does not block the page
+  (decided 2026-11-03; section 9). The short view is masked in the same way.
 
 ### 3.5 The page
 
@@ -254,7 +258,7 @@ check keeps it under 1 MB. The reference repository's page is 808 KB today, much
 | | **Your queue** | What needs the owner's decision or act. "When" is answered as before which milestone, on which path, and what it holds up, since triggers are steps, not dates. Shows the default until decided, where there is one. |
 | When doors open | **Doors** | Doors just opened come first, then rows waiting on other rows, then triggers read by hand. Duties are listed apart, with the due ones first. |
 | | **Checklists** | Open lines per checklist, with the rows they settle. |
-| Can I trust it | **Header** | The commit and date the page was built from, and whether the local main is behind a known remote copy. Every count is computed. |
+| Can I trust it | **Header** | The commit and date the page was built from, and nothing from the remote: whether local main is behind a known remote copy shows on the short view and in the command's output only, so one commit gives the same page on any machine (Phase 2 ruling, Claude's, for the owner to check). Every count is computed. |
 | | **Warnings**, shown only when there is one | The warnings and recommendations from 3.4. |
 
 The page has a Light / Dark / System switch in its header, System by default, and remembers the choice per viewer in the browser (decided 2026-11-04).

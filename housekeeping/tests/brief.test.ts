@@ -45,3 +45,20 @@ test('a huge where-we-are text keeps the brief within 8,000 characters', () => {
   expect(t.length).toBe(8000)
   expect(t.endsWith('…')).toBe(true)
 })
+
+test('a lane with no milestone is not "all reached"', () => {
+  const lane = SMALL.lanes[0]
+  const t = brief({ ...SMALL, lanes: [{ ...lane, stations: [], next: null }] }, {})
+  expect(t).toContain(`${lane.path}: no milestone yet`)
+  expect(t).not.toContain('all reached')
+})
+
+test('long items are cut, and the branch and remote lines survive the cap', () => {
+  const rows = SMALL.rows.map(r => ({ ...r, item: 'long '.repeat(3000) }))
+  const d: PageData = { ...SMALL, rows, landNow: rows.map(r => r.id), queue: SMALL.queue }
+  const t = brief(d, { branch: 'feature/x', behindRemote: 3 })
+  expect(t.length).toBeLessThanOrEqual(8000)
+  expect(t).toContain('On branch feature/x; the map shows main.')
+  expect(t).toContain('Local main is 3 commits behind its remote copy.')
+  expect(t.split('\n').every(l => l.length <= 200)).toBe(true)
+})

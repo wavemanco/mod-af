@@ -35,6 +35,9 @@ export function build(i: BuildInput): BuildOutput {
     for (const id of places.length ? places : [`the page (${hits[0].sample})`])
       findings.push({ level: 'error', rule: 'privacy', message: `${id}: holds a personal address or a key-shaped string` })
   }
+  // ASCII page, so length is bytes
+  if (html && html.length > 1_000_000)
+    findings.push({ level: 'warning', rule: 'page-size', message: `the page is ${html.length} bytes, over the 1,000,000 it should stay under` })
   if (findings.some(f => f.level === 'error')) html = null
   return { parsed, facts, lanes, history, findings, data, html, brief: brief(data, {}), partition: partitionLine(facts) }
 }
