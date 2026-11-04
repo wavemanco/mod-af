@@ -45,7 +45,7 @@ How the files are read:
 
 - **Fences.** A line starting with three backticks or three tildes opens or closes a fenced block. Nothing inside one is read.
 - **Sections.** `## x` sets the section and clears the subsection; `### x` sets the subsection. Any heading ends a table.
-- **Tables.** A line with `|` opens a table when the next line is a separator (`|---|---|`). Rows follow until a line that does not start with `|`. A table without the ID and Item columns is not a row table. Tables in `skipSections` and in Done sections are not rows.
+- **Tables.** A line with `|` opens a table when the next line is a separator with as many cells, each one or more dashes with an optional colon at either end (`|---|---|`, `|-|-|`, `| :-- | --: |`), as GitHub reads them. Rows follow until a line that does not start with `|`. A table without the ID and Item columns is not a row table. Tables in `skipSections` and in Done sections are not rows.
 - **Cells.** Split on `|` except `\|`, which is a `|` inside the cell. Cells are trimmed and kept word for word; backticks mean nothing. A short row is padded with empty cells and is a warning (`columns`), as is a longer one.
 - **Nothing.** A cell equal to one of `values.nothing` means empty. Milestone and Waits on hold comma-separated values; empties and those equal to `values.nothing` are dropped. Milestone keeps `none` as a value; Waits on drops it.
 - **Land now.** Exactly `yes`, `small choice: <text>` or `no: <text>`. Anything else reads as `no` with the cell as the reason and is not valid.

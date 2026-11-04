@@ -2,6 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { parseSettings } from '../hooks/core/settings.ts'
 import { parseFiles } from '../hooks/core/parse.ts'
 import { backlog, playbook, settings } from './fixtures/small.ts'
+import { once } from './fixtures/page-data.ts'
 
 const s = parseSettings(settings).settings!
 const good = () => parseFiles(s, { backlog, playbook })
@@ -81,6 +82,17 @@ test('reads the not-doing table', () => {
     { item: 'A thing', why: 'too big', reopen: 'users ask' }, { item: 'Other', why: 'no need', reopen: 'never' }])
   expect(parseFiles(s2, { backlog, playbook }).notDoing).toEqual([])
   expect(parseFiles(s2, { backlog, playbook }).findings).toEqual([])
+})
+
+// GFM: each separator cell is :?-+:?, and the separator has as many cells as the header
+test('short separators open a table; one with another cell count does not', () => {
+  const sep = '|' + '---|'.repeat(15)
+  const ids = (line: string) => parseFiles(s, { backlog: once(backlog, sep, line), playbook }).rows.map(r => r.id)
+  const all = ['B-001', 'B-002', 'B-003', 'B-005', 'PB-01', 'PB-03']
+  expect(ids('|' + '-|'.repeat(15))).toEqual(all)
+  expect(ids('| :-- '.repeat(15) + '|')).toEqual(all)
+  expect(ids('-|'.repeat(14) + ':-:')).toEqual(all)
+  expect(ids('|' + '-|'.repeat(14))).toEqual(['PB-01', 'PB-03'])
 })
 
 test('a separator line inside a table is not a row', () => {

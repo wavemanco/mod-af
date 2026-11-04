@@ -3,7 +3,7 @@ export type Table = { section: string; subsection: string; line: number; header:
 
 export const FENCE = /^\s*(?:```|~~~)/
 export const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/
-const SEPARATOR = /^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?\s*$/
+const SEPARATOR = /^\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/ // GFM: any number of dashes per cell
 
 export const normalise = (text: string): string => text.replace(/^﻿/, '').replace(/\r\n?/g, '\n')
 
@@ -41,7 +41,8 @@ export function scanTables(text: string): Table[] {
       else if (!SEPARATOR.test(line)) open.rows.push({ line: i + 1, cells: cellsOf(line) }) // a stray separator is no row
       continue
     }
-    if (line.includes('|') && SEPARATOR.test(lines[i + 1] ?? '')) {
+    const next = lines[i + 1] ?? ''
+    if (line.includes('|') && SEPARATOR.test(next) && cellsOf(next).length === cellsOf(line).length) {
       open = { section, subsection, line: i + 1, header: cellsOf(line), rows: [] }
       tables.push(open)
       i++
