@@ -48,14 +48,48 @@ export function parseSettings(text: string): { settings: Settings | null; findin
     try { new RegExp(p) } catch { err(`"ids" has a pattern that is not a regular expression: ${p}`) }
   }
 
+  // nested shapes: every problem names its key path
+  const fileKey = (o: Obj, at: string) => { if (!FILE_KEYS.includes(o.file as string)) err(`"${at}.file" must be "backlog" or "playbook"`) }
+  const str = (o: Obj, k: string, at: string, optional = false) => {
+    if (o[k] === undefined && optional) return
+    if (!isStr(o[k]) || (!optional && !o[k])) err(`"${at}.${k}" must be ${optional ? 'a string' : 'a non-empty string'}`)
+  }
+  const col = (o: Obj, k: string, at: string, optional = false) => {
+    if (o[k] === undefined && optional) return
+    if (!Number.isInteger(o[k]) || (o[k] as number) < 0) err(`"${at}.${k}" must be a non-negative integer`)
+  }
+  const list = (k: string, each: (o: Obj, at: string) => void) => {
+    const v = raw[k]
+    if (v === undefined) return
+    if (!Array.isArray(v)) return err(`"${k}" must be a list`)
+    v.forEach((o, i) => isObj(o) ? each(o, `${k}[${i}]`) : err(`"${k}[${i}]" must be an object`))
+  }
+  const located = (k: string, marker: boolean) => {
+    const o = raw[k]
+    if (o === undefined) return
+    if (!isObj(o)) return err(`"${k}" must be an object`)
+    fileKey(o, k); str(o, 'heading', k); if (marker) str(o, 'marker', k, true)
+  }
   if (!Array.isArray(raw.paths)) err('"paths" must be a list')
-  else for (const p of raw.paths)
-    if (!isObj(p) || !isStr(p.name) || !Array.isArray(p.milestones) || !p.milestones.every(m => isObj(m) && isStr(m.name)))
-      err('each entry of "paths" needs a "name" and a list of "milestones", each with a "name"')
-
-  for (const k of ['done', 'checklists'])
-    if (raw[k] !== undefined && !Array.isArray(raw[k])) err(`"${k}" must be a list`)
-
+  else list('paths', (p, at) => {
+    str(p, 'name', at)
+    if (p.shared !== undefined && typeof p.shared !== 'boolean') err(`"${at}.shared" must be true or false`)
+    if (!Array.isArray(p.milestones)) return err(`"${at}.milestones" must be a list`)
+    p.milestones.forEach((m, j) => {
+      if (!isObj(m)) return err(`"${at}.milestones[${j}]" must be an object`)
+      str(m, 'name', `${at}.milestones[${j}]`); str(m, 'doneWhen', `${at}.milestones[${j}]`, true)
+    })
+  })
+  list('done', (d, at) => {
+    fileKey(d, at); str(d, 'sectionPrefix', at); col(d, 'idColumn', at); col(d, 'landedColumn', at); col(d, 'milestoneColumn', at, true)
+    const f = d.fileByIdPrefix
+    if (f === undefined) return
+    if (!isObj(f)) return err(`"${at}.fileByIdPrefix" must be an object`)
+    for (const [k, v] of Object.entries(f)) if (!FILE_KEYS.includes(k) || !isStr(v)) err(`"${at}.fileByIdPrefix.${k}" must map "backlog" or "playbook" to a string`)
+  })
+  list('checklists', (c, at) => { fileKey(c, at); str(c, 'heading', at); str(c, 'milestone', at, true) })
+  located('whereWeAre', true)
+  located('notDoing', false)
   const v = raw.values === undefined ? {} : raw.values
   if (!isObj(v)) err('"values" must be an object')
   else if (v.who !== undefined && !isObj(v.who)) err('"values.who" must be an object')

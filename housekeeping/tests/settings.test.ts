@@ -60,3 +60,30 @@ test('an unknown key is a recommendation, not an error', () => {
   expect(r.findings[0].level).toBe('recommendation')
   expect(r.findings[0].message).toContain('colour')
 })
+
+const bad = (patch: object) => parse({ ...base(), ...patch })
+const names = (r: ReturnType<typeof parse>, text: string) => {
+  expect(r.settings).toBe(null)
+  expect(r.findings.some(f => f.level === 'error' && f.rule === 'settings' && f.message.includes(text))).toBe(true)
+}
+
+test('rejects an empty done entry', () => names(bad({ done: [{}] }), 'done[0]'))
+test('rejects a non-integer done column', () =>
+  names(bad({ done: [{ file: 'backlog', sectionPrefix: '## Done', idColumn: '0', landedColumn: 1 }] }), 'done[0].idColumn'))
+test('rejects a bad fileByIdPrefix', () =>
+  names(bad({ done: [{ file: 'backlog', sectionPrefix: 'D', idColumn: 0, landedColumn: 1, fileByIdPrefix: { x: 'B-' } }] }), 'fileByIdPrefix'))
+test('rejects a checklist with an unknown file', () => names(bad({ checklists: [{ file: 'x', heading: 'H' }] }), 'checklists[0].file'))
+test('rejects whereWeAre with an unknown file', () => names(bad({ whereWeAre: { file: 'x', heading: 'H' } }), 'whereWeAre.file'))
+test('rejects notDoing without a heading', () => names(bad({ notDoing: { file: 'backlog' } }), 'notDoing.heading'))
+test('rejects a path milestone without a name', () =>
+  names(bad({ paths: [{ name: 'P', milestones: [{}] }] }), 'paths[0].milestones[0].name'))
+test('accepts well-formed nested shapes', () => {
+  const r = bad({
+    done: [{ file: 'backlog', sectionPrefix: 'Done', idColumn: 0, landedColumn: 2, milestoneColumn: 1, fileByIdPrefix: { backlog: 'B-' } }],
+    checklists: [{ file: 'playbook', heading: 'Launch', milestone: 'M1' }],
+    whereWeAre: { file: 'backlog', heading: 'Where we are', marker: 'x' }, notDoing: { file: 'backlog', heading: 'Not doing' },
+    paths: [{ name: 'P', shared: true, milestones: [{ name: 'M1', doneWhen: 'x' }] }],
+  })
+  expect(r.findings).toEqual([])
+  expect(r.settings).not.toBe(null)
+})
