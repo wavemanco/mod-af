@@ -3,6 +3,7 @@ import { PAGE, readInput, repoKey, writeFile, writePage } from './adapter.ts'
 import { brief } from './core/brief.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
+import { parseSettings } from './core/settings.ts'
 import { initFiles } from './core/templates.ts'
 import type { BuildOutput } from './core/types.ts'
 
@@ -31,6 +32,32 @@ function statusLine(out: BuildOutput): string {
   const next = lane?.stations.find(s => s.milestone === lane.next)
   const where = !lane ? 'no route' : next ? `${next.milestone}, ${next.stops.length} stops` : 'all reached'
   return `${out.data.counts.yes} land now · ${out.data.counts.needYou} need you · next: ${where}`
+}
+
+type View = { brief: string; status: string }
+
+// The short view and the status line, kept in $.store by repository with what they were built from. While main's
+// commit, the branch, the day and the settings are as they were, one git rev-parse is all they cost.
+// shortcut: a remote copy of main that moves shows only once one of those changes; add it to the stamp if that matters.
+async function cachedView($: EngineInterface): Promise<View | null> {
+  const root = await $.session.root()
+  const file = `${root}/${SETTINGS}`
+  if (!(await $.fs.exists(file))) return null
+  const text = await $.fs.read(file)
+  const main = parseSettings(text).settings?.mainBranch
+  if (!main) return null
+  // one call: the common git dir (the repository's key), main's commit, then the branch
+  const r = await $.process.run(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir', main, '--abbrev-ref', 'HEAD'], { cwd: root, timeoutMs: 10_000 })
+  const [dir, sha, branch] = r.stdout.split('\n').map(x => x.trim())
+  const today = new Date(await $.clock.now()).toISOString().slice(0, 10)
+  const key = `brief:${dir}`, stamp = [sha, branch, today, text].join('\n')
+  const hit = r.exitCode === 0 && sha ? (await $.store.get(key)) as (View & { sha: string; stamp: string }) | undefined : undefined
+  if (hit?.stamp === stamp) return { brief: hit.brief, status: hit.status }
+  const l = await load($)
+  if ('error' in l) return null
+  const v = { brief: l.out.brief, status: statusLine(l.out) }
+  if (r.exitCode === 0 && sha) await $.store.set(key, { sha, stamp, ...v })
+  return v
 }
 
 const GUIDE_LINE = 'At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.'
@@ -72,12 +99,14 @@ async function init($: EngineInterface): Promise<{ text: string; exitCode?: numb
 
 export const register: Register = on => {
   let view = 'housekeeping: run /housekeeping to build the short view.'
+  let started: Promise<View | null> | null = null // session start's view, which the first prompt.context awaits
 
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init.', argumentHint: '[map|map new|check|init]' })
     const got = await next(e)
     // not awaited: a slow repository must not hold up the session
-    load($).then(l => { if (!('error' in l)) $.ui.status(statusLine(l.out)) }).catch(() => {})
+    started = cachedView($)
+    started.then(v => { if (v) $.ui.status(v.status) }).catch(() => {})
     return got
   })
 
@@ -139,9 +168,11 @@ export const register: Register = on => {
   on('prompt.context', async ($, e, next) => {
     const got = await next(e)
     const add = async () => {
-      if (!(await $.fs.exists(`${await $.session.root()}/${SETTINGS}`))) return got
-      const l = await load($)
-      return 'error' in l ? got : { ...got, blocks: [...got.blocks, { name: 'housekeeping', text: l.out.brief }] }
+      // the first one awaits session start's load; later ones (compaction, /clear) ask the cache again
+      const pending = started ?? cachedView($)
+      started = null
+      const v = await pending
+      return v ? { ...got, blocks: [...got.blocks, { name: 'housekeeping', text: v.brief }] } : got
     }
     return add().catch(() => got)
   })

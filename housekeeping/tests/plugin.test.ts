@@ -23,6 +23,7 @@ type World = {
   stored?: Record<string, unknown>
   argv?: string[][]
   noBranch?: boolean
+  mainSha?: string
 }
 
 // the engine may hand a hook a Windows-style path
@@ -51,7 +52,8 @@ function world(on: On, w: World = {}) {
     }
     if (a === 'rev-parse' && b === '--abbrev-ref') return ok('main\n')
     if (a === 'rev-parse' && b === '--verify') return ok('', 1)
-    if (a === 'rev-parse' && b === '--path-format=absolute') return ok('/w/.git\n')
+    // with more arguments: the common dir, then main's commit, then the branch
+    if (a === 'rev-parse' && b === '--path-format=absolute') return ok(e.argv.length > 4 ? `/w/.git\n${w.mainSha ?? SHA}\nmain\n` : '/w/.git\n')
     return ok('', 1)
   })
   on('store.get', (_, e) => ({ value: stored[e.key] }))
@@ -260,6 +262,34 @@ test('prompt.context adds the short view', async ($, on) => {
   const r = await $.prompt.context({ blocks: [{ name: 'currentDate', text: 'today' }] })
   const b = r.blocks.find((x: { name: string }) => x.name === 'housekeeping')
   expect(b.text.startsWith('# Small: where we are')).toBe(true)
+})
+
+const walks = (w: World) => w.argv!.filter(a => a[1] === 'log' && a[2] === '--reverse').length
+const brief = (r: { blocks: { name: string; text: string }[] }) => r.blocks.find(x => x.name === 'housekeeping')?.text ?? ''
+
+test('prompt.context awaits the load session start began, with no second history walk', async ($, on) => {
+  const w: World = { argv: [] }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  const r = await $.prompt.context({ blocks: [] })
+  expect(brief(r).startsWith('# Small: where we are')).toBe(true)
+  expect(walks(w)).toBe(1)
+})
+
+test('with main unchanged, the short view costs one git rev-parse; a new main commit rebuilds it', async ($, on) => {
+  const w: World = { argv: [] }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  const first = brief(await $.prompt.context({ blocks: [] }))
+  w.argv!.length = 0
+  expect(brief(await $.prompt.context({ blocks: [] }))).toBe(first)
+  expect(w.argv!.map(a => a[1])).toEqual(['rev-parse'])
+  w.mainSha = 'f'.repeat(40)
+  w.argv!.length = 0
+  expect(brief(await $.prompt.context({ blocks: [] }))).toBe(first)
+  expect(walks(w)).toBe(1)
 })
 
 test('prompt.context adds nothing without a settings file', async ($, on) => {
