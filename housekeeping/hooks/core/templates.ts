@@ -40,7 +40,7 @@ export function initFiles(project: string, mainBranch: string): { path: string; 
     files: { backlog: { path: 'docs/backlog.md' }, playbook: { path: 'docs/playbook.md' } },
     columns: { id: 'ID', item: 'Item', priority: 'Priority', milestone: 'Milestone', who: 'Who', landNow: 'Land now',
       triggerType: 'Trigger type', trigger: 'Trigger', waitsOn: 'Waits on', details: 'Details', filed: 'Filed' },
-    ids: ['[A-Z]+-\\d+'],
+    ids: ['B-\\d+', 'P-\\d+'], // explicit prefixes: a looser pattern also matches UTF-8, ADR-0003, SHA-256
     done: [done('backlog'), done('playbook')],
     paths: [{ name: project, milestones: [] }],
     whereWeAre: { file: 'backlog', heading: 'Where we are' },

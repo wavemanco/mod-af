@@ -1,7 +1,15 @@
 export type Table = { section: string; subsection: string; line: number; header: string[];
   rows: { line: number; cells: string[] }[] }
 
-export const FENCE = /^\s*(?:```|~~~)/
+const OPENER = /^\s*(`{3,}|~{3,})(.*)$/
+
+// One step of fence tracking: the opener while inside a fence, else null. A fence closes only with the same
+// character, at least as long, and nothing after it; the fence lines themselves count as inside.
+export function stepFence(open: string | null, line: string): string | null {
+  const m = OPENER.exec(line)
+  if (open === null) return m && !(m[1][0] === '`' && m[2].includes('`')) ? m[1] : null
+  return m && m[1][0] === open[0] && m[1].length >= open.length && m[2].trim() === '' ? null : open
+}
 export const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/
 const SEPARATOR = /^\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/ // GFM: any number of dashes per cell
 
@@ -22,14 +30,18 @@ export function cellsOf(line: string): string[] {
   return cells
 }
 
-export function scanTables(text: string): Table[] {
+export type Scan = { tables: Table[]; dropped: { line: number; section: string }[] }
+
+// dropped: a pipe line over a pipe separator with another cell count, which GFM reads as no table.
+export function scan(text: string): Scan {
   const lines = normalise(text).split('\n')
-  const tables: Table[] = []
-  let section = '', subsection = '', fenced = false, open: Table | null = null
+  const tables: Table[] = [], dropped: Scan['dropped'] = []
+  let section = '', subsection = '', fenced: string | null = null, open: Table | null = null
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    if (FENCE.test(line)) { fenced = !fenced; open = null; continue }
-    if (fenced) continue
+    const was = fenced
+    fenced = stepFence(fenced, line)
+    if (was !== null || fenced !== null) { open = null; continue }
     const h = HEADING.exec(line)
     if (h) {
       open = null
@@ -42,11 +54,14 @@ export function scanTables(text: string): Table[] {
       continue
     }
     const next = lines[i + 1] ?? ''
-    if (line.includes('|') && SEPARATOR.test(next) && cellsOf(next).length === cellsOf(line).length) {
-      open = { section, subsection, line: i + 1, header: cellsOf(line), rows: [] }
-      tables.push(open)
-      i++
+    if (line.includes('|') && SEPARATOR.test(next)) {
+      if (cellsOf(next).length === cellsOf(line).length) {
+        open = { section, subsection, line: i + 1, header: cellsOf(line), rows: [] }
+        tables.push(open)
+        i++
+      } else if (next.includes('|')) dropped.push({ line: i + 1, section })
     }
   }
-  return tables
+  return { tables, dropped }
 }
+export const scanTables = (text: string): Table[] => scan(text).tables

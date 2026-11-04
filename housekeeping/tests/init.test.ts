@@ -137,3 +137,11 @@ test('init leaves an AGENTS.md that already has the line', async ($, on) => {
   await init($)
   expect('AGENTS.md' in w.writes!).toBe(false)
 })
+
+// HK-017
+test('the written id patterns match row IDs and not words like UTF-8', () => {
+  const ids = made().settings.ids.map(p => new RegExp(`^${p}$`))
+  const hit = (w: string) => ids.some(re => re.test(w))
+  expect([hit('B-12'), hit('P-3')]).toEqual([true, true])
+  expect([hit('UTF-8'), hit('ADR-0003'), hit('SHA-256')]).toEqual([false, false, false])
+})

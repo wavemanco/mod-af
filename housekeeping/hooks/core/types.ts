@@ -35,7 +35,8 @@ export type ChecklistLine = { file: FileKey; heading: string; group: string; lin
   ticked: boolean; text: string; ids: string[]; milestone?: string }
 export type Parsed = { rows: Row[]; done: DoneEntry[]; checklists: ChecklistLine[];
   whereWeAre: { file: FileKey; line: number; text: string; date: string | null } | null;
-  notDoing: { item: string; why: string; reopen: string }[]; findings: Finding[] }
+  notDoing: { item: string; why: string; reopen: string }[];
+  tables: { file: FileKey; line: number; header: string[] }[]; findings: Finding[] }  // tables: the pending ones
 
 export type Counts = { all: number; closed: number; open: number; yes: number; choice: number; no: number;
   perFile: Record<FileKey, { open: number; closed: number; yes: number; choice: number; no: number }>;

@@ -134,3 +134,12 @@ test('formatFindings: errors, warnings, then recommendations, one line each', ()
   ]
   expect(formatFindings(fs)).toBe('error e playbook m1\nwarning w backlog:4 m2\nrecommendation r - m3')
 })
+
+// HK-019
+test('optional-column checks skip rows of a table without the column', () => {
+  const t = '## Work\n\n| ID | Item | Milestone | Who | Land now | Trigger | Waits on |\n|---|---|---|---|---|---|---|\n| B-001 | x | beta | agent | yes | Now. | — |\n'
+  const s = parseSettings(small.settings).settings!
+  const p = parseFiles(s, { backlog: t, playbook: small.playbook })
+  const fs = findingsFor(s, p, computeFacts(s, p), computeLanes(s, p, computeFacts(s, p)), [])
+  expect(rules(fs)).toEqual([])
+})

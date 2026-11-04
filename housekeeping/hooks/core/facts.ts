@@ -6,7 +6,7 @@ export function computeFacts(s: Settings, p: Parsed): Facts {
   const unlocks: Record<string, string[]> = {}
   for (const r of rows) unlocks[r.id] = []
   for (const r of rows) for (const w of r.waitsOn) if (known.has(w) && w !== r.id) unlocks[w].push(r.id)
-  const byId = new Map(rows.map(r => [r.id, r]))
+  const byId = new Map(rows.map(r => [r.id, r] as const).reverse()) // reversed: the first row of an ID wins
   const waitsOnKnown = (id: string) => byId.get(id)!.waitsOn.filter(w => known.has(w) && w !== id)
   const reach = (start: string, next: (id: string) => string[]) => {
     const seen = new Set<string>()

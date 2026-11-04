@@ -4,9 +4,10 @@ const LAND = { yes: 0, choice: 1, no: 2 }
 
 // priority: the settings' order, highest first; unknown sorts last
 export function orderStops(ids: string[], rows: Row[], f: Facts, priority: string[] = []): string[] {
-  const order = new Map(rows.map((r, i) => [r.id, i]))
+  // the Maps are built reversed: the first row of an ID wins
+  const order = new Map(rows.map((r, i) => [r.id, i] as const).reverse())
   const rank = (r: Row) => { const i = priority.indexOf(r.priority); return i < 0 ? Infinity : i }
-  const byId = new Map(rows.map(r => [r.id, r]))
+  const byId = new Map(rows.map(r => [r.id, r] as const).reverse())
   const left = ids.map(id => byId.get(id)!).filter(Boolean).sort((a, b) =>
     LAND[a.landNow.state] - LAND[b.landNow.state] || (rank(a) === rank(b) ? 0 : rank(a) < rank(b) ? -1 : 1) ||
     order.get(a.id)! - order.get(b.id)!)
@@ -21,8 +22,8 @@ export function orderStops(ids: string[], rows: Row[], f: Facts, priority: strin
 export function computeLanes(s: Settings, p: Parsed, f: Facts): Lane[] {
   const duties = new Set(f.duties)
   const open = p.rows
-  const byId = new Map(open.map(r => [r.id, r]))
-  const order = new Map(open.map((r, i) => [r.id, i]))
+  const byId = new Map(open.map(r => [r.id, r] as const).reverse())
+  const order = new Map(open.map((r, i) => [r.id, i] as const).reverse())
   const prio = s.values.priority ?? []
 
   // a path beats another when longer, then when its gate opens more, then by file order

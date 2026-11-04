@@ -91,3 +91,40 @@ test('accepts well-formed nested shapes', () => {
   expect(r.findings).toEqual([])
   expect(r.settings).not.toBe(null)
 })
+
+// HK-011
+test('a misspelt nested key is recommended against', () => {
+  const o = base() as any
+  o.files.backlog.pth = 'x'; o.columns.detials = 'D'; o.values = { whoo: {} }; o.duties = { triggerPrefx: 'E' }
+  o.paths = [{ name: 'p', nme: 'q', milestones: [{ name: 'm', doneWen: 'x' }] }]
+  const r = parse(o)
+  expect(r.settings).not.toBe(null)
+  expect(r.findings.map(f => f.message).sort()).toEqual([
+    'unknown key "columns.detials" in settings is ignored', 'unknown key "duties.triggerPrefx" in settings is ignored',
+    'unknown key "files.backlog.pth" in settings is ignored', 'unknown key "paths[0].milestones[0].doneWen" in settings is ignored',
+    'unknown key "paths[0].nme" in settings is ignored', 'unknown key "values.whoo" in settings is ignored'])
+  expect(parse(base()).findings).toEqual([])
+})
+
+// HK-012
+test('a byte order mark is stripped', () => {
+  expect(parseSettings('﻿' + JSON.stringify(base())).settings).not.toBe(null)
+})
+
+// HK-021
+test('wrong-typed optional values are errors naming the key', () => {
+  const bad = (patch: Record<string, unknown>) => parse({ ...base(), ...patch }).findings.map(f => f.message)
+  expect(bad({ values: { priority: 'high' } })).toEqual(['"values.priority" must be a list of strings'])
+  expect(bad({ values: { triggerType: {} } })).toEqual(['"values.triggerType" must be a list of strings'])
+  expect(bad({ values: { nothing: 1 } })).toEqual(['"values.nothing" must be a list of strings'])
+  expect(bad({ values: { who: { agent: 'a' } } })).toEqual(['"values.who.agent" must be a list of strings'])
+  expect(bad({ duties: 'x' })).toEqual(['"duties" must be an object'])
+  expect(bad({ duties: { triggerPrefix: 1 } })).toEqual(['"duties.triggerPrefix" must be a string'])
+})
+
+// HK-022
+test('a backslash path is turned into a forward slash path', () => {
+  const o = base() as any
+  o.files.backlog.path = 'docs\\backlog.md'
+  expect(parse(o).settings!.files.backlog.path).toBe('docs/backlog.md')
+})

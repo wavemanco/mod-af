@@ -14,7 +14,7 @@ export function parseSettings(text: string): { settings: Settings | null; findin
   const findings: Finding[] = []
   const err = (message: string) => findings.push({ level: 'error', rule: 'settings', message })
   let raw: unknown
-  try { raw = JSON.parse(text) } catch (e) { err(`settings are not valid JSON: ${(e as Error).message}`); return { settings: null, findings } }
+  try { raw = JSON.parse(text.replace(/^﻿/, '')) } catch (e) { err(`settings are not valid JSON: ${(e as Error).message}`); return { settings: null, findings } }
   if (!isObj(raw)) { err('settings must be a JSON object'); return { settings: null, findings } }
 
   if (raw.version !== 1) err(`"version" must be 1, found ${JSON.stringify(raw.version)}`)
@@ -33,7 +33,8 @@ export function parseSettings(text: string): { settings: Settings | null; findin
     if (!isObj(f) || !isStr(f.path) || !f.path) { err(`"files.${k}.path" must be a non-empty string`); continue }
     const skip = f.skipSections === undefined ? [] : strs(f.skipSections)
     if (!skip) { err(`"files.${k}.skipSections" must be a list of strings`); continue }
-    files[k as 'backlog'] = { path: f.path, skipSections: skip }
+    // git wants forward slashes: docs\backlog.md would read as not on the main branch
+    files[k as 'backlog'] = { path: f.path.replace(/\\/g, '/'), skipSections: skip }
   }
 
   // columns
@@ -95,12 +96,40 @@ export function parseSettings(text: string): { settings: Settings | null; findin
   located('notDoing', false)
   const v = raw.values === undefined ? {} : raw.values
   if (!isObj(v)) err('"values" must be an object')
-  else if (v.who !== undefined && !isObj(v.who)) err('"values.who" must be an object')
+  else {
+    if (v.who !== undefined && !isObj(v.who)) err('"values.who" must be an object')
+    for (const k of ['nothing', 'priority', 'triggerType'])
+      if (v[k] !== undefined && !strs(v[k])) err(`"values.${k}" must be a list of strings`)
+    if (isObj(v.who)) for (const k of ['agent', 'owner', 'both'])
+      if (v.who[k] !== undefined && !strs(v.who[k])) err(`"values.who.${k}" must be a list of strings`)
+  }
+  if (raw.duties !== undefined) {
+    if (!isObj(raw.duties)) err('"duties" must be an object')
+    else if (raw.duties.triggerPrefix !== undefined && !isStr(raw.duties.triggerPrefix)) err('"duties.triggerPrefix" must be a string')
+  }
 
   if (findings.length) return { settings: null, findings }
 
-  for (const k of Object.keys(raw))
-    if (!KNOWN.includes(k)) findings.push({ level: 'recommendation', rule: 'settings', message: `unknown key "${k}" in settings is ignored` })
+  // an unknown key is ignored, so say so at every level (the shapes above are checked by now)
+  const unknown = (o: unknown, known: string[], at: string) => {
+    if (!isObj(o)) return
+    for (const k of Object.keys(o))
+      if (!known.includes(k)) findings.push({ level: 'recommendation', rule: 'settings', message: `unknown key "${at ? at + '.' : ''}${k}" in settings is ignored` })
+  }
+  const each = (k: string, known: string[]) => (Array.isArray(raw[k]) ? raw[k] as unknown[] : []).forEach((o, i) => unknown(o, known, `${k}[${i}]`))
+  unknown(raw, KNOWN, '')
+  unknown(raw.files, FILE_KEYS, 'files')
+  for (const k of FILE_KEYS) unknown((raw.files as Obj)[k], ['path', 'skipSections'], `files.${k}`)
+  unknown(raw.columns, [...REQUIRED_COLUMNS, 'details', 'filed', 'priority', 'triggerType'], 'columns')
+  unknown(v, ['who', 'nothing', 'priority', 'triggerType'], 'values')
+  unknown((v as Obj).who, ['agent', 'owner', 'both'], 'values.who')
+  unknown(raw.duties, ['triggerPrefix'], 'duties')
+  each('paths', ['name', 'shared', 'milestones'])
+  ;(raw.paths as Obj[]).forEach((p, i) => (p.milestones as unknown[]).forEach((m, j) => unknown(m, ['name', 'doneWhen'], `paths[${i}].milestones[${j}]`)))
+  each('done', ['file', 'sectionPrefix', 'idColumn', 'landedColumn', 'milestoneColumn', 'fileByIdPrefix'])
+  each('checklists', ['file', 'heading', 'milestone'])
+  unknown(raw.whereWeAre, ['file', 'heading', 'marker'], 'whereWeAre')
+  unknown(raw.notDoing, ['file', 'heading'], 'notDoing')
 
   const vals = v as Obj
   const who = (vals.who ?? {}) as Obj

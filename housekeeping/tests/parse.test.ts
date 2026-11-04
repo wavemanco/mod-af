@@ -101,3 +101,45 @@ test('a separator line inside a table is not a row', () => {
   expect(p.rows.map(r => r.id)).toEqual(['B-001', 'B-002', 'B-003', 'B-005', 'PB-01', 'PB-03'])
   expect(p.findings).toEqual([])
 })
+
+// HK-006
+test('tables under the checklist and not-doing headings are not pending rows', () => {
+  const extra = '\n## Checks\n\n| ID | Item |\n|---|---|\n| B-900 | a check |\n\n## Not doing\n\n| ID | Item | Why |\n|---|---|---|\n| B-901 | a thing | no |\n'
+  const s2 = { ...s, checklists: [...s.checklists, { file: 'backlog' as const, heading: 'Checks' }],
+    notDoing: { file: 'backlog' as const, heading: 'Not doing' } }
+  expect(parseFiles(s2, { backlog: backlog + extra, playbook }).rows.map(r => r.id)).toEqual(good().rows.map(r => r.id))
+})
+
+// HK-013
+test('a fence closes only with its own character and at least its length', () => {
+  const only = ['PB-01', 'PB-03']
+  expect(parseFiles(s, { backlog: '## Work\n\n````\n```\n' + backlog + '\n````\n', playbook }).rows.map(r => r.id)).toEqual(only)
+  expect(parseFiles(s, { backlog: '## Work\n\n```\n~~~\n' + backlog + '\n```\n', playbook }).rows.map(r => r.id)).toEqual(only)
+  expect(parseFiles(s, { backlog: '```\ntext\n```\n' + backlog, playbook }).rows.length).toBe(6)
+})
+
+// HK-014
+test('an ID repeated in Waits on counts once', () => {
+  const p = parseFiles(s, { backlog: once(backlog, '| Once the testers are booked (PB-01). | PB-01 |', '| Once the testers are booked (PB-01). | PB-01, PB-01 |'), playbook })
+  expect(p.rows[1].waitsOn).toEqual(['PB-01'])
+})
+
+// HK-018
+test('a dropped table, a dropped row and a mistyped header are warned about', () => {
+  const sep = '|' + '---|'.repeat(15)
+  const dropped = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'row-dropped')
+  const t = dropped(once(backlog, sep, '|' + '---|'.repeat(14)))
+  expect(t.map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 18]])
+  const r = dropped(once(backlog, '| B-005 |', '|  |'))
+  expect(r.map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 23]])
+  const h = dropped(once(backlog, '| ID | Item | Status', '| ID | Itme | Status'))
+  expect(h.map(f => [f.file, f.line])).toEqual([['backlog', 18]])
+  expect(dropped(backlog)).toEqual([])
+})
+
+// HK-020
+test('a date after the head commit does not make where-we-are look fresh', () => {
+  const b = once(backlog, '(B-004 is closed).', '(B-004 is closed). Checked 2026-10-01; due 2027-01-01.')
+  expect(parseFiles(s, { backlog: b, playbook }).whereWeAre!.date).toBe('2027-01-01')
+  expect(parseFiles(s, { backlog: b, playbook }, '2026-11-04').whereWeAre!.date).toBe('2026-10-01')
+})

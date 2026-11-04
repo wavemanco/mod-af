@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { parseSettings } from '../hooks/core/settings.ts'
 import { parseFiles } from '../hooks/core/parse.ts'
 import { computeFacts } from '../hooks/core/facts.ts'
-import { computeLanes } from '../hooks/core/lanes.ts'
+import { computeLanes, orderStops } from '../hooks/core/lanes.ts'
 import * as small from './fixtures/small.ts'
 import * as paths from './fixtures/paths.ts'
 
@@ -43,4 +43,10 @@ test('a self-wait and a cycle terminate', () => {
     const st = host(lanes(paths, paths.backlog([], over))).stations
     for (const s of st) expect(Number.isFinite(s.chain)).toBe(true)
   }
+})
+
+// HK-016
+test('orderStops keeps the first row of a duplicate ID', () => {
+  const row = (id: string, state: string) => ({ id, priority: '', landNow: { state } }) as any
+  expect(orderStops(['X', 'Y'], [row('X', 'yes'), row('Y', 'yes'), row('X', 'no')], { before: {} } as any)).toEqual(['X', 'Y'])
 })

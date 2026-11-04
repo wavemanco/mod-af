@@ -3,6 +3,7 @@ import { parseSettings } from '../hooks/core/settings.ts'
 import { parseFiles } from '../hooks/core/parse.ts'
 import { computeFacts } from '../hooks/core/facts.ts'
 import { backlog, playbook, settings } from './fixtures/small.ts'
+import { once } from './fixtures/page-data.ts'
 
 const s = parseSettings(settings).settings!
 const facts = (b = backlog, p = playbook) => computeFacts(s, parseFiles(s, { backlog: b, playbook: p }))
@@ -47,4 +48,10 @@ test('cycles terminate', () => {
   const f = facts(backlog, playbook.replace('ready. | — |', 'ready. | B-002 |'))
   expect(f.opens['PB-01']).toBe(1)
   expect(f.opens['B-002']).toBe(1)
+})
+
+// HK-016
+test('on a duplicate ID the lookups keep the first row', () => {
+  const b = once(once(backlog, '| B-005 |', '| B-001 |'), '| Whenever an agent picks it up. | — |', '| Whenever an agent picks it up. | B-003 |')
+  expect(facts(b).before['B-001']).toEqual([])
 })

@@ -26,12 +26,15 @@ export function findingsFor(s: Settings, p: Parsed, f: Facts, _lanes: Lane[], hi
     if (new Set(ms).size !== ms.length) w('milestone', 'a milestone is repeated')
     if (ms.includes(s.none) && ms.length > 1) w('milestone', `${s.none} is mixed with another milestone`)
     if (s.paths.length && ms.some(m => m !== s.none && !pathMilestones.has(m))) w('milestone', 'a milestone is on no path')
-    if (c.priority && s.values.priority && !s.values.priority.includes(r.priority))
+    // the table of this row: the last pending table of its file that starts at or before it
+    const header = p.tables.filter(t => t.file === r.file && t.line <= r.line).pop()?.header ?? []
+    const has = (name?: string) => name !== undefined && header.includes(name)
+    if (has(c.priority) && s.values.priority && !s.values.priority.includes(r.priority))
       w('value', `Priority "${r.priority}" is not in the list`)
     const tt = c.triggerType ? r.extra[c.triggerType] ?? '' : ''
-    if (c.triggerType && s.values.triggerType && !s.values.triggerType.includes(tt))
+    if (has(c.triggerType) && s.values.triggerType && !s.values.triggerType.includes(tt))
       w('value', `Trigger type "${tt}" is not in the list`)
-    if (c.filed) {
+    if (has(c.filed)) {
       const day = r.filed.replace(/^before /, '') // "before <date>" is a legal Filed: the day is known to be no later
       const d = new Date(day + 'T00:00:00Z')
       if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || isNaN(+d) || d.toISOString().slice(0, 10) !== day)

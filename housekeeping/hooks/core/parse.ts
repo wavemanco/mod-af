@@ -1,5 +1,5 @@
 import type { ChecklistLine, DoneEntry, FileKey, Finding, LandNow, Parsed, Row, Settings } from './types.ts'
-import { FENCE, HEADING, normalise, scanTables } from './markdown.ts'
+import { HEADING, normalise, scan, scanTables, stepFence } from './markdown.ts'
 
 const DATE = /\d{4}-\d{2}-\d{2}/
 const KEYS: FileKey[] = ['backlog', 'playbook']
@@ -17,15 +17,23 @@ function landNow(raw: string): LandNow {
   return { state: 'no', why: raw, valid: false }
 }
 
+// The ## sections that hold no pending rows: set aside in the settings, Done, checklists, not-doing, where-we-are.
+function skipFor(s: Settings, f: FileKey): string[] {
+  return [...s.files[f].skipSections, ...s.done.filter(d => d.file === f).map(d => d.sectionPrefix),
+    ...s.checklists.filter(k => k.file === f).map(k => k.heading),
+    ...(s.notDoing?.file === f ? [s.notDoing.heading] : []), ...(s.whereWeAre?.file === f ? [s.whereWeAre.heading] : [])]
+}
+
 // The lines of the `##` sections whose title starts with `heading`, fences skipped.
 // A `###` heading comes back as { sub: title } so callers can group and break paragraphs.
 type SecLine = { line: number; text: string; group: string; sub: boolean }
 function sectionLines(text: string, heading: string): SecLine[] {
   const out: SecLine[] = []
-  let inSec = false, group = '', fenced = false
+  let inSec = false, group = '', fenced: string | null = null
   normalise(text).split('\n').forEach((t, i) => {
-    if (FENCE.test(t)) { fenced = !fenced; return }
-    if (fenced) return
+    const was = fenced
+    fenced = stepFence(fenced, t)
+    if (was !== null || fenced !== null) return
     const h = HEADING.exec(t)
     if (h && h[1].length <= 2) { inSec = h[1] === '##' && h[2].startsWith(heading); group = ''; return }
     if (!inSec) return
@@ -35,12 +43,13 @@ function sectionLines(text: string, heading: string): SecLine[] {
   return out
 }
 
-export function parseFiles(s: Settings, files: Record<FileKey, string | null>): Parsed {
-  const out: Parsed = { rows: [], done: [], checklists: [], whereWeAre: null, notDoing: [], findings: [] }
+// upTo: the head commit's day; a where-we-are date after it is ignored.
+export function parseFiles(s: Settings, files: Record<FileKey, string | null>, upTo?: string): Parsed {
+  const out: Parsed = { rows: [], done: [], checklists: [], whereWeAre: null, notDoing: [], tables: [], findings: [] }
   const nothing = (c: string) => s.values.nothing.includes(c)
   const list = (c: string) => c.split(',').map(x => x.trim()).filter(x => !nothing(x))
   // Milestone keeps `none` (a value there); Waits on has no such value, so it drops it.
-  const waits = (c: string) => list(c).filter(x => x !== s.none)
+  const waits = (c: string) => [...new Set(list(c).filter(x => x !== s.none))]
   const text: Record<FileKey, string> = { backlog: '', playbook: '' }
   for (const f of KEYS) {
     if (files[f] === null) out.findings.push({ level: 'error', rule: 'file', file: f, message: `${s.files[f].path} is not on ${s.mainBranch}` })
@@ -52,20 +61,36 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
   const seen = new Set<string>()
 
   for (const f of KEYS) {
-    const skip = [...s.files[f].skipSections, ...s.done.filter(d => d.file === f).map(d => d.sectionPrefix)]
+    const skip = skipFor(s, f)
+    const skipped = (section: string) => skip.some(p => section.startsWith(p))
     const heads: string[][] = []
-    for (const t of scanTables(text[f])) {
-      if (skip.some(p => t.section.startsWith(p))) continue
+    const { tables, dropped } = scan(text[f])
+    for (const d of dropped) if (!skipped(d.section))
+      out.findings.push({ level: 'warning', rule: 'row-dropped', file: f, line: d.line,
+        message: 'the table here is dropped: its separator line has another number of cells than its header' })
+    for (const t of tables) {
+      if (skipped(t.section)) continue
       const col = (name: string | undefined) => (name === undefined ? -1 : t.header.indexOf(name))
       heads.push(t.header)
-      if (col(c.id) < 0 || col(c.item) < 0) continue
+      out.tables.push({ file: f, line: t.line, header: t.header })
+      if (col(c.id) < 0 || col(c.item) < 0) {
+        // a table with neither column is some other table; with one of them, a mistyped header
+        if (col(c.id) >= 0 || col(c.item) >= 0)
+          out.findings.push({ level: 'warning', rule: 'row-dropped', file: f, line: t.line,
+            message: `the table here is dropped: it needs both an "${c.id}" and an "${c.item}" column` })
+        continue
+      }
       for (const r of t.rows) {
         if (r.cells.length !== t.header.length)
           out.findings.push({ level: 'warning', rule: 'columns', file: f, line: r.line,
             message: `row has ${r.cells.length} cells, the header has ${t.header.length}` })
         const cell = (name: string | undefined) => (col(name) < 0 ? '' : (r.cells[col(name)] ?? ''))
         const id = cell(c.id)
-        if (id === '') continue
+        if (id === '') {
+          if (r.cells.some(x => x !== ''))
+            out.findings.push({ level: 'warning', rule: 'row-dropped', file: f, line: r.line, message: `the row here has no ${c.id}, so it is dropped` })
+          continue
+        }
         const whoRaw = cell(c.who)
         const who = (['agent', 'owner', 'both'] as const).find(k => s.values.who[k].includes(whoRaw)) ?? 'unknown'
         const extra: Record<string, string> = {}
@@ -89,14 +114,12 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
 
   // List items in pending sections belong in a table.
   for (const f of KEYS) {
-    const nd = s.notDoing?.file === f ? [s.notDoing.heading] : []
-    const w = s.whereWeAre?.file === f ? [s.whereWeAre.heading] : []
-    const skip = [...s.files[f].skipSections, ...s.done.filter(d => d.file === f).map(d => d.sectionPrefix),
-      ...s.checklists.filter(k => k.file === f).map(k => k.heading), ...nd, ...w]
-    let section: string | null = null, fenced = false
+    const skip = skipFor(s, f)
+    let section: string | null = null, fenced: string | null = null
     text[f].split('\n').forEach((l, i) => {
-      if (FENCE.test(l)) { fenced = !fenced; return }
-      if (fenced) return
+      const was = fenced
+      fenced = stepFence(fenced, l)
+      if (was !== null || fenced !== null) return
       const h = HEADING.exec(l)
       if (h && h[1].length <= 2) { section = h[1] === '##' ? h[2] : null; return }
       if (section !== null && !skip.some(p => section!.startsWith(p)) && /^(?:[-*+]|\d+\.)\s/.test(l))
@@ -149,7 +172,7 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
       else paras.push((cur = { line: l.line, text: l.text }))
     }
     const p = w.marker ? paras.find(x => x.text.startsWith(w.marker as string)) : paras[0]
-    if (p) out.whereWeAre = { file: w.file, line: p.line, text: p.text, date: p.text.match(new RegExp(DATE, 'g'))?.sort().pop() ?? null }
+    if (p) out.whereWeAre = { file: w.file, line: p.line, text: p.text, date: p.text.match(new RegExp(DATE, 'g'))?.filter(d => !upTo || d <= upTo).sort().pop() ?? null }
   }
   return out
 }

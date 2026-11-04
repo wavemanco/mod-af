@@ -14,7 +14,7 @@ export function partitionLine(f: Facts): string {
 }
 
 export function build(i: BuildInput): BuildOutput {
-  const parsed = parseFiles(i.settings, i.files)
+  const parsed = parseFiles(i.settings, i.files, i.head.date.slice(0, 10))
   const facts = computeFacts(i.settings, parsed)
   const lanes = computeLanes(i.settings, parsed, facts)
   // a commit subject cannot be edited, so a hit there is masked; a hit in the files still blocks the page
