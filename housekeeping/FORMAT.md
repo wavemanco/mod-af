@@ -7,7 +7,7 @@
 - `version`: required, must be `1`.
 - `project`: required, the project's name.
 - `mainBranch`: default `"main"`; `init` writes the branch it runs on. It may not be empty or start with `-`. `check` and `map` read the two files as committed on this branch, so commit them there.
-- `files.backlog`, `files.playbook`: required, each `{ "path": "...", "skipSections": [] }`; `skipSections` (default `[]`) lists `##` heading prefixes that are not pending work.
+- `files.backlog`, `files.playbook`: required, each `{ "path": "...", "skipSections": [] }`; `skipSections` (default `[]`) lists `##` heading prefixes whose sections hold no rows: those that are not pending work, and prose items that a table indexes. A list line in any other section, apart from the Done, checklist, where-we-are and not-doing sections, is a `not-in-table` warning.
 - `columns`: required, the header text of each table column: `id`, `item`, `milestone`, `who`, `landNow`, `trigger`, `waitsOn` (all required); `details`, `filed`, `priority`, `triggerType` (optional).
 - `values.who`: `agent`, `owner`, `both`, each a list of cell texts; defaults `["agent"]`, `["owner"]`, `["both"]`.
 - `values.nothing`: cell texts that mean empty; default `["—", "-", ""]`.

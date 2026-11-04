@@ -26,6 +26,9 @@ const GUIDE = /^(?:README|CLAUDE|AGENTS|CONTRIBUTING|GOAL)(?:\..*)?$/i
 const HISTORY_DIR = /^(?:archive|history|logs?|passes|responses)$/i
 const GUIDE_LINE = /backlog|source of truth|single|defer|pending|trigger|docket/i
 const MARKDOWN = /\.(?:md|markdown|mdx)$/i
+// Markdown, plain text, or no extension (TODO): in code, a name like "open.ts" or an OPEN constant is no tracker
+const PROSE = /(?:\.(?:md|markdown|mdx|txt|rst|org|adoc)|^[^.]+)$/i
+const GUIDE_CUT = 200
 const LOCKFILE = /(?:^|\/)(?:[^/]*\.lock|pnpm-lock\.yaml|package-lock\.json)$/
 const TOP = 15, REFS = 5
 
@@ -34,15 +37,15 @@ const count = (re: RegExp, text: string): number => text.match(re)?.length ?? 0
 const byPath = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 
 function signalsOf({ path, text }: SurveyFile): Signals {
-  const base = baseOf(path)
+  const base = baseOf(path), prose = PROSE.test(base)
   return {
-    name: NAME.test(base),
+    name: prose && NAME.test(base),
     idHeadings: count(ID_HEADING, text),
     idTables: scanTables(text).filter(t => ID_HEADERS.includes(t.header[0])).length,
     openBoxes: count(OPEN_BOX, text),
     doneBoxes: count(DONE_BOX, text),
     todos: MARKDOWN.test(path) ? 0 : count(TODO, text),
-    statusWords: count(STATUS, text),
+    statusWords: prose ? count(STATUS, text) : 0,
     dated: DATE.test(path),
     guide: GUIDE.test(base),
   }
@@ -86,7 +89,7 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = []): Invento
   for (const f of sorted) {
     if (!GUIDE.test(baseOf(f.path))) continue
     f.text.split(/\r?\n/).forEach((l, i) => {
-      if (GUIDE_LINE.test(l)) guides.push({ path: f.path, line: i + 1, text: maskPrivacy(l.trim()).slice(0, 200) })
+      if (GUIDE_LINE.test(l)) guides.push({ path: f.path, line: i + 1, text: maskPrivacy(l.trim()) })
     })
   }
   return { files: files.length, candidates, references, guides, skipped }
@@ -133,7 +136,9 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
   }
   if (inv.guides.length) {
     lines.push('', '## What the guide files say')
-    for (const g of inv.guides) lines.push(`${g.path}:${g.line}: ${g.text}`)
+    // whole in the --json output; "..." tells the reader the line goes on in its file
+    for (const g of inv.guides)
+      lines.push(`${g.path}:${g.line}: ${g.text.length > GUIDE_CUT ? g.text.slice(0, GUIDE_CUT) + '...' : g.text}`)
   }
 
   const text = lines.join('\n')

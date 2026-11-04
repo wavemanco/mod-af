@@ -24,3 +24,7 @@ machine where the work was done.
 Section 11 of the design covers what the checks of its first draft changed.
 
 The Phase 1 completion criteria, each marked pass or fail with its evidence, are in [phase-1-results.md](phase-1-results.md).
+
+The Phase 2 completion criteria, from the dry runs on test repositories A, B and C, each marked pass, fail or
+not run with its evidence, and what became of each gap the dry runs found, are in
+[phase-2-results.md](phase-2-results.md).

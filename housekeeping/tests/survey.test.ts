@@ -67,10 +67,28 @@ test('a test that names the backlog is a machine reference; a guide is not; a lo
   ])
 })
 
-test('the guide lines that say where pending work goes, each cut to 200 characters', () => {
-  const g = inventory(FILES).guides
+test('the guide lines that say where pending work goes: whole in the inventory, cut at 200 and marked in the text', () => {
+  const inv = inventory(FILES), g = inv.guides
   expect(g.map(l => [l.path, l.line])).toEqual([['README.md', 1], ['README.md', 6]])
-  expect(g[1].text.length).toBe(200)
+  expect(g[1].text).toBe('Deferred work goes in ' + 'x'.repeat(300))
+  const text = formatInventory(inv)
+  expect(text).toContain('\nREADME.md:6: ' + g[1].text.slice(0, 200) + '...')
+  expect(text).toContain('\nREADME.md:1: ' + g[0].text + '\n')
+})
+
+test('name and status words count in prose files only: in code they are identifiers; TODOs count in code', () => {
+  const words = 'OPEN CLOSED DONE PENDING '.repeat(10)
+  const inv = inventory([{ path: 'src/handlers/open.ts', text: 'export const open = 1\n' },
+    { path: 'src/states.py', text: words }, { path: 'docs/states.md', text: words },
+    { path: 'TODO.txt', text: 'one\n' }, { path: 'TODO', text: 'one\n' }, { path: 'src/todo-list.ts', text: '// TODO x\n'.repeat(30) }])
+  const at = (p: string) => inv.candidates.find(c => c.path === p)
+  expect(at('src/handlers/open.ts')).toBeUndefined()
+  expect(at('src/states.py')).toBeUndefined()
+  expect(at('docs/states.md')?.score).toBe(8) // 40 status words / 5
+  expect(at('TODO.txt')?.signals.name).toBe(true)
+  expect(at('TODO')?.signals.name).toBe(true)
+  expect(at('src/todo-list.ts')?.signals).toMatchObject({ name: false, todos: 30, statusWords: 0 })
+  expect(at('src/todo-list.ts')?.score).toBe(3)
 })
 
 test('an empty file set gives no candidates, and the text says there is nothing to move', () => {
