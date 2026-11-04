@@ -47,7 +47,7 @@ How the files are read:
 - **Sections.** `## x` sets the section and clears the subsection; `### x` sets the subsection. Any heading ends a table.
 - **Tables.** A line with `|` opens a table when the next line is a separator (`|---|---|`). Rows follow until a line that does not start with `|`. A table without the ID and Item columns is not a row table. Tables in `skipSections` and in Done sections are not rows.
 - **Cells.** Split on `|` except `\|`, which is a `|` inside the cell. Cells are trimmed and kept word for word; backticks mean nothing. A short row is padded with empty cells and is a warning (`columns`), as is a longer one.
-- **Nothing.** A cell equal to one of `values.nothing` means empty. Milestone and Waits on hold comma-separated values; empties, those equal to `values.nothing` and `none` are dropped.
+- **Nothing.** A cell equal to one of `values.nothing` means empty. Milestone and Waits on hold comma-separated values; empties and those equal to `values.nothing` are dropped. Milestone keeps `none` as a value; Waits on drops it.
 - **Land now.** Exactly `yes`, `small choice: <text>` or `no: <text>`. Anything else reads as `no` with the cell as the reason and is not valid.
 - **Who.** Mapped through `values.who`; any other text is `unknown`.
 - **Duplicate IDs.** Each is an error (`id-unique`); lookups use the first row.
@@ -55,3 +55,4 @@ How the files are read:
 - **Checklists.** `- [ ]` and `- [x]` lines under a configured `##` heading; the group is the `###` heading above. An indented line that is not a list item continues the line above. IDs are found over the line and its continuation lines.
 - **Where we are.** The first paragraph under the configured heading, or, with a `marker`, the paragraph that starts with it. Its date is the first `YYYY-MM-DD` in its first 80 characters.
 - **Missing file.** A file that cannot be read is an error (`file`); the other is still read.
+- **Not doing.** With `notDoing` set, the rows of the table under that `##` heading read as item, why and reopen condition (cells 0, 1 and 2). A missing section gives an empty list, not a finding.

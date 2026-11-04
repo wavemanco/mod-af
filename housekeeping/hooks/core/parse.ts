@@ -38,7 +38,9 @@ function sectionLines(text: string, heading: string): SecLine[] {
 export function parseFiles(s: Settings, files: Record<FileKey, string | null>): Parsed {
   const out: Parsed = { rows: [], done: [], checklists: [], whereWeAre: null, notDoing: [], findings: [] }
   const nothing = (c: string) => s.values.nothing.includes(c)
-  const list = (c: string) => c.split(',').map(x => x.trim()).filter(x => !nothing(x) && x !== s.none)
+  const list = (c: string) => c.split(',').map(x => x.trim()).filter(x => !nothing(x))
+  // Milestone keeps `none` (a value there); Waits on has no such value, so it drops it.
+  const waits = (c: string) => list(c).filter(x => x !== s.none)
   const text: Record<FileKey, string> = { backlog: '', playbook: '' }
   for (const f of KEYS) {
     if (files[f] === null) out.findings.push({ level: 'error', rule: 'file', file: f, message: `${s.files[f].path} is missing` })
@@ -69,7 +71,7 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
         seen.add(id)
         const row: Row = { id, item: cell(c.item), file: f, section: t.section, line: r.line,
           milestones: list(cell(c.milestone)), who, whoRaw, landNow: landNow(cell(c.landNow)),
-          trigger: cell(c.trigger), waitsOn: list(cell(c.waitsOn)), details: cell(c.details),
+          trigger: cell(c.trigger), waitsOn: waits(cell(c.waitsOn)), details: cell(c.details),
           filed: cell(c.filed), priority: cell(c.priority), extra }
         out.rows.push(row)
       }
@@ -103,6 +105,12 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
     }
   }
   for (const l of out.checklists) l.ids = idsIn(l.text, s)
+
+  const nd = s.notDoing
+  if (nd) for (const t of scanTables(text[nd.file])) {
+    if (!t.section.startsWith(nd.heading)) continue
+    for (const r of t.rows) out.notDoing.push({ item: r.cells[0] ?? '', why: r.cells[1] ?? '', reopen: r.cells[2] ?? '' })
+  }
 
   const w = s.whereWeAre
   if (w) {

@@ -19,7 +19,7 @@ test('reads the rows in file order', () => {
   expect(b2.waitsOn).toEqual(['PB-01'])
   expect(b2.who).toBe('both')
   expect(p.rows[2].landNow).toEqual({ state: 'choice', why: 'keep the current library or switch', valid: true })
-  expect(p.rows[3].milestones).toEqual([])
+  expect(p.rows[3].milestones).toEqual(['none'])
   expect(p.rows[0].extra.Size).toBe('S')
 })
 
@@ -72,4 +72,13 @@ test('short rows are padded and flagged; duplicate IDs are flagged', () => {
 test('fenced text is not read', () => {
   const p = parseFiles(s, { backlog: '## Work\n\n```\n' + backlog + '\n```\n', playbook })
   expect(p.rows.map(r => r.id)).toEqual(['PB-01', 'PB-03'])
+})
+
+test('reads the not-doing table', () => {
+  const nd = '## Not doing\n\n| Item | Why | Reopen if |\n|---|---|---|\n| A thing | too big | users ask |\n| Other | no need | never |\n'
+  const s2 = { ...s, notDoing: { file: 'backlog' as const, heading: 'Not doing' } }
+  expect(parseFiles(s2, { backlog: backlog + nd, playbook }).notDoing).toEqual([
+    { item: 'A thing', why: 'too big', reopen: 'users ask' }, { item: 'Other', why: 'no need', reopen: 'never' }])
+  expect(parseFiles(s2, { backlog, playbook }).notDoing).toEqual([])
+  expect(parseFiles(s2, { backlog, playbook }).findings).toEqual([])
 })
