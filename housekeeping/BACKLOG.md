@@ -61,10 +61,10 @@ repository: the reference repository is the one the plugin was first built from.
 | HK-034 | The behind-remote warning can go stale | phase-2 | 302b607 |
 | HK-035 | The first prompt of each day pays a full history walk | phase-2 | 302b607 |
 | HK-036 | The Artifact publish result's shape rests on one live run | phase-2 | 302b607 |
-| HK-037 | A new repository's single path reads 'all reached' | phase-2 | PENDING |
-| HK-038 | The short view prints items in full, so the cap cuts its tail lines | phase-2 | PENDING |
-| HK-039 | The page has no size check | phase-2 | PENDING |
-| HK-040 | On a branch, the short view shows main's state, while DESIGN 3.4 says the branch's | phase-2 | PENDING |
-| HK-041 | The page header never says local main is behind a remote copy | phase-2 | PENDING |
-| HK-042 | DESIGN.md still reads as before on the Write-tool rule and on masking | phase-2 | PENDING |
+| HK-037 | A new repository's single path reads 'all reached' | phase-2 | 7ce4b00 |
+| HK-038 | The short view prints items in full, so the cap cuts its tail lines | phase-2 | 7ce4b00 |
+| HK-039 | The page has no size check | phase-2 | 7ce4b00 |
+| HK-040 | On a branch, the short view shows main's state, while DESIGN 3.4 says the branch's | phase-2 | 7ce4b00 |
+| HK-041 | The page header never says local main is behind a remote copy | phase-2 | 7ce4b00 |
+| HK-042 | DESIGN.md still reads as before on the Write-tool rule and on masking | phase-2 | 7ce4b00 |
 | — | Phase 1 (see research/phase-1-results.md) | none | 2026-11-04 |
