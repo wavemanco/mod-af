@@ -334,7 +334,7 @@ window.DATA = /*DATA*/null;
   const count = (k, text, tab) => h('button', { class: 'count', type: 'button', onclick: () => show(tab) }, h('b', {}, String(k)), ' ' + text);
   $('counts').replaceChildren(count(C.open, 'open', 'lanes'), count(C.yes, 'land now', 'land'), count(C.choice, 'small choice', 'queue'),
     count(C.needYou, 'need you', 'queue'), count(D.doors.length, 'doors just opened', 'doors'));
-  const marker =(k, text, tab) => tab
+  const marker = (k, text, tab) => tab
     ? h('button', { class: 'marker', type: 'button', onclick: () => show(tab) }, h('b', {}, String(k)), h('span', {}, text))
     : h('div', { class: 'marker static' }, h('b', {}, String(k)), h('span', {}, text));
   const op = (s) => h('span', { class: 'op', 'aria-hidden': 'true' }, s);
