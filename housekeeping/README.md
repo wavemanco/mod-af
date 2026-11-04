@@ -2,7 +2,7 @@
 
 One place for a repository's pending work, and a Route Map made only from it. The work lives in two Markdown files, a backlog (work done in the repository) and a playbook (what happens outside it), each row with its trigger. `housekeeping` reads those files and nothing else, and builds from them a one-page map (lanes per path, what is ready, what unblocks what), a short view for an agent, and a list of problems with the files.
 
-It never decides anything for you: no commits, no pushes, no fetches. Every write goes through Claude Code's own Write tool, so your permissions apply.
+It never decides anything for you: no commits, no pushes, no fetches. Every write goes through Claude Code's own Write tool, so your permissions apply, except for its own generated page, `.housekeeping/route-map.html`, which it writes directly and never commits.
 
 ## What Phase 1 delivers
 
@@ -19,9 +19,12 @@ Later phases add `survey`, `plan`, `audit`, `owed` and the automatic parts. They
 ```
 /housekeeping            the short view
 /housekeeping map        build the page (and publish it if you say so)
+/housekeeping map new    forget the stored Route Map link, then build and publish a new page
 /housekeeping check      report problems in the files and the settings
 /housekeeping init       set up a new repository
 ```
+
+`check` and `map` read the two files as committed on the main branch (`mainBranch` in the settings), so after `init`, commit its files on the branch it names.
 
 The same computed parts run without Claude Code:
 
@@ -30,6 +33,16 @@ node housekeeping/cli.ts <map|check|brief> [--repo <dir>] [--settings <file>] [-
 ```
 
 `check` exits 1 when it finds an error. The page it writes is byte-identical to the plugin's.
+
+## Using it with `claude -p`
+
+A non-interactive run loads the plugin and its three dependencies by folder, and should leave the Artifact tool out, so that nothing is published with nobody there:
+
+```
+claude -p "/housekeeping check" --plugin-dir <dir>/housekeeping --plugin-dir <dir>/loose-ends --plugin-dir <dir>/route --plugin-dir <dir>/decide --disallowedTools=Artifact
+```
+
+In Git Bash on Windows, set `MSYS_NO_PATHCONV=1` for the run, or the shell turns `/housekeeping ...` into a Windows path.
 
 ## Settings
 
@@ -57,7 +70,7 @@ The three keep working alone in any repository.
 - No dates in triggers, no durations, no estimates.
 - No database, no sync layer, no server.
 - It never commits, pushes or fetches, and installs no CI workflow.
-- It never shows commit authors, and it refuses to build a page that holds a personal email address or a key-shaped string, saying where.
+- It never shows commit authors, and it refuses to build a page that holds a personal email address or a key-shaped string, saying where. One in a commit subject, which cannot be edited, is masked in the page instead.
 - It changes no other plugin here.
 
 ## Not built: filing after every commit

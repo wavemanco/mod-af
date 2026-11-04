@@ -420,7 +420,8 @@ pattern does. Only the automatic parts (hooks, pane and status line) are tied to
 - No dates in triggers. Duties' "Last done" is the one exception.
 - No database, no sync layer, and no tool that owns the data.
 - The plugin never commits on its own and never pushes. It writes only through Claude Code's own tools,
-  with the person's permissions.
+  with the person's permissions, except for its own generated page, `.housekeeping/route-map.html`, which
+  it writes directly and never commits.
 - No import from GitHub Issues, Projects or other trackers in this version. `survey` reports them, and
   `plan` may link them.
 - No durations, estimates, hill charts or date timelines.
@@ -610,6 +611,10 @@ Stop, report and wait for the owner when:
 | 2026-11-03 | Pushing this branch | "Push after the privacy check (Recommended)" | A backup off the machine | Keeping it local until approval | — |
 | 2026-11-03 | The design | "Approve it" (draft 2) | — | "Changes first" | Stop rules 2, 6 and 8 bring any change back to the owner |
 | 2026-11-03 | Naming repositories | "you can describe the state of these repos instead of naming them ... that's the important bit not their actual names"; "in fcat this goes for any repo the research mentions, public or private." | What matters is what each taught | Naming them, or copying their content | Stop rule 10 |
+| 2026-11-03 | How `map` writes its page | "Directly, that one path only (Recommended)" | The Write tool needs a Read of the file first, and a Read with no limit fails above 256 KB: the reference page is about 680 KB, so `map` failed on every run after the first (final check, finding 2). The page is the plugin's own git-ignored file | `limit: 1` on the Read: Write's own refusal asks for a read with no offset or limit, so it may not satisfy it. `allow_large: true`: not verified for a plugin's Read. Keeping the Write tool and accepting the limit: `map` stops working once a page passes it | The guard allows only `.housekeeping/route-map.html` resolved under the session root, and refuses a page or folder that a link sends out of the root; any other refusal or write error stops `map` before it publishes. Every other write stays with the Write tool |
+| 2026-11-03 | Committing the page | "ok. agree on uncommitted." | The page is built from the committed files, so it needs no history of its own, and the plugin never commits (section 4); `init` git-ignores `.housekeeping/` | Committing the page: a second copy of the record in the history | A repository that wants the page under version control commits it itself |
+| 2026-11-03 | A privacy hit in a commit subject | "Mask it in subjects (Recommended)" | A commit subject cannot be edited, so refusing the page for one blocked it for good; and the check named only "the page" (final check, finding 4) | Refusing the page and naming the commit whose subject holds the hit: it still blocks for good. Leaving the check as it was: it also tripped on ordinary words such as `task-add-...` | A hit in a row still blocks the page and names the row; a hit anywhere else blocks it and gives the masked text. The key pattern now needs a word boundary on its left |
+| 2026-11-03 | The counts at the top of the page | "Yes, a counts line up top (Recommended)" | On the reference repository's page the counts sat below the views, under a Lanes view about 36,000 px tall and a 4,000-character "where we are" (final check, finding 9) | Moving the whole "Can I trust it?" section up: it is long and pushes the lanes down. Leaving the counts below only | The full "Can I trust it?" section stays below and shows how every sum adds up |
 
 ## 10. Calls Claude made, for the owner to check
 
@@ -635,6 +640,12 @@ Stop, report and wait for the owner when:
     for their state are described, not named. The owner can say if "any repo" was meant to cover them too.
 12. **"Adapt the script for that specific repo"** is read as: one generator, plus each repository's own
     settings file. Repositories do not get their own copy of the code.
+13. **A reset for a stored Route Map link** (Phase 1 final check, finding 6): when the stored link reads
+    as not found or no access, `map` forgets it; on any other read error it keeps the link and names
+    `/housekeeping map new`, which forgets it and publishes a new page. The not-found and no-access texts
+    are matched by their words, which the owner's live check should confirm.
+14. **Changed since with nothing stored** starts ten commits back, or at the oldest when there are fewer.
+    This is the controller's ruling on the final check's open choice (finding 8), not the owner's.
 
 ## 11. What the checks of draft 1 changed
 
