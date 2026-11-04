@@ -53,14 +53,12 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
 
   for (const f of KEYS) {
     const skip = [...s.files[f].skipSections, ...s.done.filter(d => d.file === f).map(d => d.sectionPrefix)]
+    const heads: string[][] = []
     for (const t of scanTables(text[f])) {
       if (skip.some(p => t.section.startsWith(p))) continue
       const col = (name: string | undefined) => (name === undefined ? -1 : t.header.indexOf(name))
+      heads.push(t.header)
       if (col(c.id) < 0 || col(c.item) < 0) continue
-      for (const [key, name] of Object.entries(c))
-        if (!['id', 'item', 'details', 'filed', 'priority', 'triggerType'].includes(key) && col(name) < 0)
-          out.findings.push({ level: 'error', rule: 'column-missing', file: f, line: t.line,
-            message: `the table under "${t.section}" has no "${name}" column in ${s.files[f].path}` })
       for (const r of t.rows) {
         if (r.cells.length !== t.header.length)
           out.findings.push({ level: 'warning', rule: 'columns', file: f, line: r.line,
@@ -81,6 +79,12 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
         out.rows.push(row)
       }
     }
+    // A required column is missing when no pending table of a file that has tables names it.
+    if (heads.length)
+      for (const [key, name] of Object.entries(c))
+        if (['id', 'item', 'milestone', 'who', 'landNow', 'trigger', 'waitsOn'].includes(key) && !heads.some(h => h.includes(name)))
+          out.findings.push({ level: 'error', rule: 'column-missing', file: f,
+            message: `no table in ${s.files[f].path} has a "${name}" column` })
   }
 
   // List items in pending sections belong in a table.

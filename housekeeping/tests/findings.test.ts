@@ -70,9 +70,17 @@ test('a 30-word Trigger passes; 31 fails', () => {
 test('a typo in a column name is an error', () => {
   const fs = run({ s: ['"waitsOn":"Waits on"', '"waitsOn":"Wait on"'] })
   const e = fs.filter(f => f.rule === 'column-missing')
-  expect(e.length).toBeGreaterThan(0)
+  expect(e.length).toBe(2) // once per file, not once per table
   expect(e.every(f => f.level === 'error')).toBe(true)
   expect(e.some(f => f.message.includes('Wait on') && f.message.includes('backlog.md'))).toBe(true)
+})
+
+test('a typo in the ID or Item column is an error, not a silent drop', () => {
+  for (const [k, v] of [['id', 'ID'], ['item', 'Item']]) {
+    const e = run({ s: [`"${k}":"${v}"`, `"${k}":"${v}x"`] }).filter(f => f.rule === 'column-missing')
+    expect(e.length).toBe(2)
+    expect(e.every(f => f.level === 'error' && f.message.includes(`${v}x`))).toBe(true)
+  }
 })
 
 test('id-unique across files', () => {
