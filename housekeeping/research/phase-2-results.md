@@ -33,6 +33,29 @@ table, together with the docs that state it and its scanner; its rule that every
 independent review; and recording the ruling in its decision folder. The review was marked as owed and was
 not run.
 
+## Test repository B: a TypeScript engine with five user paths and a multi-register docket
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| The plan keeps the docket file as the backlog, with its IDs and the formatting its scripts read | Pass | Same path and name. The plan only adds to it: no line deleted, every register and status word kept, and every bold ID still there (the form the launch script reads as a deferral's home). Index tables at its end list each of its 167 rows once |
+| It leaves the coordination protocol's files untouched | Pass | Under the coordination folder only the docket changed. The protocol's routing file and readme, the agents' correspondence files, the file that maps who may write which paths, and the owner's file are unchanged. The settings file needs an entry in that path map, so its commit was held as the owner's decision |
+| It names, as the owner's decision, any step that conflicts with the repository's rules | Pass | Five, each with the rule's file and line and a provisional choice (below) |
+| The docket-reading launch script and the unit tests give the same result before and after | Pass | Same machine. Unit tests: all of the suite passed both times, on both branches. Launch script: same output, byte for byte, apart from one process id; it refuses both times on the same three blockers, one of them inflated by a grep that crashes on this machine, before and after alike |
+| No personal email address reaches the page | Pass | The page holds no email-shaped string. The docket's two no-reply addresses sit in cells the index does not copy |
+| The map shows the five paths | Pass | Five lanes, one per product lane, with the shared path's two milestones reached on each. `check` passes with two recommendations. `map` gives: 167 rows in all = 55 closed + 112 open; open = 3 land now + 11 small choice + 98 not now; 99 open in the backlog, 13 in the playbook. The page is 179 KB, ASCII, and two builds are byte-identical |
+
+**The plan.** Seven steps on two branches, because the repository's guard judges a whole pull request by
+the lane named in its head commit: four commits on a coordination-lane branch and one on a code-lane
+branch (two steps change nothing), with the settings file held. The guard passed on both branches, and
+two probes, deleted afterwards, showed it blocks the settings file and a mixed branch. The plan asked 15
+questions and named five owner's decisions, each answered provisionally:
+- a second file against its rule of one backlog and no second register: an index of the outside work,
+  whose text stays in the docket;
+- the word "playbook", which the repository already uses for its loop method: a different file name;
+- the settings file, which the guard fails closed on until its path map names it;
+- what "land now" means when every lane works only after the owner's flip;
+- which lane makes the commits.
+
 ## Gaps the dry runs found
 
 For Task 10. Each one is described in the raw report.
@@ -44,6 +67,17 @@ For Task 10. Each one is described in the raw report.
   finish with `check` and `map`, but not how to run them on the branch.
 - Filed dates taken from the history need merge commits included. The procedure gives no method for a row
   with no date.
+- The privacy check allows only example domains and one hosting service's no-reply domain, while the design
+  allows no-reply addresses. Test repository B's no-reply addresses at another domain would make `map`
+  refuse if a row copied them.
+- The plan procedure assumes the settings file can be committed at the root. Where a guard fails closed on
+  unmapped paths, it cannot be until the guard's map names it. The procedure does not say this, and the
+  plugin looks for its settings only at the root (the Node command alone takes `--settings`).
+- The procedure says a step may be split into more commits where guards require. On test repository B the
+  guard needed separate branches.
+- Checklists outside the pair, such as a launch checklist kept apart by rule, cannot gate a milestone.
+- The inventory ranked test repository B's agent correspondence files above its docket, and it listed
+  never-ticked definition-of-done boxes in specs as likely trackers.
 - The inventory ranks two review responses and six specs, whose ID headings name metrics, rules or claims,
   as likely trackers. It also lists source files on status words alone. Its misses are listed above. Its
   text view cuts guide lines at 200 characters, so one pointer to a neighbour is lost.
