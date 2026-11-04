@@ -9,6 +9,8 @@ import type { BuildOutput } from './core/types.ts'
 type Loaded = { root: string; out: BuildOutput; sha: string; text: string; failed: boolean; project: string } | { error: string }
 
 const SETTINGS = '.housekeeping.json'
+// shortcut: the Artifact tool's not-found and no-access texts are unverified; check them in the owner's live check
+const GONE = /not found|no such|does not exist|deleted|no access|not have access|access denied|forbidden|permission|unauthori[sz]ed|\b40[134]\b/i
 const say = (r: { deny?: string; isError?: boolean; text?: string }) => r.deny ?? (r.isError ? r.text ?? 'error' : null)
 
 // Reads the repository and builds. The view may read the clock; the page may not.
@@ -72,7 +74,7 @@ export const register: Register = on => {
   let view = 'housekeeping: run /housekeeping to build the short view.'
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init.', argumentHint: '[map|check|init]' })
+    await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init.', argumentHint: '[map|map new|check|init]' })
     const got = await next(e)
     // not awaited: a slow repository must not hold up the session
     load($).then(l => { if (!('error' in l)) $.ui.status(statusLine(l.out)) }).catch(() => {})
@@ -82,7 +84,7 @@ export const register: Register = on => {
   on('command.run', { command: 'housekeeping' }, async ($, e) => {
     const arg = e.args.trim()
     if (arg === 'init') return init($)
-    if (arg !== '' && arg !== 'check' && arg !== 'map') return { text: 'housekeeping: [map | check | init]; no argument opens the short view' }
+    if (!['', 'check', 'map', 'map new'].includes(arg)) return { text: 'housekeeping: [map | map new | check | init]; no argument opens the short view' }
     const l = await load($)
     if ('error' in l) return { text: l.error, exitCode: 1 }
     if (arg === 'check') return { text: l.text, exitCode: l.failed ? 1 : 0 }
@@ -100,12 +102,19 @@ export const register: Register = on => {
     if (!(await $.tool.list()).some(t => t.name === 'Artifact')) return { text: `${l.out.partition}\n${path}` }
 
     const key = `repo:${await repoKey($, l.root)}`
-    const known = (await $.store.get(key)) as { url?: string } | undefined
     try {
+      if (arg === 'map new') await $.store.delete(key)
+      const known = (await $.store.get(key)) as { url?: string } | undefined
       // the Artifact tool refuses a publish to a page this session has not read
       if (known?.url) {
-        const bad = say(await $.tool.call({ tool: 'Artifact', action: 'read', url: known.url }) as never)
-        if (bad !== null) return { text: bad, exitCode: 1 }
+        const read = await $.tool.call({ tool: 'Artifact', action: 'read', url: known.url }) as never as { isError?: boolean }
+        const bad = say(read)
+        // a page that is gone or not the person's never reads again; any other failure may pass
+        if (bad !== null && read.isError && GONE.test(bad)) {
+          await $.store.delete(key)
+          return { text: 'housekeeping: the stored Route Map link could not be read and was forgotten; run /housekeeping map again to publish a new page', exitCode: 1 }
+        }
+        if (bad !== null) return { text: `housekeeping: could not read the stored Route Map link ${known.url}: ${bad}\nRun /housekeeping map again later, or /housekeeping map new to forget the link and publish a new page.`, exitCode: 1 }
       }
       const pub = await $.tool.call({
         tool: 'Artifact', action: 'publish', file_path: path, title: `${l.project} Route Map`,

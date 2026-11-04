@@ -14,6 +14,7 @@ type World = {
   hasSettings?: boolean
   truncateShow?: boolean
   noArtifact?: boolean
+  readError?: string
   failWrite?: string
   stats?: Record<string, { isLink: boolean; realPath?: string }>
   written?: Record<string, string>
@@ -55,6 +56,7 @@ function world(on: On, w: World = {}) {
   })
   on('store.get', (_, e) => ({ value: stored[e.key] }))
   on('store.set', (_, e) => { stored[e.key] = e.value; return { value: undefined } })
+  on('store.delete', (_, e) => { delete stored[e.key]; return { value: undefined } })
   on('tool.list', () => ({ value: w.noArtifact ? [{ name: 'Write', description: '', mcp: false }] : [{ name: 'Write', description: '', mcp: false }, { name: 'Artifact', description: '', mcp: false }] }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('ui.status', (_, e) => { w.status?.push(e.text); return { value: undefined } })
@@ -73,6 +75,7 @@ function world(on: On, w: World = {}) {
   on('tool.call', { tool: 'Write' }, (_, e) => { calls.push({ tool: 'Write', file_path: e.file_path }); return { result: 'ok' } as never })
   on('tool.call', { tool: 'Artifact' }, (_, e) => {
     calls.push({ tool: 'Artifact', action: e.action, url: e.url, title: e.title })
+    if (e.action === 'read' && w.readError) return { isError: true, text: w.readError, result: null } as never
     return { result: { url: 'https://claude.ai/artifact/abc', path: e.file_path } } as never
   })
 }
@@ -111,6 +114,51 @@ test('a second map reads the stored artifact, then publishes to its URL', async 
   const arts = w.calls!.filter(c => c.tool === 'Artifact')
   expect(arts.map(c => c.action)).toEqual(['read', 'publish'])
   expect(arts.map(c => c.url)).toEqual(['https://claude.ai/artifact/abc', 'https://claude.ai/artifact/abc'])
+})
+
+const KNOWN = { 'repo:/w/.git': { url: 'https://claude.ai/artifact/gone', sha: SHA } }
+const FORGOT = 'the stored Route Map link could not be read and was forgotten; run /housekeeping map again to publish a new page'
+
+test('a stored link that is not found is forgotten', async ($, on) => {
+  const w: World = { readError: 'Artifact not found', stored: { ...KNOWN } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'map')
+  expect(r.exitCode).toBe(1)
+  expect(r.text).toContain(FORGOT)
+  expect('repo:/w/.git' in w.stored!).toBe(false)
+  expect(w.calls!.map(c => c.action)).toEqual(['read'])
+})
+
+test('a stored link with no access is forgotten too', async ($, on) => {
+  const w: World = { readError: 'You do not have access to this artifact', stored: { ...KNOWN } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'map')
+  expect(r.text).toContain(FORGOT)
+  expect('repo:/w/.git' in w.stored!).toBe(false)
+})
+
+test('any other read error keeps the link and says how to reset', async ($, on) => {
+  const w: World = { readError: 'the server is busy', stored: { ...KNOWN } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'map')
+  expect(r.exitCode).toBe(1)
+  expect(r.text).toContain('the server is busy')
+  expect(r.text).toContain('/housekeeping map new')
+  expect(w.stored!['repo:/w/.git']).toEqual(KNOWN['repo:/w/.git'])
+  expect(w.calls!.map(c => c.action)).toEqual(['read'])
+})
+
+test('map new forgets the stored link and publishes a new page', async ($, on) => {
+  const w: World = { readError: 'the server is busy', stored: { ...KNOWN } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'map new')
+  expect(r.exitCode ?? 0).toBe(0)
+  expect(w.calls!.map(c => [c.action, c.url])).toEqual([['publish', undefined]])
+  expect(w.stored!['repo:/w/.git']).toEqual({ url: 'https://claude.ai/artifact/abc', sha: SHA })
 })
 
 test('without an Artifact tool, map says the file path', async ($, on) => {
