@@ -25,6 +25,11 @@ test('initFiles gives the four files', () => {
   expect(initFiles('Empty', 'main').map(x => x.path)).toEqual(['docs/backlog.md', 'docs/playbook.md', '.housekeeping.json', '.gitignore'])
 })
 
+test('the written id pattern matches real ids', () => {
+  const re = new RegExp(`^${made().settings.ids[0]}$`)
+  expect(re.test('B-12')).toBe(true)
+})
+
 test('an empty repository builds with no errors and one lane without stations', () => {
   const out = build(made().input)
   expect(out.findings.filter(f => f.level === 'error')).toEqual([])
