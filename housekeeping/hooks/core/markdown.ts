@@ -37,8 +37,8 @@ export function scanTables(text: string): Table[] {
       continue
     }
     if (open) {
-      if (line.trimStart().startsWith('|')) open.rows.push({ line: i + 1, cells: cellsOf(line) })
-      else open = null
+      if (!line.trimStart().startsWith('|')) open = null
+      else if (!SEPARATOR.test(line)) open.rows.push({ line: i + 1, cells: cellsOf(line) }) // a stray separator is no row
       continue
     }
     if (line.includes('|') && SEPARATOR.test(lines[i + 1] ?? '')) {

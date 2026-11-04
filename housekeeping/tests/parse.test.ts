@@ -82,3 +82,10 @@ test('reads the not-doing table', () => {
   expect(parseFiles(s2, { backlog, playbook }).notDoing).toEqual([])
   expect(parseFiles(s2, { backlog, playbook }).findings).toEqual([])
 })
+
+test('a separator line inside a table is not a row', () => {
+  const stray = backlog.replace('| B-003 |', '|---|---|\n| B-003 |')
+  const p = parseFiles(s, { backlog: stray, playbook })
+  expect(p.rows.map(r => r.id)).toEqual(['B-001', 'B-002', 'B-003', 'B-005', 'PB-01', 'PB-03'])
+  expect(p.findings).toEqual([])
+})
