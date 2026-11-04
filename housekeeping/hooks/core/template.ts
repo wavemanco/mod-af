@@ -421,10 +421,14 @@ window.DATA = /*DATA*/null;
   };
   const maxOpens = (ids) => Math.max(1, ...ids.map((id) => rows.get(id).opens));
 
-  // Changed since: the chosen commit is kept in this browser as a convenience; the page works without it.
+  // Changed since: by default the last commit this viewer saw, kept in this browser as a convenience (the page
+  // works without it), and then the newest is stored as seen. With none stored, ten commits back.
   const KEY = 'housekeeping.since.' + D.project;
   let sinceSha = null;
-  try { sinceSha = localStorage.getItem(KEY); } catch (e) { sinceSha = null; }
+  try {
+    sinceSha = localStorage.getItem(KEY);
+    if (D.history.length) localStorage.setItem(KEY, D.history[0].sha);
+  } catch (e) { /* a convenience only */ }
 
   const RENDER = {
     lanes() {
@@ -447,12 +451,10 @@ window.DATA = /*DATA*/null;
       const H = D.history;
       if (!H.length) return section(empty('No history of the two files was read.'));
       let k = H.findIndex((e) => e.sha === sinceSha);
-      if (k < 0) k = H.length - 1;
-      const sel = h('select', { 'aria-label': 'Changed since commit', onchange: (e) => {
-        sinceSha = e.target.value;
-        try { localStorage.setItem(KEY, sinceSha); } catch (err) { /* a convenience only */ }
-        show('since');
-      } }, H.map((e, i) => h('option', { value: e.sha, selected: i === k }, e.sha + SEP + e.date + SEP + e.subject)));
+      if (k < 0) k = Math.min(10, H.length - 1);
+      // a pick changes only this view; what is stored as seen stays the newest
+      const sel = h('select', { 'aria-label': 'Changed since commit', onchange: (e) => { sinceSha = e.target.value; show('since'); } },
+        H.map((e, i) => h('option', { value: e.sha, selected: i === k }, e.sha + SEP + e.date + SEP + e.subject)));
       const after = H.slice(0, k);
       const sum = (f) => after.reduce((t, e) => t + e[f].length, 0);
       const o = sum('opened'), c = sum('closed');
