@@ -3,7 +3,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { renderPage } from '../hooks/core/page.ts'
-import { all, attr, clickAll, El, fire, memoryStorage, runPage, S } from '../tests/stub-dom.ts'
+import { all, attr, clickAll, El, fire, memoryStorage, runPage, S, throwingStorage } from '../tests/stub-dom.ts'
 import { PATHS, SMALL } from '../tests/fixtures/page-data.ts'
 import type { PageData } from '../hooks/core/types.ts'
 
@@ -109,4 +109,48 @@ test('with nothing stored, Changed since starts ten commits back', () => {
   const many = { ...PATHS, history: Array.from({ length: 12 }, (_, i) => entry(i)) }
   assert.deepEqual(since(many, memoryStorage()).chosen, ['c10'])
   assert.match(since(many, memoryStorage()).text, /In the 10 commits after c10/)
+})
+
+// The Light / Dark / System switch.
+const theme = (store = memoryStorage()) => {
+  const pg = runPage(renderPage(SMALL), store)
+  return { pg, store, theme: () => attr(pg.root, 'data-theme'), pressed: (m: string) => attr(pg.el(`theme-${m}`)!, 'aria-pressed') }
+}
+
+test('choosing Dark or Light sets data-theme on the root, System removes it, and the choice is stored', () => {
+  const t = theme()
+  assert.equal(t.theme(), undefined)
+  assert.equal(t.pressed('system'), 'true')
+  fire(t.pg.el('theme-dark')!, 'click')
+  assert.equal(t.theme(), 'dark')
+  assert.equal(t.store.getItem('housekeeping.theme'), 'dark')
+  assert.deepEqual(['system', 'light', 'dark'].map(t.pressed), ['false', 'false', 'true'])
+  fire(t.pg.el('theme-light')!, 'click')
+  assert.equal(t.theme(), 'light')
+  fire(t.pg.el('theme-system')!, 'click')
+  assert.equal(t.theme(), undefined)
+  assert.equal(t.pressed('system'), 'true')
+})
+
+test('a stored theme is applied on load', () => {
+  const store = memoryStorage()
+  store.setItem('housekeeping.theme', 'dark')
+  const t = theme(store)
+  assert.equal(t.theme(), 'dark')
+  assert.equal(t.pressed('dark'), 'true')
+})
+
+test('with a storage that throws, the page still draws and the switch still works', () => {
+  const t = theme(throwingStorage)
+  assert.ok(all(t.pg.el('views')!).length > 0)
+  fire(t.pg.el('theme-dark')!, 'click')
+  assert.equal(t.theme(), 'dark')
+  fire(t.pg.el('theme-system')!, 'click')
+  assert.equal(t.theme(), undefined)
+})
+
+test('the switch buttons are real buttons and Light overrides a dark system', () => {
+  const html = renderPage(SMALL)
+  for (const m of ['system', 'light', 'dark']) assert.match(html, new RegExp(`<button type="button" id="theme-${m}" aria-pressed=`))
+  assert.match(html, /:root:not\(\[data-theme="light"\]\)/)
 })

@@ -66,6 +66,11 @@ code { font-family: var(--mono); font-size: 0.88em; background: var(--chip); pad
 .muted { color: var(--muted); }
 .label { font-weight: 600; font-size: var(--s-1); color: var(--muted); }
 
+/* Theme switch: System / Light / Dark. */
+.theme { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; justify-self: start; }
+.theme button { background: none; border: 0; padding: 3px 12px 2px; font-size: var(--s-1); cursor: pointer; }
+.theme button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
 /* Header: a guide sign. */
 .sign { display: grid; gap: 14px; grid-template-columns: 1fr; align-items: end; padding-block: 8px 18px; border-bottom: 3px solid var(--ink); }
 .sign .plate { display: inline-flex; align-items: center; gap: 10px; background: var(--accent); color: var(--accent-ink); font-family: var(--display); font-weight: 800; font-size: var(--s0); padding: 5px 10px 3px; border-radius: 4px; max-width: 100%; overflow-wrap: anywhere; }
@@ -220,6 +225,10 @@ ul.plain { margin: 0; padding-left: 1.1rem; display: grid; gap: 4px; overflow-wr
 }
 </style>
 
+<script>
+// Apply the viewer's stored theme before the first paint; a convenience only, so a failing store changes nothing.
+try { const t = localStorage.getItem('housekeeping.theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) { /* follow the system */ }
+</script>
 <div class="wrap">
   <header class="sign">
     <span class="plate"><i class="shield"></i><span id="plate">route map</span></span>
@@ -227,6 +236,11 @@ ul.plain { margin: 0; padding-left: 1.1rem; display: grid; gap: 4px; overflow-wr
     <p class="counts" id="counts"></p>
     <p class="lede" id="lede"></p>
     <p class="asof" id="asof"></p>
+    <div class="theme" role="group" aria-label="Theme">
+      <button type="button" id="theme-system" aria-pressed="true">System</button>
+      <button type="button" id="theme-light" aria-pressed="false">Light</button>
+      <button type="button" id="theme-dark" aria-pressed="false">Dark</button>
+    </div>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Views" id="tabs"></nav>
@@ -253,7 +267,7 @@ window.DATA = /*DATA*/null;
 (() => {
   'use strict';
   // DOM use is kept to: createElement, createTextNode, querySelector('#id'), append, replaceChildren,
-  // setAttribute, addEventListener, textContent, children, hidden and focus (the tests' stub DOM has only these).
+  // setAttribute, removeAttribute, documentElement, addEventListener, textContent, children, hidden and focus (the tests' stub DOM has only these).
   const D = window.DATA;
   const $ = (id) => document.querySelector('#' + id);
   const h = (tag, attrs, ...kids) => {
@@ -475,6 +489,19 @@ window.DATA = /*DATA*/null;
     sinceSha = localStorage.getItem(KEY);
     if (D.history.length) localStorage.setItem(KEY, D.history[0].sha);
   } catch (e) { /* a convenience only */ }
+
+  // The Light / Dark / System switch: the choice is data-theme on the root (none = follow the system), kept per viewer.
+  const THEME_KEY = 'housekeeping.theme';
+  const root = document.documentElement;
+  const setTheme = (t, save) => {
+    if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
+    for (const m of ['system', 'light', 'dark']) $('theme-' + m).setAttribute('aria-pressed', String(m === t || (m === 'system' && t !== 'light' && t !== 'dark')));
+    if (save) { try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* a convenience only */ } }
+  };
+  let storedTheme = null;
+  try { storedTheme = localStorage.getItem(THEME_KEY); } catch (e) { /* a convenience only */ }
+  for (const m of ['system', 'light', 'dark']) $('theme-' + m).addEventListener('click', () => setTheme(m, true));
+  setTheme(storedTheme, false);
 
   const RENDER = {
     lanes() {

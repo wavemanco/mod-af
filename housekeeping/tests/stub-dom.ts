@@ -17,6 +17,7 @@ export class El {
   append(...n: (Kid | string)[]) { this[S].kids.push(...n.map(kid)) }
   replaceChildren(...n: (Kid | string)[]) { this[S].kids = n.map(kid) }
   setAttribute(k: string, v: unknown) { this[S].attrs[k] = String(v) }
+  removeAttribute(k: string) { delete this[S].attrs[k] }
   addEventListener(k: string, f: Listener) { (this[S].on[k] ??= []).push(f) }
   focus() {}
   get children(): El[] { return this[S].kids.filter((k): k is El => k instanceof El) }
@@ -38,7 +39,7 @@ function guard<T extends object>(o: T, what: string, read: string[], write: stri
     },
   })
 }
-const READ = ['append', 'replaceChildren', 'setAttribute', 'addEventListener', 'textContent', 'children', 'hidden', 'focus']
+const READ = ['append', 'replaceChildren', 'setAttribute', 'removeAttribute', 'addEventListener', 'textContent', 'children', 'hidden', 'focus']
 const make = (tag: string) => guard(new El(tag), `<${tag}>`, READ, ['textContent', 'hidden'])
 
 export const throwingStorage: Storage = guard({
@@ -53,7 +54,7 @@ export const all = (e: El): El[] => [e, ...e.children.flatMap(all)]
 export const attr = (e: El, k: string): string | undefined => e[S].attrs[k]
 export const fire = (e: El, k: string, ev: unknown = { target: e }) => { for (const f of e[S].on[k] ?? []) f(ev) }
 
-export type Page = { el: (id: string) => El | undefined; docOn: Record<string, Listener[]> }
+export type Page = { el: (id: string) => El | undefined; docOn: Record<string, Listener[]>; root: El }
 
 // Runs the page's scripts. The elements with an id in the page's HTML are the ones querySelector finds.
 export function runPage(html: string, storage: Storage = throwingStorage): Page {
@@ -64,7 +65,9 @@ export function runPage(html: string, storage: Storage = throwingStorage): Page 
     byId.set(m[1], e)
   }
   const docOn: Record<string, Listener[]> = {}
+  const root = make('html')
   const document = guard({
+    documentElement: root,
     createElement: (tag: string) => make(tag),
     createTextNode: (s: string): Text => ({ data: String(s) }),
     querySelector: (q: string) => {
@@ -73,11 +76,11 @@ export function runPage(html: string, storage: Storage = throwingStorage): Page 
       return byId.get(m[1]) ?? null
     },
     addEventListener: (k: string, f: Listener) => { (docOn[k] ??= []).push(f) },
-  }, 'document', ['createElement', 'createTextNode', 'querySelector', 'addEventListener'])
+  }, 'document', ['documentElement', 'createElement', 'createTextNode', 'querySelector', 'addEventListener'])
   const window = guard({ DATA: null as unknown }, 'window', ['DATA'], ['DATA'])
   for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g))
     new Function('window', 'document', 'localStorage', m[1])(window, document, storage)
-  return { el: id => byId.get(id), docOn }
+  return { el: id => byId.get(id), docOn, root }
 }
 
 // Shows every tab; in each, chooses every option of every select, then clicks everything that listens for a click.
