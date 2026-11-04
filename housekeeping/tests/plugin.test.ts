@@ -17,6 +17,7 @@ type World = {
   status?: (string | undefined)[]
   calls?: { tool: string; action?: string; url?: string; file_path?: string; title?: string }[]
   stored?: Record<string, unknown>
+  argv?: string[][]
 }
 
 // The engine stand-ins: git answers from small.ts's files, tools are logged, the store is a map.
@@ -32,10 +33,11 @@ function world(on: On, w: World = {}) {
   on('fs.exists', (_, e) => ({ value: w.hasSettings !== false && e.path.endsWith('.housekeeping.json') }))
   on('fs.read', () => ({ value: small.settings }))
   on('process.run', (_, e) => {
+    w.argv?.push([...e.argv])
     const [, a, b] = e.argv
     if (a === 'log') return ok(`${SHA}\t2026-09-12\thead\n`)
     if (a === 'show') {
-      const text = files[String(b).split(':')[1]]
+      const text = files[String(e.argv.at(-1)).split(':')[1]]
       if (w.truncateShow) return ok('# cut', 0, true)
       return ok(text ?? '', text === undefined ? 128 : 0)
     }
@@ -121,6 +123,21 @@ test('a truncated git show is a git error and nothing is published', async ($, o
   const r = await run($, 'map')
   expect(r.text).toMatch(/^error git /m)
   expect(w.calls!.length).toBe(0)
+})
+
+test('every git log and show puts --end-of-options before the revision', async ($, on) => {
+  const w: World = { argv: [] }
+  world(on, w)
+  await $.session.start(START)
+  await run($, 'check')
+  const reads = w.argv!.filter(a => a[1] === 'log' || a[1] === 'show')
+  expect(reads.length).toBeGreaterThan(2)
+  for (const a of reads) {
+    const at = a.indexOf('--end-of-options')
+    expect(at).toBeGreaterThan(1)
+    expect(a.slice(2, at).every(x => x.startsWith('-'))).toBe(true)
+    expect(a[at + 1].startsWith('-')).toBe(false)
+  }
 })
 
 test('prompt.context adds the short view', async ($, on) => {

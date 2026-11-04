@@ -21,6 +21,9 @@ export function parseSettings(text: string): { settings: Settings | null; findin
   if (!isStr(raw.project) || !raw.project) err('"project" must be a non-empty string')
   for (const k of ['mainBranch', 'none', 'decisions', 'defaultUntilDecided'])
     if (raw[k] !== undefined && !isStr(raw[k])) err(`"${k}" must be a string`)
+  // it reaches git as a revision: "-..." would be read as an option
+  if (isStr(raw.mainBranch) && (raw.mainBranch === '' || raw.mainBranch.startsWith('-')))
+    err(`"mainBranch" must name a branch: not empty, and not starting with "-"`)
 
   // files
   const files = {} as Settings['files']

@@ -67,6 +67,10 @@ const names = (r: ReturnType<typeof parse>, text: string) => {
   expect(r.findings.some(f => f.level === 'error' && f.rule === 'settings' && f.message.includes(text))).toBe(true)
 }
 
+// git would read "--output=<file>" as an option and write that file
+test('rejects an empty mainBranch, or one that starts with "-"', () => {
+  for (const m of ['', '-x', '--output=x.txt']) names(bad({ mainBranch: m }), 'mainBranch')
+})
 test('rejects an empty done entry', () => names(bad({ done: [{}] }), 'done[0]'))
 test('rejects a non-integer done column', () =>
   names(bad({ done: [{ file: 'backlog', sectionPrefix: '## Done', idColumn: '0', landedColumn: 1 }] }), 'done[0].idColumn'))

@@ -1,10 +1,13 @@
 import type { CommitInfo, FileKey, HistoryEntry, Settings, Snapshot } from './types.ts'
 import { parseFiles } from './parse.ts'
 
-export const logArgs = (s: Settings): string[] =>
-  ['git', 'log', '--reverse', '--format=%H%x09%cs%x09%s', s.mainBranch, '--', s.files.backlog.path, s.files.playbook.path]
+// --end-of-options before each revision, so none is ever read as an option
+export const headArgs = (main: string): string[] => ['git', 'log', '-1', '--format=%H%x09%cs%x09%s', '--end-of-options', main]
 
-export const showArgs = (sha: string, path: string): string[] => ['git', 'show', `${sha}:${path}`]
+export const logArgs = (s: Settings): string[] =>
+  ['git', 'log', '--reverse', '--format=%H%x09%cs%x09%s', '--end-of-options', s.mainBranch, '--', s.files.backlog.path, s.files.playbook.path]
+
+export const showArgs = (sha: string, path: string): string[] => ['git', 'show', '--end-of-options', `${sha}:${path}`]
 
 export function parseLog(stdout: string): CommitInfo[] {
   return stdout.split('\n').filter(l => l.trim()).map(l => {

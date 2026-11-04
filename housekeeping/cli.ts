@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path'
 import { build } from './hooks/core/index.ts'
 import { brief } from './hooks/core/brief.ts'
 import { formatFindings } from './hooks/core/findings.ts'
-import { logArgs, parseLog, showArgs, snapshot } from './hooks/core/history.ts'
+import { headArgs, logArgs, parseLog, showArgs, snapshot } from './hooks/core/history.ts'
 import { parseSettings } from './hooks/core/settings.ts'
 import type { CommitInfo, FileKey, Snapshot } from './hooks/core/types.ts'
 
@@ -41,7 +41,7 @@ export async function main(argv: string[]): Promise<number> {
   const main = settings.mainBranch
   let head: CommitInfo
   try {
-    head = parseLog(git(['log', '-1', '--format=%H%x09%cs%x09%s', main]))[0]
+    head = parseLog(git(headArgs(main).slice(1)))[0]
     if (!head) throw new Error('empty')
   } catch {
     console.log(`housekeeping: no branch '${main}' in ${repo}`)

@@ -1,7 +1,7 @@
 // The plugin's reads and writes: git through $.process.run, files through the session's own tools.
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
-import { logArgs, parseLog, showArgs, snapshot } from './core/history.ts'
+import { headArgs, logArgs, parseLog, showArgs, snapshot } from './core/history.ts'
 import { parseSettings } from './core/settings.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
 
@@ -18,7 +18,7 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
   const git = (argv: string[]) => $.process.run(['git', ...argv], { cwd: root, timeoutMs: TIMEOUT })
 
   const main = settings.mainBranch
-  const last = await git(['log', '-1', '--format=%H%x09%cs%x09%s', main])
+  const last = await git(headArgs(main).slice(1))
   if (last.isStdoutTruncated) return fail('git log was cut short')
   const head: CommitInfo | undefined = last.exitCode === 0 ? parseLog(last.stdout)[0] : undefined
   if (!head) return { error: `housekeeping: no branch '${main}' in ${root}` }

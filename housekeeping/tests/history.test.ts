@@ -4,7 +4,7 @@ import { parseFiles } from '../hooks/core/parse.ts'
 import { computeFacts } from '../hooks/core/facts.ts'
 import { computeLanes } from '../hooks/core/lanes.ts'
 import { findingsFor } from '../hooks/core/findings.ts'
-import { historyFrom, logArgs, parseLog, showArgs, snapshot } from '../hooks/core/history.ts'
+import { headArgs, historyFrom, logArgs, parseLog, showArgs, snapshot } from '../hooks/core/history.ts'
 import * as small from './fixtures/small.ts'
 
 const s = parseSettings(small.settings).settings!
@@ -19,9 +19,11 @@ const files3 = { backlog: b2.replace(line(b2, 'B-005') + '\n', line(b2, 'B-005')
 const info = (n: number) => ({ sha: `abcdef${n}0123456789`, date: `2026-09-0${n}`, subject: `c${n}` })
 const snaps = [files1, files2, files3].map((f, i) => ({ ...snapshot(s, f), ...info(i + 1) }))
 
+// --end-of-options: a revision that starts with "-" is never read as an option
 test('the git arguments', () => {
-  expect(logArgs(s)).toEqual(['git', 'log', '--reverse', '--format=%H%x09%cs%x09%s', 'main', '--', 'backlog.md', 'playbook.md'])
-  expect(showArgs('abc', 'backlog.md')).toEqual(['git', 'show', 'abc:backlog.md'])
+  expect(headArgs('main')).toEqual(['git', 'log', '-1', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main'])
+  expect(logArgs(s)).toEqual(['git', 'log', '--reverse', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--', 'backlog.md', 'playbook.md'])
+  expect(showArgs('abc', 'backlog.md')).toEqual(['git', 'show', '--end-of-options', 'abc:backlog.md'])
 })
 
 test('parseLog reads one entry per line', () => {
