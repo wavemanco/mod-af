@@ -260,6 +260,7 @@ check keeps it under 1 MB. The reference repository's page is 808 KB today, much
 The page has a Light / Dark / System switch in its header, System by default, and remembers the choice per viewer in the browser (decided 2026-11-04).
 
 ### 3.6 The short view and the agent's brief
+
 The short view comes from the same core and runs to about 2,000 tokens at most:
 - "where we are", in its first lines;
 - for each path, its next milestone, the stops left and the real gate;
