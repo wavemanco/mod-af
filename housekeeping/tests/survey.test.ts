@@ -51,6 +51,14 @@ test('a dated note and a file in an archive folder are likely history, whatever 
   expect(hint('archive/old-backlog.md')).toBe('likely-history')
 })
 
+test('likely history ranks after the other candidates, whatever its score; each group by score, then path', () => {
+  const boxes = (n: number) => '- [ ] x\n'.repeat(n)
+  const inv = inventory([{ path: 'archive/a.md', text: boxes(5) }, { path: 'BACKLOG.md', text: BACKLOG },
+    { path: 'notes/2026-09-01-review.md', text: boxes(20) }, { path: 'docs/todo.md', text: boxes(1) }])
+  expect(inv.candidates.map(c => [c.path, c.score, c.hint])).toEqual([['BACKLOG.md', 10.6, 'likely-tracker'],
+    ['docs/todo.md', 4, 'maybe'], ['notes/2026-09-01-review.md', 20, 'likely-history'], ['archive/a.md', 5, 'likely-history']])
+})
+
 test('a test that names the backlog is a machine reference; a guide is not; a longer name is no reference', () => {
   const refs = inventory(FILES).references.filter(r => r.target === 'BACKLOG.md')
   expect(refs).toEqual([
@@ -74,10 +82,10 @@ test('an empty file set gives no candidates, and the text says there is nothing 
 test('formatInventory names the top candidate and stays within maxChars', () => {
   const many = Array.from({ length: 500 }, (_, i) => ({ path: `docs/plan-${String(i).padStart(3, '0')}.md`, text: '- [ ] a\n' }))
   const inv = inventory([...FILES, ...many], [{ path: 'img.png', why: 'binary (a NUL character)' },
-    { path: 'pnpm-lock.yaml', why: 'a lockfile' }, { path: 'docs/huge.md', why: 'over 512 KB' }])
+    { path: 'pnpm-lock.yaml', why: 'a lockfile' }, { path: 'docs/huge.md', why: 'over 2 MB' }])
   const full = formatInventory(inv, 1e9)
   expect(full.length).toBeGreaterThan(20_000)
-  expect(full).toContain('\ndocs/huge.md: over 512 KB\nand 2 more: lockfiles and binaries')
+  expect(full).toContain('\ndocs/huge.md: over 2 MB\nand 2 more: lockfiles and binaries')
   expect(full.indexOf('## Skipped')).toBeLessThan(full.indexOf('## Files that name'))
   expect(full).not.toContain('img.png')
   const text = formatInventory(inv)
@@ -98,13 +106,13 @@ function reader(tracked: Record<string, string>, links: string[] = []) {
 
 test('the readers skip lockfiles, big files, links and binaries, and say why', async () => {
   const r = await collect(...reader({ 'BACKLOG.md': BACKLOG, 'pnpm-lock.yaml': 'x', 'web/yarn.lock': 'x', 'package-lock.json': '{}',
-    'big.txt': 'x'.repeat(512 * 1024 + 1), 'img.png': 'PNG\0\0', 'latin.txt': 'caf' + String.fromCharCode(0xfffd),
-    'notes.md': 'see BACKLOG.md' }, ['notes.md']))
+    'big.txt': 'x'.repeat(2 * 1024 * 1024 + 1), 'at-limit.md': 'x'.repeat(2 * 1024 * 1024), 'img.png': 'PNG\0\0',
+    'latin.txt': 'caf' + String.fromCharCode(0xfffd), 'notes.md': 'see BACKLOG.md' }, ['notes.md']))
   // not UTF-8 but no NUL: read, its stray bytes as U+FFFD (the reference repository holds UTF-8 files that quote one)
-  expect(r.files.map(f => f.path)).toEqual(['BACKLOG.md', 'latin.txt'])
+  expect(r.files.map(f => f.path)).toEqual(['BACKLOG.md', 'at-limit.md', 'latin.txt'])
   expect(r.skipped).toEqual([
     { path: 'pnpm-lock.yaml', why: 'a lockfile' }, { path: 'web/yarn.lock', why: 'a lockfile' },
-    { path: 'package-lock.json', why: 'a lockfile' }, { path: 'big.txt', why: 'over 512 KB' },
+    { path: 'package-lock.json', why: 'a lockfile' }, { path: 'big.txt', why: 'over 2 MB' },
     { path: 'img.png', why: 'binary (a NUL character)' },
     { path: 'notes.md', why: 'not a regular file (a link, a folder or a submodule)' }])
 })

@@ -61,7 +61,9 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = []): Invento
     const history = signals.dated || f.path.split('/').slice(0, -1).some(d => HISTORY_DIR.test(d))
     candidates.push({ path: f.path, signals, score, hint: history ? 'likely-history' : score >= 10 ? 'likely-tracker' : 'maybe' })
   }
-  candidates.sort((a, b) => b.score - a.score || byPath(a.path, b.path))
+  // history last: it stays where it is, so it should not spend the top places the references are counted for
+  const old = (c: Candidate) => +(c.hint === 'likely-history')
+  candidates.sort((a, b) => old(a) - old(b) || b.score - a.score || byPath(a.path, b.path))
 
   // one pass per file for all the top names; a name inside a longer one ("MY-BACKLOG.md", "backlog.mdx") is not it
   const top = candidates.slice(0, TOP).map(c => c.path)
@@ -138,10 +140,12 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
   return [...lines.slice(0, kept), note(lines.length - kept)].join('\n').slice(0, maxChars)
 }
 
-// The readers' rules: lockfiles, links, files over 512 KB and text holding a NUL are skipped, and reading stops at
-// 3,000 files or 30 MB in all. stat answers null for a missing file; read, null for an unreadable one. Text that is
-// not UTF-8 but holds no NUL is read as the reader decodes it (its stray bytes as U+FFFD), not skipped.
-export const MAX_FILE = 512 * 1024, MAX_FILES = 3000, MAX_TOTAL = 30 * 1024 * 1024
+// The readers' rules: lockfiles, links, files over 2 MB and text holding a NUL are skipped, and reading stops at
+// 3,000 files or 30 MB in all. stat answers null for a missing file; read, null for an unreadable one.
+// shortcut: text that is not UTF-8 but holds no NUL (Latin-1, say) is read with U+FFFD for its stray bytes and is not
+// counted as skipped, short of Review Focus 3, because the plugin's $.fs.read returns decoded text; upgrade when
+// a reader can see the bytes. Binaries and UTF-16 are still caught by the NUL rule.
+export const MAX_FILE = 2 * 1024 * 1024, MAX_FILES = 3000, MAX_TOTAL = 30 * 1024 * 1024
 const LOCK = 'a lockfile', BINARY = 'binary (a NUL character)'
 type Stat = { file: boolean; size: number } | null
 
@@ -158,7 +162,7 @@ export async function collect(paths: string[], stat: (path: string) => Stat | Pr
     const s = await stat(path)
     if (!s) { skip('missing from the working tree'); continue }
     if (!s.file) { skip('not a regular file (a link, a folder or a submodule)'); continue }
-    if (s.size > MAX_FILE) { skip('over 512 KB'); continue }
+    if (s.size > MAX_FILE) { skip('over 2 MB'); continue }
     if (total + s.size > MAX_TOTAL) { stop('stopped at 30 MB in all'); break }
     const text = await read(path)
     total += s.size
