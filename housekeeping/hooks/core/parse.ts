@@ -149,7 +149,7 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
       else paras.push((cur = { line: l.line, text: l.text }))
     }
     const p = w.marker ? paras.find(x => x.text.startsWith(w.marker as string)) : paras[0]
-    if (p) out.whereWeAre = { file: w.file, line: p.line, text: p.text, date: DATE.exec(p.text.slice(0, 80))?.[0] ?? null }
+    if (p) out.whereWeAre = { file: w.file, line: p.line, text: p.text, date: p.text.match(new RegExp(DATE, 'g'))?.sort().pop() ?? null }
   }
   return out
 }

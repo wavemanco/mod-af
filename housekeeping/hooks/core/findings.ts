@@ -32,8 +32,9 @@ export function findingsFor(s: Settings, p: Parsed, f: Facts, _lanes: Lane[], hi
     if (c.triggerType && s.values.triggerType && !s.values.triggerType.includes(tt))
       w('value', `Trigger type "${tt}" is not in the list`)
     if (c.filed) {
-      const d = new Date(r.filed + 'T00:00:00Z')
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(r.filed) || isNaN(+d) || d.toISOString().slice(0, 10) !== r.filed)
+      const day = r.filed.replace(/^before /, '') // "before <date>" is a legal Filed: the day is known to be no later
+      const d = new Date(day + 'T00:00:00Z')
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || isNaN(+d) || d.toISOString().slice(0, 10) !== day)
         w('filed', `Filed "${r.filed}" is not a real YYYY-MM-DD date`)
     }
     const words = r.trigger.split(/\s+/).filter(Boolean).length

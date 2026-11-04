@@ -46,6 +46,7 @@ const cases: [string, Mut, string][] = [
   ['value (trigger type)', { p: ['| outside-action | event | When the renewal', '| outside-action | soon | When the renewal'] }, 'value'],
   ['value (empty trigger type)', { b: ['| chore | now |', '| chore |  |'] }, 'value'],
   ['filed (impossible date)', { b: ['| 2026-09-04 |', '| 2026-02-30 |'] }, 'filed'],
+  ['filed (before a bad date)', { b: ['| 2026-09-04 |', '| before 2026-02-30 |'] }, 'filed'],
   ['filed (not a date)', { b: ['| 2026-09-04 |', '| soon |'] }, 'filed'],
   ['trigger (empty)', { b: ['| Whenever an agent picks it up. |', '|  |'] }, 'trigger'],
   ['waits-on (nowhere)', { b: ['| Once the testers are booked (PB-01). | PB-01 |', '| Once the testers are booked (PB-01). | PB-09 |'] }, 'waits-on'],
@@ -95,6 +96,17 @@ test('checklist-closed: an unticked line whose IDs are all closed', () => {
 test('an empty Waits on counts as waiting on nothing', () => {
   const m: Mut = { b: ['| Once the testers are booked (PB-01). | PB-01 |', '| Once the testers are booked (PB-01). |  |'] }
   expect(rules(run(m))).toEqual([])
+})
+
+test('Filed "before <date>" is legal', () => {
+  expect(rules(run({ b: ['| 2026-09-04 |', '| before 2026-09-04 |'] }))).toEqual([])
+})
+
+test('where-we-are is dated by the latest date the paragraph gives', () => {
+  const m: Mut = { b: ['1. Ship the export', '1. 2026-09-01 Ship the export, and on 2026-09-05 more'] }
+  const e = (date: string): HistoryEntry => ({ sha: 'a', date, subject: 's', opened: ['B-001'], closed: [], moved: [], gone: [], whereWeAre: false })
+  expect(rules(run(m, [e('2026-09-05')]))).toEqual([])
+  expect(rules(run(m, [e('2026-09-06')]))).toEqual(['where-we-are'])
 })
 
 test('where-we-are is stale against the last history entry with a delta', () => {

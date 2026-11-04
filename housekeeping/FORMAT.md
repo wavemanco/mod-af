@@ -37,7 +37,7 @@ A row is a line of a Markdown table. The columns are found by their header text 
 | Trigger | kept true | plain words, at most 30 words: the step that brings the row back |
 | Waits on | kept true | the IDs of the rows it waits on, or `—` |
 | Details | written once, added to | what, why, the owner's words |
-| Filed | written once | the day it was first filed |
+| Filed | written once | the day it was first filed (`YYYY-MM-DD`, or `before YYYY-MM-DD` when only a later bound is known) |
 
 Any other column is read and kept as extra.
 
