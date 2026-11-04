@@ -62,9 +62,9 @@ repository: the reference repository is the one the plugin was first built from.
 | HK-020 | A future date in where-we-are hides its staleness | phase-2 | 351013c |
 | HK-021 | Wrong-typed optional settings fall back silently, and an object values.priority crashes the build | phase-2 | 351013c |
 | HK-022 | A backslash path in the settings reads both files as missing on Windows | phase-2 | 351013c |
-| HK-007 | A yes row that waits only on closed rows still gets a land-now-yes warning | phase-2 | this commit |
-| HK-008 | A milestone on the shared path and on a lane appears twice | phase-2 | this commit |
-| HK-009 | When every path is shared there are no lanes and no finding | phase-2 | this commit |
-| HK-010 | A duty with a path milestone keeps its station unreached for ever | phase-2 | this commit |
-| HK-015 | History follows commits of side branches | phase-2 | this commit |
+| HK-007 | A yes row that waits only on closed rows still gets a land-now-yes warning | phase-2 | 34710c3 |
+| HK-008 | A milestone on the shared path and on a lane appears twice | phase-2 | 34710c3 |
+| HK-009 | When every path is shared there are no lanes and no finding | phase-2 | 34710c3 |
+| HK-010 | A duty with a path milestone keeps its station unreached for ever | phase-2 | 34710c3 |
+| HK-015 | History follows commits of side branches | phase-2 | 34710c3 |
 | — | Phase 1 (see research/phase-1-results.md) | none | 2026-11-04 |
