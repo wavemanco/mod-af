@@ -15,11 +15,8 @@ const mask = (m: string): string =>
   m.length <= 4 ? '*'.repeat(m.length) : m.slice(0, 2) + '*'.repeat(m.length - 4) + m.slice(-2)
 
 function allowed(email: string): boolean {
-  const at = email.lastIndexOf('@')
-  const local = email.slice(0, at).toLowerCase()
-  const domain = email.slice(at + 1).toLowerCase()
-  return ['noreply', 'no-reply', 'donotreply'].includes(local)
-    || ['example.com', 'example.org', 'example.net', 'users.noreply.github.com'].includes(domain)
+  const domain = email.slice(email.lastIndexOf('@') + 1).toLowerCase()
+  return ['example.com', 'example.org', 'example.net', 'users.noreply.github.com'].includes(domain)
 }
 
 export function scanPrivacy(text: string): PrivacyHit[] {

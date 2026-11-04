@@ -1,4 +1,5 @@
 import type { PageData } from './types.ts'
+import { maskPrivacy } from './privacy.ts'
 
 const MAX = 8000
 const EVERY = /^Every\s+(?:(\d+)\s+)?(day|days|week|weeks|month|months)\b/i
@@ -45,6 +46,6 @@ export function brief(d: PageData, opts: { today?: string; branch?: string; behi
   out.push(`${d.findings.filter(f => f.level === 'warning').length} warnings, ${d.findings.filter(f => f.level === 'error').length} errors: /housekeeping check`)
   if (opts.branch && opts.branch !== main) out.push(`On branch ${opts.branch}; the map shows ${main}.`)
   if (opts.behindRemote && opts.behindRemote > 0) out.push(`Local ${main} is ${opts.behindRemote} commits behind its remote copy.`)
-  const text = out.join('\n')
+  const text = maskPrivacy(out.join('\n')) // the short view stays in the person's session: a hit is masked, not blocked
   return text.length > MAX ? text.slice(0, MAX - 1) + '…' : text
 }

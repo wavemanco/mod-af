@@ -29,6 +29,14 @@ test('privacy blocks the page', () => {
   expect(o.findings.some(f => f.level === 'error' && f.rule === 'privacy' && f.message.includes('B-001'))).toBe(true)
 })
 
+test('a hit outside the rows is located by file and line', () => {
+  const b = small.backlog.replace('- [ ] **Agent.** Rate-limit the export endpoint.', '- [ ] **Agent.** Mail jane.doe@gmail.com.')
+  const o = build(input({ backlog: b }))
+  expect(o.html).toBeNull()
+  const line = b.split('\n').findIndex(l => l.includes('Mail jane')) + 1
+  expect(o.findings.some(f => f.rule === 'privacy' && f.message.startsWith(`backlog line ${line}:`))).toBe(true)
+})
+
 // a commit subject cannot be edited: a hit there is masked, and the page is built
 const withSubject = (subject: string): BuildInput => ({ ...input(), snapshots: [{
   ...snapshot(settings, { backlog: small.backlog, playbook: small.playbook }), sha: '1'.repeat(40), date: '2026-09-01', subject }] })

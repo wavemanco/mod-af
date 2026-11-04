@@ -5,7 +5,7 @@ import { parseFiles } from './parse.ts'
 export const headArgs = (main: string): string[] => ['git', 'log', '-1', '--format=%H%x09%cs%x09%s', '--end-of-options', main]
 
 export const logArgs = (s: Settings): string[] =>
-  ['git', 'log', '--first-parent', '--reverse', '--format=%H%x09%cs%x09%s', '--end-of-options', s.mainBranch, '--', s.files.backlog.path, s.files.playbook.path]
+  ['git', 'log', '--first-parent', '--reverse', '--format=%H%x09%cs%x09%s', '--end-of-options', s.mainBranch, '--', `:(literal)${s.files.backlog.path}`, `:(literal)${s.files.playbook.path}`]
 
 export const showArgs = (sha: string, path: string): string[] => ['git', 'show', '--end-of-options', `${sha}:${path}`]
 

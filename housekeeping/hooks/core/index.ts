@@ -24,9 +24,15 @@ export function build(i: BuildInput): BuildOutput {
   let html: string | null = renderPage(data)
   const hits = scanPrivacy(html)
   if (hits.length) {
-    // name the rows whose own cells hold a hit; when only other text does, the page and the masked text
-    const rows = parsed.rows.filter(r => scanPrivacy(JSON.stringify(r)).length > 0).map(r => r.id)
-    for (const id of rows.length ? rows : [`the page (${hits[0].sample})`])
+    // name the rows whose own cells hold a hit, then the other texts by file and line
+    const dirty = (t: string) => scanPrivacy(t).length > 0
+    const places = [
+      ...parsed.rows.filter(r => dirty(JSON.stringify(r))).map(r => r.id),
+      ...(parsed.whereWeAre && dirty(parsed.whereWeAre.text) ? [`${parsed.whereWeAre.file} line ${parsed.whereWeAre.line}`] : []),
+      ...parsed.done.filter(d => dirty(d.cells.join(' '))).map(d => `${d.file} line ${d.line}`),
+      ...parsed.checklists.filter(c => dirty(c.text)).map(c => `${c.file} line ${c.line}`),
+    ]
+    for (const id of places.length ? places : [`the page (${hits[0].sample})`])
       findings.push({ level: 'error', rule: 'privacy', message: `${id}: holds a personal address or a key-shaped string` })
   }
   if (findings.some(f => f.level === 'error')) html = null

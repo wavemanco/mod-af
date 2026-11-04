@@ -22,7 +22,7 @@ const snaps = [files1, files2, files3].map((f, i) => ({ ...snapshot(s, f), ...in
 // --end-of-options: a revision that starts with "-" is never read as an option
 test('the git arguments', () => {
   expect(headArgs('main')).toEqual(['git', 'log', '-1', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main'])
-  expect(logArgs(s)).toEqual(['git', 'log', '--first-parent', '--reverse', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--', 'backlog.md', 'playbook.md'])
+  expect(logArgs(s)).toEqual(['git', 'log', '--first-parent', '--reverse', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--', ':(literal)backlog.md', ':(literal)playbook.md'])
   expect(showArgs('abc', 'backlog.md')).toEqual(['git', 'show', '--end-of-options', 'abc:backlog.md'])
 })
 

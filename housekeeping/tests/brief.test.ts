@@ -24,6 +24,12 @@ test('a duty is due by its last-done date and interval', () => {
   expect(brief(d, {})).not.toContain('Duties due:')
 })
 
+test('a hit in the short view is masked, not blocked', () => {
+  const t = brief({ ...SMALL, project: 'ask jane.doe@gmail.com' }, {})
+  expect(t.includes('jane.doe@gmail.com')).toBe(false)
+  expect(t).toContain('ask ja**************om')
+})
+
 test('branch and remote notes', () => {
   const t = brief(SMALL, { branch: 'feature/x', behindRemote: 3 })
   expect(t).toContain('On branch feature/x; the map shows main.')

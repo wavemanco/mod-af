@@ -37,14 +37,15 @@ export async function main(argv: string[]): Promise<number> {
 
   // GIT_OPTIONAL_LOCKS=0 keeps a read from taking the index lock in a checkout someone else is using
   const git = (args: string[]) => execFileSync('git', args, { cwd: repo, maxBuffer: 64 * 1024 * 1024, encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'], env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } })
+    stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } })
   const main = settings.mainBranch
   let head: CommitInfo
   try {
     head = parseLog(git(headArgs(main).slice(1)))[0]
     if (!head) throw new Error('empty')
-  } catch {
-    console.log(`housekeeping: no branch '${main}' in ${repo} (the "mainBranch" setting in ${settingsPath})`)
+  } catch (e) {
+    const why = String((e as { stderr?: string }).stderr ?? '').split('\n')[0].trim()
+    console.log(`housekeeping: no branch '${main}' in ${repo} (the "mainBranch" setting in ${settingsPath})${why ? `: git said: ${why}` : ''}`)
     return 2
   }
   const show = (sha: string, path: string): string | null => {
@@ -77,7 +78,7 @@ export async function main(argv: string[]): Promise<number> {
     git(['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${main}`])
     behindRemote = Number(git(['rev-list', '--count', `${main}..origin/${main}`]).trim())
   } catch { /* no remote copy: nothing is behind */ }
-  console.log(brief(result.data, { today: head.date, branch, behindRemote, main }))
+  console.log(brief(result.data, { today: new Date().toISOString().slice(0, 10), branch, behindRemote, main }))
   return 0
 }
 

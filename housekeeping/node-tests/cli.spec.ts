@@ -72,3 +72,24 @@ test('a repository with no main branch exits 2', () => {
   assert.ok((r.stdout + r.stderr).includes("housekeeping: no branch 'main' in "))
   assert.ok((r.stdout + r.stderr).includes('"mainBranch"'), r.stdout)
 })
+
+test('a directory that is no git repository says what git said, exit 2', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  writeFileSync(join(dir, '.housekeeping.json'), settings)
+  const r = run('check', '--repo', dir)
+  assert.equal(r.status, 2)
+  assert.match(r.stdout, /not a git repository/)
+})
+
+test('brief counts duties due by today, not by the head commit date', () => {
+  const dir = repo()
+  const b = backlog.replace('| Whenever an agent picks it up. | — | **Why:** slow builds. |',
+    '| Every 30 days. | — | **Why:** slow builds. Last done: 2026-10-01 |')
+  assert.notEqual(b, backlog)
+  writeFileSync(join(dir, 'backlog.md'), b)
+  execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.test', 'commit', '-qam', 'old'],
+    { cwd: dir, env: { ...process.env, GIT_COMMITTER_DATE: '2026-10-02T00:00:00Z', GIT_AUTHOR_DATE: '2026-10-02T00:00:00Z' } })
+  const r = run('brief', '--repo', dir)
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /^Duties due: .*B-005/m)
+})

@@ -10,10 +10,13 @@ test('a personal address is found, with its place', () => {
 })
 
 test('allowed addresses are not reported', () => {
-  for (const ok of ['noreply@github.com', 'no-reply@acme.io', 'donotreply@acme.io',
-    'x@example.com', 'x@example.org', 'x@example.net', '12+name@users.noreply.github.com']) {
+  for (const ok of ['x@example.com', 'x@example.org', 'x@example.net', '12+name@users.noreply.github.com']) {
     expect(scanPrivacy(ok)).toEqual([])
   }
+})
+
+test('a no-reply local part at an unlisted domain is a hit', () => {
+  for (const hit of ['noreply@github.com', 'no-reply@acme.io', 'donotreply@acme.io']) expect(kinds(hit)).toEqual(['email'])
 })
 
 test('the no-reply allow list matches its domain exactly, and no "+noreply" local part', () => {
@@ -27,10 +30,10 @@ test('a word that ends in "sk" before a hyphen is no key', () => {
 })
 
 test('maskPrivacy masks each hit as its sample does, and leaves the rest', () => {
-  const t = 'ask jane.doe@gmail.com or noreply@github.com, key sk-' + a('q', 24)
+  const t = 'ask jane.doe@gmail.com or noreply@example.com, key sk-' + a('q', 24)
   const m = maskPrivacy(t)
   expect(scanPrivacy(m)).toEqual([])
-  expect(m).toBe('ask ' + scanPrivacy(t)[0].sample + ' or noreply@github.com, key ' + scanPrivacy(t)[1].sample)
+  expect(m).toBe('ask ' + scanPrivacy(t)[0].sample + ' or noreply@example.com, key ' + scanPrivacy(t)[1].sample)
 })
 
 test('each key shape is found on a made-up value', () => {
