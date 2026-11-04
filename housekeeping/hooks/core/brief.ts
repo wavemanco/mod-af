@@ -21,7 +21,7 @@ function dutyDue(trigger: string, lastDone: string | null, today: string): boole
 }
 
 // shortcut: cuts at 120 characters, mid-word; upgrade if items need a word boundary
-const short = (t: string) => t.length <= 120 ? t : t.slice(0, 119) + '…'
+const short = (t: string) => t.length <= 120 ? t : t.slice(0, 119) + 'â€¦'
 
 export function brief(d: PageData, opts: { today?: string; branch?: string; behindRemote?: number; main?: string }): string {
   const main = opts.main ?? 'main'

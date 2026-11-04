@@ -61,4 +61,6 @@ test('long items are cut, and the branch and remote lines survive the cap', () =
   expect(t).toContain('On branch feature/x; the map shows main.')
   expect(t).toContain('Local main is 3 commits behind its remote copy.')
   expect(t.split('\n').every(l => l.length <= 200)).toBe(true)
+  expect(t).toContain('… (opens')
+  expect(t).not.toContain('�')
 })
