@@ -143,3 +143,8 @@ test('optional-column checks skip rows of a table without the column', () => {
   const fs = findingsFor(s, p, computeFacts(s, p), computeLanes(s, p, computeFacts(s, p)), [])
   expect(rules(fs)).toEqual([])
 })
+
+// HK-007
+test('a yes row that waits only on a closed row gets no land-now-yes warning', () => {
+  expect(rules(run({ b: ['| Whenever an agent picks it up. | — |', '| Whenever an agent picks it up. | B-004 |'] }))).toEqual([])
+})

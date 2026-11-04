@@ -22,7 +22,7 @@ const snaps = [files1, files2, files3].map((f, i) => ({ ...snapshot(s, f), ...in
 // --end-of-options: a revision that starts with "-" is never read as an option
 test('the git arguments', () => {
   expect(headArgs('main')).toEqual(['git', 'log', '-1', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main'])
-  expect(logArgs(s)).toEqual(['git', 'log', '--reverse', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--', 'backlog.md', 'playbook.md'])
+  expect(logArgs(s)).toEqual(['git', 'log', '--first-parent', '--reverse', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--', 'backlog.md', 'playbook.md'])
   expect(showArgs('abc', 'backlog.md')).toEqual(['git', 'show', '--end-of-options', 'abc:backlog.md'])
 })
 
@@ -60,4 +60,10 @@ test('a stale where we are is a warning', () => {
   const e = { sha: 'a', date: '2026-09-05', subject: 's', opened: [], closed: ['B-001'], moved: [], gone: [], whereWeAre: false }
   expect(stale([e])).toHaveLength(1)
   expect(stale([{ ...e, date: '2026-09-01' }])).toEqual([])
+})
+
+// HK-015: a merge commit's side branch is not walked
+test('the log follows first parents only', () => {
+  expect(logArgs(s)).toContain('--first-parent')
+  expect(logArgs(s).indexOf('--first-parent')).toBeLessThan(logArgs(s).indexOf('--end-of-options'))
 })

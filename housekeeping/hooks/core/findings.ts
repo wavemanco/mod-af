@@ -18,7 +18,7 @@ export function findingsFor(s: Settings, p: Parsed, f: Facts, _lanes: Lane[], hi
     const w = (rule: string, m: string) => warn(rule, r, `${r.id}: ${m}`)
     if (idForm.length && !idForm.some(re => re.test(r.id))) w('id-form', 'the ID matches no ids pattern')
     if (!r.landNow.valid) w('land-now', 'Land now is not yes, "small choice: <why>" or "no: <why>"')
-    if (r.landNow.state === 'yes' && r.landNow.valid && (r.who !== 'agent' || r.waitsOn.length > 0))
+    if (r.landNow.state === 'yes' && r.landNow.valid && (r.who !== 'agent' || r.waitsOn.some(w => known.has(w))))
       w('land-now-yes', 'a yes row needs Who = agent and nothing to wait on')
     if (r.who === 'unknown') w('who', `unknown Who "${r.whoRaw}"`)
     const ms = r.milestones

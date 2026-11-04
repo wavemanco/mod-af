@@ -264,7 +264,7 @@ test('prompt.context adds the short view', async ($, on) => {
   expect(b.text.startsWith('# Small: where we are')).toBe(true)
 })
 
-const walks = (w: World) => w.argv!.filter(a => a[1] === 'log' && a[2] === '--reverse').length
+const walks = (w: World) => w.argv!.filter(a => a[1] === 'log' && a.includes('--reverse')).length
 const brief = (r: { blocks: { name: string; text: string }[] }) => r.blocks.find(x => x.name === 'housekeeping')?.text ?? ''
 
 test('prompt.context awaits the load session start began, with no second history walk', async ($, on) => {

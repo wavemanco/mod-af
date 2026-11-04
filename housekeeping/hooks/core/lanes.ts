@@ -56,7 +56,7 @@ export function computeLanes(s: Settings, p: Parsed, f: Facts): Lane[] {
       const c = longest(id, new Set())
       if (!top.length || better(c, top)) top = c
     }
-    const reached = !open.some(r => r.milestones[0] === milestone) &&
+    const reached = !open.some(r => !duties.has(r.id) && r.milestones[0] === milestone) &&
       p.checklists.every(c => c.milestone !== milestone || c.ticked)
     return { milestone, ...(doneWhen === undefined ? {} : { doneWhen }), shared, reached, stops,
       chain: top.length, gate: top.length ? top[0] : null }
@@ -71,5 +71,8 @@ export function computeLanes(s: Settings, p: Parsed, f: Facts): Lane[] {
   const mk = (path: Settings['paths'][number], shared: boolean) =>
     path.milestones.map(m => station(m.name, shared, m.doneWhen))
   const shared = s.paths.filter(x => x.shared).flatMap(x => mk(x, true))
-  return s.paths.filter(x => !x.shared).map(x => finish(x.name, [...shared, ...mk(x, false)]))
+  const once = (ss: Station[]) => ss.filter((x, i) => ss.findIndex(y => y.milestone === x.milestone) === i)
+  const own = s.paths.filter(x => !x.shared)
+  if (own.length === 0) return [finish(s.project, once(shared))]
+  return own.map(x => finish(x.name, once([...shared, ...mk(x, false)])))
 }
