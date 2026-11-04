@@ -24,6 +24,14 @@ type World = {
   argv?: string[][]
   noBranch?: boolean
   mainSha?: string
+  remoteSha?: string
+  now?: string
+  placed?: boolean
+  start?: string
+  top?: string
+  paths?: string[]
+  failRead?: boolean
+  pub?: object
 }
 
 // the engine may hand a hook a Windows-style path
@@ -37,10 +45,10 @@ function world(on: On, w: World = {}) {
   on('command.register', (_, e) => ({ value: { command: e.name } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.cwd', () => ({ value: '/w' }))
-  on('session.root', () => ({ value: '/w' }))
-  on('clock.now', () => ({ value: Date.parse('2026-09-12T10:00:00Z') }))
-  on('fs.exists', (_, e) => ({ value: w.hasSettings !== false && e.path.endsWith('.housekeeping.json') }))
-  on('fs.read', () => ({ value: small.settings }))
+  on('session.root', () => ({ value: w.start ?? '/w' }))
+  on('clock.now', () => ({ value: Date.parse(w.now ?? '2026-09-12T10:00:00Z') }))
+  on('fs.exists', (_, e) => (w.paths?.push(posix(e.path)), { value: w.hasSettings !== false && e.path.endsWith('.housekeeping.json') }))
+  on('fs.read', () => { if (w.failRead) throw new Error('EIO'); return { value: small.settings } })
   on('process.run', (_, e) => {
     w.argv?.push([...e.argv])
     const [, a, b] = e.argv
@@ -51,7 +59,8 @@ function world(on: On, w: World = {}) {
       return ok(text ?? '', text === undefined ? 128 : 0)
     }
     if (a === 'rev-parse' && b === '--abbrev-ref') return ok('main\n')
-    if (a === 'rev-parse' && b === '--verify') return ok('', 1)
+    if (a === 'rev-parse' && b === '--show-toplevel') return w.top ? ok(w.top + '\n') : ok('', 128)
+    if (a === 'rev-parse' && b === '--verify') return w.remoteSha ? ok(w.remoteSha + '\n') : ok('', 1)
     // with more arguments: the common dir, then main's commit, then the branch
     if (a === 'rev-parse' && b === '--path-format=absolute') return ok(e.argv.length > 4 ? `/w/.git\n${w.mainSha ?? SHA}\nmain\n` : '/w/.git\n')
     return ok('', 1)
@@ -60,7 +69,7 @@ function world(on: On, w: World = {}) {
   on('store.set', (_, e) => { stored[e.key] = e.value; return { value: undefined } })
   on('store.delete', (_, e) => { delete stored[e.key]; return { value: undefined } })
   on('tool.list', () => ({ value: w.noArtifact ? [{ name: 'Write', description: '', mcp: false }] : [{ name: 'Write', description: '', mcp: false }, { name: 'Artifact', description: '', mcp: false }] }))
-  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('ui.open', () => ({ value: { isPlaced: w.placed !== false } }))
   on('ui.status', (_, e) => { w.status?.push(e.text); return { value: undefined } })
   // the root is itself; the page and its folder are missing unless w.stats says otherwise
   on('fs.stat', (_, e) => {
@@ -78,6 +87,7 @@ function world(on: On, w: World = {}) {
   on('tool.call', { tool: 'Artifact' }, (_, e) => {
     calls.push({ tool: 'Artifact', action: e.action, url: e.url, title: e.title })
     if (e.action === 'read' && w.readError) return { isError: true, text: w.readError, result: null } as never
+    if (e.action === 'publish' && w.pub) return w.pub as never
     return { result: { url: 'https://claude.ai/artifact/abc', path: e.file_path } } as never
   })
 }
@@ -132,13 +142,17 @@ test('a stored link that is not found is forgotten', async ($, on) => {
   expect(w.calls!.map(c => c.action)).toEqual(['read'])
 })
 
-test('a stored link with no access is forgotten too', async ($, on) => {
-  const w: World = { readError: 'You do not have access to this artifact', stored: { ...KNOWN } }
+test('a stored link refused for access or permission is kept, not forgotten (HK-033)', async ($, on) => {
+  const w: World = {}
   world(on, w)
   await $.session.start(START)
-  const r = await run($, 'map')
-  expect(r.text).toContain(FORGOT)
-  expect('repo:/w/.git' in w.stored!).toBe(false)
+  for (const readError of ['You do not have access to this artifact', 'permission denied', 'Forbidden 403']) {
+    Object.assign(w, { readError, stored: Object.assign(w.stored!, KNOWN) })
+    const r = await run($, 'map')
+    expect(r.exitCode).toBe(1)
+    expect(r.text).not.toContain(FORGOT)
+    expect(w.stored!['repo:/w/.git']).toEqual(KNOWN['repo:/w/.git'])
+  }
 })
 
 test('any other read error keeps the link and says how to reset', async ($, on) => {
@@ -285,11 +299,85 @@ test('with main unchanged, the short view costs one git rev-parse; a new main co
   const first = brief(await $.prompt.context({ blocks: [] }))
   w.argv!.length = 0
   expect(brief(await $.prompt.context({ blocks: [] }))).toBe(first)
-  expect(w.argv!.map(a => a[1])).toEqual(['rev-parse'])
+  expect(w.argv!.every(a => a[1] === 'rev-parse')).toBe(true)
+  expect(walks(w)).toBe(0)
   w.mainSha = 'f'.repeat(40)
   w.argv!.length = 0
   expect(brief(await $.prompt.context({ blocks: [] }))).toBe(first)
   expect(walks(w)).toBe(1)
+})
+
+test('a moved remote copy of main rebuilds the short view (HK-034)', async ($, on) => {
+  const w: World = { argv: [] }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await $.prompt.context({ blocks: [] })
+  w.remoteSha = 'a'.repeat(40)
+  await $.prompt.context({ blocks: [] })
+  expect(walks(w)).toBe(2)
+})
+
+test('a new day with main unchanged does not walk the history again (HK-035)', async ($, on) => {
+  const w: World = { argv: [] }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await $.prompt.context({ blocks: [] })
+  w.now = '2026-09-13T10:00:00Z'
+  await $.prompt.context({ blocks: [] })
+  expect(walks(w)).toBe(1)
+})
+
+test('a session started in a sub-folder reads the top of the git tree (HK-030)', async ($, on) => {
+  const w: World = { start: '/w/sub', top: '/w', paths: [] }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'check')
+  expect(r.exitCode).toBe(0)
+  expect(w.paths!.every(p => p === '/w/.housekeeping.json')).toBe(true)
+})
+
+test('a command that throws still replies, with exit code 1 (HK-031)', async ($, on) => {
+  const w: World = { failRead: true }
+  world(on, w)
+  await $.session.start(START)
+  for (const arg of ['check', '', 'map']) {
+    const r = await run($, arg)
+    expect(r.exitCode).toBe(1)
+    expect(r.text).toContain('housekeeping:')
+  }
+})
+
+test('a failed publish still says the partition line and the page path (HK-032)', async ($, on) => {
+  const w: World = {}
+  world(on, w)
+  await $.session.start(START)
+  for (const pub of [{ deny: 'not allowed' }, { isError: true, text: 'boom', result: null }]) {
+    w.pub = pub
+    const r = await run($, 'map')
+    expect(r.exitCode).toBe(1)
+    expect(r.text).toContain(LINE)
+    expect(r.text).toContain('/w/.housekeeping/route-map.html')
+  }
+})
+
+test('the URL comes from result.url, else the claude.ai link in the text (HK-036)', async ($, on) => {
+  const cases: [object, string | null][] = [
+    [{ result: { url: 'https://claude.ai/artifact/r1' }, text: 'see https://claude.ai/artifact/t1' }, 'https://claude.ai/artifact/r1'],
+    [{ result: null, text: 'Published: https://claude.ai/artifact/t1.' }, 'https://claude.ai/artifact/t1'],
+    [{ result: {}, text: 'no link here, only https://example.com/x' }, null],
+    [{ result: null, text: 'nothing' }, null],
+  ]
+  const w: World = {}
+  world(on, w)
+  await $.session.start(START)
+  for (const [pub, url] of cases) {
+    w.pub = pub
+    const r = await run($, 'map new')
+    if (url) { expect(r.exitCode ?? 0).toBe(0); expect(r.text).toContain(url); expect(w.stored!['repo:/w/.git']).toEqual({ url, sha: SHA }) }
+    else { expect(r.exitCode).toBe(1); expect(r.text).toContain('no URL') }
+  }
 })
 
 test('prompt.context adds nothing without a settings file', async ($, on) => {
@@ -298,6 +386,13 @@ test('prompt.context adds nothing without a settings file', async ($, on) => {
   await $.session.start(START)
   const r = await $.prompt.context({ blocks: [] })
   expect(r.blocks).toEqual([])
+})
+
+test('with no pane placed, the short view comes back as text (HK-029)', async ($, on) => {
+  world(on, { placed: false })
+  await $.session.start(START)
+  const r = await run($, '')
+  expect(r.text.startsWith('# Small: where we are')).toBe(true)
 })
 
 test('no argument opens the pane and sets the status line', async ($, on) => {
