@@ -32,10 +32,14 @@ type World = {
   paths?: string[]
   failRead?: boolean
   pub?: object
+  tracked?: Record<string, string> // the survey's files, by path under /w
 }
 
 // the engine may hand a hook a Windows-style path
 const posix = (p: string) => p.replaceAll('\\', '/').replace(/^[A-Za-z]:/, '')
+// stand-ins for prompts/*.md: the test kit imports code files only, so it cannot read the real ones
+const PROMPTS: Record<string, string> = { survey: '# the survey procedure', plan: '# the plan procedure' }
+const under = (p: string) => posix(p).replace(/^\/w\//, '')
 
 // The engine stand-ins: git answers from small.ts's files, tools are logged, the store is a map.
 function world(on: On, w: World = {}) {
@@ -48,10 +52,15 @@ function world(on: On, w: World = {}) {
   on('session.root', () => ({ value: w.start ?? '/w' }))
   on('clock.now', () => ({ value: Date.parse(w.now ?? '2026-09-12T10:00:00Z') }))
   on('fs.exists', (_, e) => (w.paths?.push(posix(e.path)), { value: w.hasSettings !== false && e.path.endsWith('.housekeeping.json') }))
-  on('fs.read', () => { if (w.failRead) throw new Error('EIO'); return { value: small.settings } })
+  on('fs.read', (_, e) => {
+    if (w.failRead) throw new Error('EIO')
+    const prompt = /\/prompts\/(survey|plan)\.md$/.exec(posix(e.path))
+    return { value: prompt ? PROMPTS[prompt[1]] : w.tracked?.[under(e.path)] ?? small.settings }
+  })
   on('process.run', (_, e) => {
     w.argv?.push([...e.argv])
     const [, a, b] = e.argv
+    if (a === 'ls-files') return ok(Object.keys(w.tracked ?? {}).map(p => `${p}\0`).join(''))
     if (a === 'log') return w.noBranch ? ok('', 128) : ok(`${SHA}\t2026-09-12\thead\n`)
     if (a === 'show') {
       const text = files[String(e.argv.at(-1)).split(':')[1]]
@@ -73,6 +82,8 @@ function world(on: On, w: World = {}) {
   on('ui.status', (_, e) => { w.status?.push(e.text); return { value: undefined } })
   // the root is itself; the page and its folder are missing unless w.stats says otherwise
   on('fs.stat', (_, e) => {
+    const t = w.tracked?.[under(e.path)]
+    if (t !== undefined) return { value: { kind: 'file', size: t.length, mtimeMs: 0, isLink: false } }
     const s = posix(e.path) === '/w' ? { isLink: false, realPath: '/w' } : w.stats?.[posix(e.path)]
     if (!s) throw new Error(`ENOENT: ${e.path}`)
     return { value: { kind: 'file', size: 1, mtimeMs: 0, ...s } }
@@ -409,4 +420,42 @@ test('no argument opens the pane and sets the status line', async ($, on) => {
   const md = await ui.find({ type: 'Markdown' })
   expect(md?.props.text).toContain('# Small: where we are')
   await ui.unmount()
+})
+
+// a made-up repository: one list with ID headings and a box, and a code file
+const TRACKED = { 'docs/todo.md': '## T-1 one\n## T-2 two\n- [ ] three\n', 'src/a.ts': 'export const a = 1\n' }
+
+test('/housekeeping survey hands over the procedure, then the inventory, and writes nothing', async ($, on) => {
+  const w: World = { tracked: { ...TRACKED } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'survey')
+  expect(r.text).toBe('housekeeping survey: 2 files read, 1 candidates')
+  expect(r.context[0]).toBe(PROMPTS.survey)
+  expect(r.context[1]).toMatch(/## Candidates.*\n +8\.0 +maybe +docs\/todo\.md: name, 2 ID headings/)
+  expect(r.context.length).toBe(2)
+  expect(w.written).toBeUndefined()
+  expect(w.calls!.length).toBe(0)
+})
+
+test('/housekeeping plan adds the check findings when a .housekeeping.json exists', async ($, on) => {
+  const w: World = { tracked: { ...TRACKED } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'plan')
+  expect(r.text).toBe('housekeeping plan: 2 files read, 1 candidates')
+  expect(r.context[0]).toBe(PROMPTS.plan)
+  expect(r.context[1]).toContain('docs/todo.md')
+  expect(r.context[2]).toContain('recommendation done-milestone')
+  w.hasSettings = false
+  expect((await run($, 'plan')).context.length).toBe(2)
+})
+
+test('in a repository with no candidates, the survey says there is nothing to move', async ($, on) => {
+  world(on, { tracked: { 'src/a.ts': TRACKED['src/a.ts'] } })
+  await $.session.start(START)
+  const r = await run($, 'survey')
+  expect(r.text).toContain('0 candidates')
+  expect(r.text).toContain('nothing to move')
+  expect(r.text).toContain('/housekeeping init')
 })

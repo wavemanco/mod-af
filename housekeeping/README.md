@@ -12,7 +12,7 @@ It never decides anything for you: no commits, no pushes, no fetches. Every writ
 - The short view: at most 8,000 characters, shown by `/housekeeping` with no argument and put into the session's context.
 - Publishing: the page goes to a claude.ai artifact kept private to you; the link is remembered per repository.
 
-Later phases add `survey`, `plan`, `audit`, `owed` and the automatic parts. They are not here yet.
+Phase 2 adds `survey` and `plan`, for a repository whose pending work is already spread over its own files. Later phases add `audit`, `owed` and the automatic parts. They are not here yet.
 
 ## Commands
 
@@ -22,14 +22,19 @@ Later phases add `survey`, `plan`, `audit`, `owed` and the automatic parts. They
 /housekeeping map new    forget the stored Route Map link, then build and publish a new page
 /housekeeping check      report problems in the files and the settings
 /housekeeping init       set up a new repository
+/housekeeping survey     find where the repository keeps its pending work now; writes nothing
+/housekeeping plan       propose the steps that move it into the pair, applied only once you approve
 ```
 
 `check` and `map` read the two files as committed on the main branch (`mainBranch` in the settings), so after `init`, commit its files on the branch it names.
+
+`survey` and `plan` hand the agent a procedure (`prompts/survey.md`, `prompts/plan.md`) with the inventory of the repository's tracked files; `plan` adds `check`'s findings when a `.housekeeping.json` exists. The agent does the reading and proposes; you approve.
 
 The same computed parts run without Claude Code:
 
 ```
 node housekeeping/cli.ts <map|check|brief> [--repo <dir>] [--settings <file>] [--out <file>]
+node housekeeping/cli.ts survey [--repo <dir>] [--json]
 ```
 
 `check` exits 1 when it finds an error. The page it writes is byte-identical to the plugin's.

@@ -1,9 +1,10 @@
 import type { EngineInterface, Register } from 'claude-code'
-import { PAGE, readInput, repoKey, writeFile, writePage } from './adapter.ts'
+import { PAGE, readInput, readTracked, repoKey, writeFile, writePage } from './adapter.ts'
 import { brief } from './core/brief.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
 import { parseSettings } from './core/settings.ts'
+import { formatInventory, inventory } from './core/survey.ts'
 import { initFiles } from './core/templates.ts'
 import type { BuildOutput } from './core/types.ts'
 
@@ -106,9 +107,25 @@ async function init($: EngineInterface): Promise<{ text: string; exitCode?: numb
   }
 }
 
-async function command($: EngineInterface, arg: string, show: (brief: string) => void): Promise<{ text: string; exitCode?: number }> {
+// survey and plan: the procedure, then the inventory, for the agent to follow; plan adds check's findings when
+// there are settings. Neither writes anything.
+async function procedure($: EngineInterface, arg: 'survey' | 'plan'): Promise<{ text: string; context: string[] }> {
+  const root = await repoRoot($)
+  const { files, skipped } = await readTracked($, root)
+  const inv = inventory(files, skipped)
+  const context = [await $.fs.read(`${$.plugin.root}/prompts/${arg}.md`), formatInventory(inv)]
+  if (arg === 'plan' && (await $.fs.exists(`${root}/${SETTINGS}`))) {
+    const l = await load($)
+    context.push(`The current /housekeeping check findings:\n${'error' in l ? l.error : l.text || 'none'}`)
+  }
+  const none = inv.candidates.length ? '' : ': nothing to move; /housekeeping init sets up the pair'
+  return { text: `housekeeping ${arg}: ${inv.files} files read, ${inv.candidates.length} candidates${none}`, context }
+}
+
+async function command($: EngineInterface, arg: string, show: (brief: string) => void): Promise<{ text: string; exitCode?: number; context?: string[] }> {
   if (arg === 'init') return init($)
-  if (!['', 'check', 'map', 'map new'].includes(arg)) return { text: 'housekeeping: [map | map new | check | init]; no argument opens the short view' }
+  if (arg === 'survey' || arg === 'plan') return procedure($, arg)
+  if (!['', 'check', 'map', 'map new'].includes(arg)) return { text: 'housekeeping: [map | map new | check | init | survey | plan]; no argument opens the short view' }
   const l = await load($)
   if ('error' in l) return { text: l.error, exitCode: 1 }
   if (arg === 'check') return { text: l.text, exitCode: l.failed ? 1 : 0 }
@@ -164,7 +181,7 @@ export const register: Register = on => {
   let started: Promise<View | null> | null = null // session start's view, which the first prompt.context awaits
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init.', argumentHint: '[map|map new|check|init]' })
+    await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init, survey, plan.', argumentHint: '[map|map new|check|init|survey|plan]' })
     const got = await next(e)
     // not awaited: a slow repository must not hold up the session
     started = cachedView($)

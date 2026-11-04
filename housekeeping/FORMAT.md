@@ -67,3 +67,11 @@ How the files are read:
 - `.gitignore`: the line `.housekeeping/`, appended only when it is missing.
 
 A file that already exists is listed as "left as it is". If the repository has an `AGENTS.md` without the agent-guide line, init appends `At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.` It creates no guide file; with none, it says so. The reply lists every file it wrote.
+
+## Moving an existing repository
+
+A repository that already keeps pending work in its own files moves into the pair in two procedures, `prompts/survey.md` and `prompts/plan.md`. `/housekeeping survey` and `/housekeeping plan` hand them to the agent with the inventory; outside Claude Code, `node cli.ts survey [--repo <dir>] [--json]` prints the same inventory.
+
+- **The survey writes nothing.** It sorts the files into canonical, neighbour and history, counts their items, and lists the outside work, the files and machine readers that name them, and the repository's own rules that constrain a move.
+- **The plan is a proposal,** in numbered steps. The backlog keeps its name and every ID. The playbook is a new file with its definition if there is none, under a name the repository does not already use. A row that moves keeps its ID and says where it was filed before. What the repository's rules keep apart is linked, not moved, and history stays as it is. A step that conflicts with one of the repository's rules is marked the owner's decision.
+- **Applied only once the owner approves:** on a new branch, one commit per step, split the way the repository's own guards require, with its own tests run before and after, then `check` and `map`.
