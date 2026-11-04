@@ -72,6 +72,15 @@ code { font-family: var(--mono); font-size: 0.88em; background: var(--chip); pad
 .sign .plate .shield { width: 14px; height: 16px; flex: none; background: var(--accent-ink); clip-path: polygon(50% 0, 100% 18%, 92% 72%, 50% 100%, 8% 72%, 0 18%); }
 .sign .lede { max-width: 68ch; color: var(--muted); font-size: var(--s1); }
 .asof { font-family: var(--mono); font-size: var(--s-1); color: var(--muted); overflow-wrap: anywhere; }
+/* The counts line: each number a way into its view. */
+.counts { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; }
+.count { border: 0; background: none; padding: 0; cursor: pointer; color: var(--muted); text-align: left; }
+.count b { font-family: var(--display); font-weight: 800; font-size: var(--s2); color: var(--ink); font-variant-numeric: tabular-nums; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 4px; }
+.count:hover b { text-decoration-color: currentColor; }
+/* "and N more" and "more": the rest of a long list or text, on request. */
+button.more { justify-self: start; border: 1px solid var(--rule); background: var(--bg); border-radius: 999px; padding: 3px 12px 2px; font-size: var(--s-1); cursor: pointer; }
+button.more:hover { border-color: var(--ink); }
+.stops + .stops { margin-top: 8px; }
 
 /* Mile markers: the numbers, as sums that add up. */
 .strips { display: grid; gap: 14px; margin-block: 14px 6px; }
@@ -215,6 +224,7 @@ ul.plain { margin: 0; padding-left: 1.1rem; display: grid; gap: 4px; overflow-wr
   <header class="sign">
     <span class="plate"><i class="shield"></i><span id="plate">route map</span></span>
     <h1 id="heading">Route Map</h1>
+    <p class="counts" id="counts"></p>
     <p class="lede" id="lede"></p>
     <p class="asof" id="asof"></p>
   </header>
@@ -320,7 +330,11 @@ window.DATA = /*DATA*/null;
 
   // Mile markers: sums that add up, then subsets of the open rows, then what the format check found.
   const C = D.counts;
-  const marker = (k, text, tab) => tab
+  // The counts line under the title: each number opens its view; "Can I trust it?" below shows how they add up.
+  const count = (k, text, tab) => h('button', { class: 'count', type: 'button', onclick: () => show(tab) }, h('b', {}, String(k)), ' ' + text);
+  $('counts').replaceChildren(count(C.open, 'open', 'lanes'), count(C.yes, 'land now', 'land'), count(C.choice, 'small choice', 'queue'),
+    count(C.needYou, 'need you', 'queue'), count(D.doors.length, 'doors just opened', 'doors'));
+  const marker =(k, text, tab) => tab
     ? h('button', { class: 'marker', type: 'button', onclick: () => show(tab) }, h('b', {}, String(k)), h('span', {}, text))
     : h('div', { class: 'marker static' }, h('b', {}, String(k)), h('span', {}, text));
   const op = (s) => h('span', { class: 'op', 'aria-hidden': 'true' }, s);
@@ -390,6 +404,38 @@ window.DATA = /*DATA*/null;
   scrim.addEventListener('click', closeRow);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) closeRow(); });
 
+  // A button that shows "more" (hidden until then) and, while it shows, hides "less"; and back again.
+  const fold = (label, more, less) => {
+    more.hidden = true;
+    const b = h('button', { class: 'more', type: 'button', 'aria-expanded': 'false' }, label);
+    b.addEventListener('click', () => {
+      const open = more.hidden;
+      more.hidden = !open;
+      if (less) less.hidden = open;
+      b.setAttribute('aria-expanded', String(open));
+      b.textContent = open ? 'show less' : label;
+    });
+    return b;
+  };
+  // A station's first stops, and the rest behind "and N more".
+  const STOPS = 5;
+  const stopList = (ids) => {
+    const first = h('ul', { class: 'stops' }, ids.slice(0, STOPS).map(stopItem));
+    if (ids.length <= STOPS) return first;
+    const rest = h('ul', { class: 'stops' }, ids.slice(STOPS).map(stopItem));
+    return [first, rest, fold('and ' + (ids.length - STOPS) + ' more', rest)];
+  };
+  // Where we are, cut at the last space inside 600 characters as the short view is, the rest behind "more".
+  const whereCard = (w) => {
+    const paras = (t) => t.split('\n').map((l) => h('p', {}, md(l)));
+    const card = h('section', { class: 'card where' }, h('p', { class: 'label' }, 'Where we are' + (w.date ? ', ' + w.date : '')));
+    if (w.text.length <= 600) { card.append(...paras(w.text)); return card; }
+    const cut = w.text.slice(0, 600).replace(/\s+\S*$/, '') || w.text.slice(0, 600);
+    const short = h('div', {}, paras(cut + ' \u2026')), full = h('div', {}, paras(w.text));
+    card.append(short, full, fold('more', full, short));
+    return card;
+  };
+
   const legend = () => h('div', { class: 'legend' }, Object.keys(STATE).map((k) => h('span', {}, stop(k), STATE[k][1])));
   const stopItem = (id) => {
     const r = rows.get(id);
@@ -408,7 +454,7 @@ window.DATA = /*DATA*/null;
       st.doneWhen ? h('p', { class: 'trig' }, 'Done when: ', md(st.doneWhen)) : null,
       h('p', { class: 'status' }, st.stops.length ? n(st.stops.length, 'open row', 'open rows') + ' before it' : 'No open row before it.'),
       st.gate ? h('p', { class: 'status' }, 'Longest chain of waits: ' + n(st.chain, 'row', 'rows') + ', from the gate ', chipFor(st.gate)) : null,
-      st.stops.length ? h('ul', { class: 'stops' }, st.stops.map(stopItem)) : null));
+      st.stops.length ? stopList(st.stops) : null));
 
   // A numbered row with what it opens up, for Land now and the owner's queue.
   const qrow = (id, k, max, extra) => {
@@ -434,7 +480,7 @@ window.DATA = /*DATA*/null;
     lanes() {
       const w = D.whereWeAre;
       return section(
-        w ? h('section', { class: 'card where' }, h('p', { class: 'label' }, 'Where we are' + (w.date ? ', ' + w.date : '')), w.text.split('\n').map((l) => h('p', {}, md(l))))
+        w ? whereCard(w)
           : empty('No "where we are" was found: the settings name none, or its section is empty.'),
         intro("One lane per user path, drawn like a metro line: its stations are the path's milestones in order, the shared ones first. Each station lists the open rows before it (duties left out), each after the rows it waits on, the ones that can land first. The longest chain of waits is counted in rows, and the gate is the row it starts from. Select a row to see it."),
         legend(),

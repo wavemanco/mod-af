@@ -3,7 +3,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { renderPage } from '../hooks/core/page.ts'
-import { all, attr, clickAll, fire, memoryStorage, runPage } from '../tests/stub-dom.ts'
+import { all, attr, clickAll, El, fire, memoryStorage, runPage, S } from '../tests/stub-dom.ts'
 import { PATHS, SMALL } from '../tests/fixtures/page-data.ts'
 import type { PageData } from '../hooks/core/types.ts'
 
@@ -20,6 +20,61 @@ test('the script draws every view', () => {
   assert.ok(PATHS.findings.length > 0)
   const lanes = clickAll(renderPage(PATHS)).views.get('tab-lanes') ?? []
   assert.equal(lanes.filter(e => attr(e, 'class') === 'lane').length, 3)
+})
+
+// The reference page was about 36,000 px tall: every stop of every station, and all of a 4,000-character where-we-are.
+const text = (e: El) => e.textContent
+const BIG: PageData = (() => {
+  const base = SMALL.rows.find(r => r.id === 'B-001')!
+  const extra = Array.from({ length: 30 }, (_, i) => ({ ...base, id: `S-${String(i + 1).padStart(2, '0')}`, waitsOn: [], unlocks: [] }))
+  const lane = SMALL.lanes[0]
+  return { ...SMALL, rows: [...SMALL.rows, ...extra],
+    whereWeAre: { ...SMALL.whereWeAre!, text: 'word '.repeat(800) + 'END' },
+    lanes: [{ ...lane, stations: [{ ...lane.stations[0], stops: extra.map(r => r.id) }, ...lane.stations.slice(1)] }] }
+})()
+
+test('a station of 30 stops shows its first 5, and an "and 25 more" control opens the rest', () => {
+  const { errors, opened } = clickAll(renderPage(BIG))
+  assert.deepEqual(errors, [])
+  assert.ok(opened.has('S-30')) // every stop is still there to open
+  const pg = runPage(renderPage(BIG))
+  const view = all(pg.el('views')!)
+  const [shown, rest] = view.filter(e => attr(e, 'class') === 'stops')
+  assert.equal(shown.children.length, 5)
+  assert.equal(rest.children.length, 25)
+  assert.equal(rest.hidden, true)
+  const more = view.find(e => e[S].tag === 'button' && text(e) === 'and 25 more')
+  assert.ok(more, 'no "and 25 more" control')
+  fire(more, 'click')
+  assert.equal(rest.hidden, false)
+  assert.equal(attr(more, 'aria-expanded'), 'true')
+  fire(more, 'click')
+  assert.equal(rest.hidden, true)
+  assert.equal(text(more), 'and 25 more')
+})
+
+test('a long where-we-are is cut at a word near 600 characters, with a "more" toggle', () => {
+  const pg = runPage(renderPage(BIG))
+  const where = all(pg.el('views')!).find(e => attr(e, 'class') === 'card where')!
+  const [, short, full] = where.children
+  assert.ok(!short.hidden && full.hidden)
+  assert.ok(text(short).length <= 610 && text(short).length > 500, String(text(short).length))
+  assert.ok(!text(short).includes('END') && /word …$/.test(text(short)))
+  const more = where.children.find(e => e[S].tag === 'button' && text(e) === 'more')!
+  fire(more, 'click')
+  assert.ok(short.hidden && !full.hidden && text(full).endsWith('END'))
+  // a short one is shown whole, with no toggle
+  const small = all(runPage(renderPage(SMALL)).el('views')!).find(e => attr(e, 'class') === 'card where')!
+  assert.equal(small.children.filter(e => e[S].tag === 'button').length, 0)
+})
+
+test('a counts line under the title links each number to its view', () => {
+  const pg = runPage(renderPage(SMALL))
+  const counts = pg.el('counts')!.children
+  assert.deepEqual(counts.map(text), [`${SMALL.counts.open} open`, `${SMALL.counts.yes} land now`, `${SMALL.counts.choice} small choice`,
+    `${SMALL.counts.needYou} need you`, `${SMALL.doors.length} doors just opened`])
+  const tab = () => pg.el('tabs')!.children.find(t => attr(t, 'aria-selected') === 'true')!
+  assert.deepEqual(counts.map(c => { fire(c, 'click'); return attr(tab(), 'id') }), ['tab-lanes', 'tab-land', 'tab-queue', 'tab-queue', 'tab-doors'])
 })
 
 // Opens the page, shows Changed since, and picks a commit if asked: the chosen option and the view's text.
