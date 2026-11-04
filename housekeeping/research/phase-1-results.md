@@ -16,17 +16,20 @@ reference repository's files at the commit the local notes record.
 | The short view fits | Pass | 6,601 characters on the reference repository, under the 8,000 limit (about 2,000 tokens); a test pins a huge where-we-are text inside the limit. |
 | Privacy holds | Pass after the final check's fix wave | The final check found that the key pattern matched the end of ordinary words, so a commit subject such as `.../task-add-the-export-endpoint` blocked the page for good, with only "the page" named (finding 4). Now, at the owner's choice: a personal email address planted in a row makes `map` refuse and name the row; one in a commit subject is masked in the page (two characters at each end) and the page builds; a hit anywhere else blocks the page and gives the masked text. The key pattern needs a word boundary on its left; the no-reply allow list matches `users.noreply.github.com` exactly, with no "+noreply" local-part rule; example addresses pass; key shapes are found. The code never reads a commit author, so none can appear. |
 | The page is ready to show: size | Pass | 680,692 bytes on the reference repository after the final check's fix wave (679,535 before it), under 1,000,000. |
-| The page is ready to show: readable at the reference size | Fail at first; pass by measurement after the fix wave, pending the owner's live check | The controller's visual check found the Lanes view about 36,000 px tall, every stop of every station listed and a 4,000-character "where we are" filling the first screen (final check, finding 9). Now each station shows its first 5 stops with "and N more" to open the rest, "where we are" is cut at a word inside 600 characters with "more", and a counts line under the title links each number to its view. Drawn on the stub DOM, the reference page's Lanes view shows 49 of its 223 stops and 591 characters of "where we are" before anything is opened (page tests, plus that draw). Not yet seen in a browser. |
+| The page is ready to show: readable at the reference size | Fail at first; pass by measurement after the fix wave; the owner's live check of 2026-11-04: "everything is working as you described it against the prompts before" | The controller's visual check found the Lanes view about 36,000 px tall, every stop of every station listed and a 4,000-character "where we are" filling the first screen (final check, finding 9). Now each station shows its first 5 stops with "and N more" to open the rest, "where we are" is cut at a word inside 600 characters with "more", and a counts line under the title links each number to its view. Drawn on the stub DOM, the reference page's Lanes view shows 49 of its 223 stops and 591 characters of "where we are" before anything is opened (page tests, plus that draw). Not yet seen in a browser. |
 | The page is ready to show: the Node command gives the same page | Pass | Byte-identical (see determinism). |
-| The page is ready to show: light, dark and phone width | Pass by measurement, pending the owner's live check | Both dark selectors are present and the colours switch; at 1280 and 375 pixels no sideways scroll. The built-in browser timed out on every screenshot, so spacing and type were not seen by eye. The visual check is pending the owner's live check. |
+| The page is ready to show: light, dark and phone width | Pass; the owner's live check of 2026-11-04: "everything is working as you described it against the prompts before". The owner found no way to pick light or dark, so a Light / Dark / System switch was added (see DESIGN.md section 9) | Both dark selectors are present and the colours switch; at 1280 and 375 pixels no sideways scroll. The built-in browser timed out on every screenshot, so spacing and type were not seen by eye. The page was then seen by the owner in light and dark through the system setting. |
 
 ## Not run live
 
-These need a live session with the owner present and are pending the owner's live check:
+These needed a live session with the owner present. The owner's result of 2026-11-04: "everything is working as you
+described it against the prompts before". So, now done:
 
-- the pane and the status line in a real session;
-- publishing to an artifact (the first publish is the owner's go-ahead, and the real result and refusal shapes are untested);
-- the visual check of the page, as above.
+- the pane and the status line in a real session: works;
+- `check`: works;
+- publishing the map to an artifact, then republishing to the same link (the overwrite that used to fail): works;
+- the page seen in light and dark through the system setting: works. The owner found no way to choose, so a
+  Light / Dark / System switch was added on the same day, remembered per viewer, with tests on the stub DOM.
 
 The test kit covers their logic only.
 

@@ -257,6 +257,8 @@ check keeps it under 1 MB. The reference repository's page is 808 KB today, much
 | Can I trust it | **Header** | The commit and date the page was built from, and whether the local main is behind a known remote copy. Every count is computed. |
 | | **Warnings**, shown only when there is one | The warnings and recommendations from 3.4. |
 
+
+The page has a Light / Dark / System switch in its header, System by default, and remembers the choice per viewer in the browser (decided 2026-11-04).
 ### 3.6 The short view and the agent's brief
 
 The short view comes from the same core and runs to about 2,000 tokens at most:
@@ -615,6 +617,7 @@ Stop, report and wait for the owner when:
 | 2026-11-03 | Committing the page | "ok. agree on uncommitted." | The page is built from the committed files, so it needs no history of its own, and the plugin never commits (section 4); `init` git-ignores `.housekeeping/` | Committing the page: a second copy of the record in the history | A repository that wants the page under version control commits it itself |
 | 2026-11-03 | A privacy hit in a commit subject | "Mask it in subjects (Recommended)" | A commit subject cannot be edited, so refusing the page for one blocked it for good; and the check named only "the page" (final check, finding 4) | Refusing the page and naming the commit whose subject holds the hit: it still blocks for good. Leaving the check as it was: it also tripped on ordinary words such as `task-add-...` | A hit in a row still blocks the page and names the row; a hit anywhere else blocks it and gives the masked text. The key pattern now needs a word boundary on its left |
 | 2026-11-03 | The counts at the top of the page | "Yes, a counts line up top (Recommended)" | On the reference repository's page the counts sat below the views, under a Lanes view about 36,000 px tall and a 4,000-character "where we are" (final check, finding 9) | Moving the whole "Can I trust it?" section up: it is long and pushes the lanes down. Leaving the counts below only | The full "Can I trust it?" section stays below and shows how every sum adds up |
+| 2026-11-04 | Theme switch | "Yes, add the switch" | The owner's live check found no way to pick light or dark ("I didn;t see light vs dark background option in either") | "No, follow the system": the page followed the system theme only | The page still follows the system when nothing is stored |
 
 ## 10. Calls Claude made, for the owner to check
 
