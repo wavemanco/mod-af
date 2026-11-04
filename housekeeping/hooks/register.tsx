@@ -3,6 +3,7 @@ import { readInput, repoKey, writeFile } from './adapter.ts'
 import { brief } from './core/brief.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
+import { initFiles } from './core/templates.ts'
 import type { BuildOutput } from './core/types.ts'
 
 type Loaded = { root: string; out: BuildOutput; sha: string; text: string; failed: boolean; project: string } | { error: string }
@@ -31,6 +32,39 @@ function statusLine(out: BuildOutput): string {
   return `${out.data.counts.yes} land now · ${out.data.counts.needYou} need you · next: ${where}`
 }
 
+const GUIDE_LINE = 'At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.'
+
+// Never overwrites: an existing file is left as it is, except .gitignore and AGENTS.md, which get a line appended when it is missing.
+async function init($: EngineInterface): Promise<{ text: string; exitCode?: number }> {
+  const root = await $.session.root()
+  const wrote: string[] = [], kept: string[] = []
+  const said = () => wrote.map(p => `wrote ${p}`)
+  const put = async (path: string, content: string) => {
+    const denied = await writeFile($, `${root}/${path}`, content)
+    if (denied !== null) throw new Error(denied)
+    wrote.push(path)
+  }
+  const nl = (s: string) => (s === '' || s.endsWith('\n') ? '' : '\n')
+  try {
+    for (const f of initFiles(root.split(/[\\/]/).filter(Boolean).pop() ?? 'project', 'main')) {
+      const file = `${root}/${f.path}`
+      if (!(await $.fs.exists(file))) { await put(f.path, f.content); continue }
+      const old = f.path === '.gitignore' ? await $.fs.read(file) : null
+      if (old !== null && !old.split(/\r?\n/).some(l => l.trim() === f.content.trim())) await put(f.path, old + nl(old) + f.content)
+      else kept.push(f.path)
+    }
+    let guide = 'no AGENTS.md here, so no agent-guide line was added (init creates no guide file)'
+    if (await $.fs.exists(`${root}/AGENTS.md`)) {
+      const old = await $.fs.read(`${root}/AGENTS.md`)
+      if (old.includes(GUIDE_LINE)) guide = 'AGENTS.md already has the agent-guide line'
+      else { await put('AGENTS.md', `${old}${nl(old)}\n${GUIDE_LINE}\n`); guide = 'added the agent-guide line to AGENTS.md' }
+    }
+    return { text: ['housekeeping: init', ...said(), ...kept.map(p => `${p}: left as it is`), guide].join('\n') }
+  } catch (err) {
+    return { text: [...said(), (err as Error).message].join('\n'), exitCode: 1 }
+  }
+}
+
 export const register: Register = on => {
   let view = 'housekeeping: run /housekeeping to build the short view.'
 
@@ -44,7 +78,7 @@ export const register: Register = on => {
 
   on('command.run', { command: 'housekeeping' }, async ($, e) => {
     const arg = e.args.trim()
-    if (arg === 'init') return { text: 'housekeeping: init arrives in a later task' }
+    if (arg === 'init') return init($)
     if (arg !== '' && arg !== 'check' && arg !== 'map') return { text: 'housekeeping: [map | check | init]; no argument opens the short view' }
     const l = await load($)
     if ('error' in l) return { text: l.error, exitCode: 1 }

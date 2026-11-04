@@ -56,3 +56,14 @@ How the files are read:
 - **Where we are.** The first paragraph under the configured heading, or, with a `marker`, the paragraph that starts with it. Its date is the first `YYYY-MM-DD` in its first 80 characters.
 - **Missing file.** A file that cannot be read is an error (`file`); the other is still read.
 - **Not doing.** With `notDoing` set, the rows of the table under that `##` heading read as item, why and reopen condition (cells 0, 1 and 2). A missing section gives an empty list, not a finding.
+
+## New repositories
+
+`/housekeeping init` sets up a repository that has no records yet. It writes four things and never overwrites:
+
+- `docs/backlog.md`: the backlog definition, a short `## How this file is kept`, then `## Where we are`, `## Open` (an empty table with the columns ID, Item, Priority, Milestone, Who, Land now, Trigger type, Trigger, Waits on, Details and Filed) and `## Done` (ID, Item, Milestone, Landed).
+- `docs/playbook.md`: the playbook definition, then the same `## Open` and `## Done`.
+- `.housekeeping.json`: one path named after the folder, with no milestones, and Done readers for both files with `milestoneColumn: 2`.
+- `.gitignore`: the line `.housekeeping/`, appended only when it is missing.
+
+A file that already exists is listed as "left as it is". If the repository has an `AGENTS.md` without the agent-guide line, init appends `At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.` It creates no guide file; with none, it says so. The reply lists every file it wrote.
