@@ -13,6 +13,7 @@ test('fills the placeholder once', () => {
   const html = renderPage(SMALL)
   expect(html.split('window.DATA = {').length).toBe(2)
   expect(ascii(TEMPLATE)).toBe(true)
+  expect(TEMPLATE.includes('\r')).toBe(false)
   expect(ascii(html)).toBe(true)
   expect(html.split('</script>').length).toBe(TEMPLATE.split('</script>').length)
 })

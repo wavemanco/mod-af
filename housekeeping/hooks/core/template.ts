@@ -519,4 +519,4 @@ window.DATA = /*DATA*/null;
   show('lanes');
 })();
 </script>
-`
+`.replace(/\r/g, '') // a CRLF checkout must give the same page
