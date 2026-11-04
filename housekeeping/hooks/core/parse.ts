@@ -47,7 +47,8 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
     else text[f] = normalise(files[f] as string)
   }
   const c = s.columns
-  const known = new Set(Object.values(c))
+  // Trigger type stays in `extra` (Row has no field for it), so findings can check its values
+  const known = new Set(Object.values(c).filter(h => h !== c.triggerType))
   const seen = new Set<string>()
 
   for (const f of KEYS) {
@@ -56,6 +57,10 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
       if (skip.some(p => t.section.startsWith(p))) continue
       const col = (name: string | undefined) => (name === undefined ? -1 : t.header.indexOf(name))
       if (col(c.id) < 0 || col(c.item) < 0) continue
+      for (const [key, name] of Object.entries(c))
+        if (!['id', 'item', 'details', 'filed', 'priority', 'triggerType'].includes(key) && col(name) < 0)
+          out.findings.push({ level: 'error', rule: 'column-missing', file: f, line: t.line,
+            message: `the table under "${t.section}" has no "${name}" column in ${s.files[f].path}` })
       for (const r of t.rows) {
         if (r.cells.length !== t.header.length)
           out.findings.push({ level: 'warning', rule: 'columns', file: f, line: r.line,
@@ -76,6 +81,24 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
         out.rows.push(row)
       }
     }
+  }
+
+  // List items in pending sections belong in a table.
+  for (const f of KEYS) {
+    const nd = s.notDoing?.file === f ? [s.notDoing.heading] : []
+    const w = s.whereWeAre?.file === f ? [s.whereWeAre.heading] : []
+    const skip = [...s.files[f].skipSections, ...s.done.filter(d => d.file === f).map(d => d.sectionPrefix),
+      ...s.checklists.filter(k => k.file === f).map(k => k.heading), ...nd, ...w]
+    let section: string | null = null, fenced = false
+    text[f].split('\n').forEach((l, i) => {
+      if (FENCE.test(l)) { fenced = !fenced; return }
+      if (fenced) return
+      const h = HEADING.exec(l)
+      if (h && h[1].length <= 2) { section = h[1] === '##' ? h[2] : null; return }
+      if (section !== null && !skip.some(p => section!.startsWith(p)) && /^(?:[-*+]|\d+\.)\s/.test(l))
+        out.findings.push({ level: 'warning', rule: 'not-in-table', file: f, line: i + 1,
+          message: `a list item under "${section}" is in no table` })
+    })
   }
 
   for (const d of s.done) for (const t of scanTables(text[d.file])) {
