@@ -1,7 +1,11 @@
 // The page: one HTML file, ASCII only, whose window.DATA renderPage fills. A port of the reference repository's
 // page template. It sits in String.raw, so its script uses no backtick (regexes write it \x60) and no dollar-brace.
 export const TEMPLATE = String.raw`<title>Route Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Semi+Condensed:wght@600;800&display=swap">
 <!--
   The page's template. renderPage (hooks/core/page.ts) fills window.DATA from the backlog, the playbook and the
   commit they were read at, and nothing else: every row below is a row of those files. Keep this file ASCII
@@ -9,6 +13,7 @@ export const TEMPLATE = String.raw`<title>Route Map</title>
   guesses its encoding. The page reads no clock and no network: the same data gives the same page.
 -->
 <style>
+/* hallmark: wayfinding board, one colour per line, labels in the body face, lanes first */
 /* A wayfinding board: each user path is a metro line, its milestones are stations, and rows are stops. */
 :root {
   --bg: #f2f3f1;
@@ -25,8 +30,9 @@ export const TEMPLATE = String.raw`<title>Route Map</title>
   --done: #8a918d;
   --chip: #e7eae7;
   --focus: #2c5aa0;
-  --display: "Trebuchet MS", system-ui, sans-serif;
-  --body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --l1: #c0392b; --l2: #1f6fb2; --l3: #2f8f4e; --l4: #8e44ad; --l5: #c27a0e; --l6: #00838f;
+  --display: "Barlow Semi Condensed", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
   --s-1: 0.8125rem; --s0: 0.9375rem; --s1: 1.0625rem; --s2: 1.3rem; --s3: 1.75rem; --s4: 2.4rem;
 }
@@ -35,14 +41,17 @@ export const TEMPLATE = String.raw`<title>Route Map</title>
     --bg: #141716; --panel: #1c201e; --ink: #e7e9e6; --muted: #a2aaa5; --rule: #323835;
     --accent: #c98c5a; --accent-ink: #1a120c; --ok: #5fbf86; --stop: #ec7e6a; --wait: #e2b24e; --ask: #84aaf0; --done: #7c8480;
     --chip: #262b29; --focus: #84aaf0; color-scheme: dark;
+    --l1: #ee7a6b; --l2: #6fb0ec; --l3: #66c487; --l4: #c58ce0; --l5: #e8b04e; --l6: #4fc3cf;
   }
 }
 :root[data-theme="dark"] {
   --bg: #141716; --panel: #1c201e; --ink: #e7e9e6; --muted: #a2aaa5; --rule: #323835;
   --accent: #c98c5a; --accent-ink: #1a120c; --ok: #5fbf86; --stop: #ec7e6a; --wait: #e2b24e; --ask: #84aaf0; --done: #7c8480;
   --chip: #262b29; --focus: #84aaf0; color-scheme: dark;
+  --l1: #ee7a6b; --l2: #6fb0ec; --l3: #66c487; --l4: #c58ce0; --l5: #e8b04e; --l6: #4fc3cf;
 }
 * { box-sizing: border-box; }
+html, body { overflow-x: clip; }
 body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: var(--s0); line-height: 1.5; margin: 0; }
 .wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 56px; }
 h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
@@ -55,17 +64,20 @@ code { font-family: var(--mono); font-size: 0.88em; background: var(--chip); pad
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .mono { font-family: var(--mono); font-size: var(--s-1); }
 .muted { color: var(--muted); }
-.label { font-family: var(--display); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.label { font-weight: 600; font-size: var(--s-1); color: var(--muted); }
 
 /* Header: a guide sign. */
 .sign { display: grid; gap: 14px; grid-template-columns: 1fr; align-items: end; padding-block: 8px 18px; border-bottom: 3px solid var(--ink); }
-.sign .plate { display: inline-flex; align-items: center; gap: 10px; background: var(--accent); color: var(--accent-ink); font-family: var(--display); font-weight: 800; font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 5px 10px 3px; border-radius: 4px; max-width: 100%; overflow-wrap: anywhere; }
+.sign .plate { display: inline-flex; align-items: center; gap: 10px; background: var(--accent); color: var(--accent-ink); font-family: var(--display); font-weight: 800; font-size: var(--s0); padding: 5px 10px 3px; border-radius: 4px; max-width: 100%; overflow-wrap: anywhere; }
 .sign .plate .shield { width: 14px; height: 16px; flex: none; background: var(--accent-ink); clip-path: polygon(50% 0, 100% 18%, 92% 72%, 50% 100%, 8% 72%, 0 18%); }
 .sign .lede { max-width: 68ch; color: var(--muted); font-size: var(--s1); }
 .asof { font-family: var(--mono); font-size: var(--s-1); color: var(--muted); overflow-wrap: anywhere; }
 
 /* Mile markers: the numbers, as sums that add up. */
-.strips { display: grid; gap: 14px; margin-block: 18px 6px; }
+.strips { display: grid; gap: 14px; margin-block: 14px 6px; }
+.trust { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--ink); }
+.trust h2 { font-size: var(--s3); font-weight: 800; }
+.trust .lede { color: var(--muted); }
 .strip { display: grid; gap: 6px; min-width: 0; }
 .eq { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
 .op { align-self: center; font-family: var(--display); font-weight: 800; font-size: var(--s2); color: var(--muted); flex: none; }
@@ -94,20 +106,23 @@ code { font-family: var(--mono); font-size: 0.88em; background: var(--chip); pad
 
 /* Lanes: one metro line per user path, its milestones as stations. */
 .lanes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 16px; align-items: start; }
-.lane { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; min-width: 0; }
+.lane:nth-child(6n+1) { --line: var(--l1); } .lane:nth-child(6n+2) { --line: var(--l2); } .lane:nth-child(6n+3) { --line: var(--l3); }
+.lane:nth-child(6n+4) { --line: var(--l4); } .lane:nth-child(6n+5) { --line: var(--l5); } .lane:nth-child(6n) { --line: var(--l6); }
+.lane { --line: var(--accent); background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; min-width: 0; border-top: 6px solid var(--line); }
 .lane > header { padding: 14px 16px 12px; display: grid; gap: 6px; border-bottom: 1px solid var(--rule); }
-.lane .when { font-family: var(--mono); font-size: var(--s-1); color: var(--accent); }
+.lane .when { font-size: var(--s-1); font-weight: 600; color: var(--ink); }
+.lane h3 { font-size: var(--s2); }
 .lane .none { padding: 12px 16px 14px; color: var(--muted); font-size: var(--s-1); }
 .status { color: var(--muted); font-size: var(--s-1); overflow-wrap: anywhere; }
 .metro { list-style: none; margin: 0; padding: 12px 16px 14px; }
 .station { position: relative; display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding-block: 8px; }
-.station::before { content: ""; position: absolute; left: 9px; top: 0; bottom: 0; width: 4px; background: var(--accent); }
+.station::before { content: ""; position: absolute; left: 9px; top: 0; bottom: 0; width: 6px; margin-left: -1px; background: var(--line); }
 .station:first-child::before { top: 18px; }
 .station:last-child::before { bottom: calc(100% - 18px); }
 .station:only-child::before { display: none; }
-.station .dot { position: relative; z-index: 1; width: 22px; height: 22px; border-radius: 50%; border: 4px solid var(--accent); background: var(--panel); margin-top: 2px; }
-.station.reached .dot { background: var(--accent); }
-.station.next .dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent); }
+.station .dot { position: relative; z-index: 1; width: 22px; height: 22px; border-radius: 50%; border: 4px solid var(--line); background: var(--panel); margin-top: 2px; }
+.station.reached .dot { background: var(--line); }
+.station.next .dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--line) 30%, transparent); }
 .station.reached .sname { color: var(--muted); }
 .sbody { display: grid; gap: 6px; min-width: 0; }
 .sname { font-family: var(--display); font-weight: 800; font-size: var(--s1); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; overflow-wrap: anywhere; }
@@ -166,7 +181,7 @@ span.chip:hover { border-color: var(--rule); }
 .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
 table { border-collapse: collapse; width: 100%; font-size: var(--s-1); }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
-th { font-family: var(--display); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); position: sticky; top: 0; background: var(--panel); }
+th { font-weight: 600; font-size: var(--s-1); color: var(--muted); position: sticky; top: 0; background: var(--panel); }
 td.wide { min-width: 16rem; }
 
 /* Row detail. */
@@ -204,11 +219,15 @@ ul.plain { margin: 0; padding-left: 1.1rem; display: grid; gap: 4px; overflow-wr
     <p class="asof" id="asof"></p>
   </header>
 
-  <div class="strips" id="markers"></div>
-
   <nav class="tabs" role="tablist" aria-label="Views" id="tabs"></nav>
 
   <main id="views"></main>
+
+  <section class="trust" aria-labelledby="trusth">
+    <h2 id="trusth">Can I trust it?</h2>
+    <p class="lede">Every number is computed from the open rows, and each sum adds up.</p>
+    <div class="strips" id="markers"></div>
+  </section>
 </div>
 
 <div class="scrim" id="scrim" hidden></div>
@@ -238,7 +257,8 @@ window.DATA = /*DATA*/null;
     for (const k of kids.flat(Infinity)) if (k != null && k !== false) el.append(typeof k === 'object' ? k : document.createTextNode(String(k)));
     return el;
   };
-  const DOT = ' \u00b7 ';
+  const SEP = ', ';
+  const DOT = ' \u00b7 '; // only the drawer's kind line: the tests' stub DOM splits on it
   const n = (k, one, many) => k + ' ' + (k === 1 ? one : many);
   const rows = new Map(D.rows.map((r) => [r.id, r]));
   const closed = new Map();
@@ -293,7 +313,7 @@ window.DATA = /*DATA*/null;
   const empty = (text) => h('p', { class: 'empty' }, text);
 
   // The header.
-  $('plate').textContent = D.project + DOT + 'route map';
+  $('plate').textContent = D.project + SEP + 'route map';
   $('heading').textContent = 'Where ' + D.project + ' stands, and where it goes next';
   $('lede').textContent = 'Every row here is an open row of the backlog or the playbook, and every number is computed from them.';
   $('asof').textContent = 'Built from commit ' + D.commit + ' (' + D.date + ').';
@@ -351,7 +371,7 @@ window.DATA = /*DATA*/null;
     item('Trigger', md(r.trigger));
     if (r.defaultUntilDecided !== null) item('Default until decided', md(r.defaultUntilDecided));
     item('Filed', r.filed || 'not given');
-    item('First seen', r.firstSeen ? r.firstSeen.date + DOT + r.firstSeen.sha + DOT + r.firstSeen.subject : 'not in the history read');
+    item('First seen', r.firstSeen ? r.firstSeen.date + SEP + r.firstSeen.sha + SEP + r.firstSeen.subject : 'not in the history read');
     item('Where', FILES[r.file][1] + ', line ' + r.line);
     item('Opens', n(r.opens, 'row', 'rows') + ' in all');
     const body = $('dbody');
@@ -377,7 +397,7 @@ window.DATA = /*DATA*/null;
     const s = stateOf(r);
     return h('li', {}, stop(s), opener(id, { class: 'go', 'aria-label': id + ': ' + plain(r.item) + '. ' + STATE[s][1] + '. When: ' + plain(r.trigger) },
       h('span', { class: 't' }, plain(r.item)),
-      h('span', { class: 'who' }, fileTag(r), prio(r), id + DOT + r.who + DOT + STATE[s][1].toLowerCase()),
+      h('span', { class: 'who' }, fileTag(r), prio(r), id + SEP + r.who + SEP + STATE[s][1].toLowerCase()),
       h('span', { class: 'trig' }, 'When: ' + plain(r.trigger))));
   };
   const station = (st, next) => h('li', { class: 'station' + (st.reached ? ' reached' : st.milestone === next ? ' next' : '') },
@@ -394,7 +414,7 @@ window.DATA = /*DATA*/null;
   const qrow = (id, k, max, extra) => {
     const r = rows.get(id);
     return h('div', { class: 'qrow' }, h('span', { class: 'n' }, String(k + 1)), h('div', { class: 'body' },
-      opener(id, { class: 'go' }, h('span', { class: 't' }, plain(r.item)), h('span', { class: 'who' }, fileTag(r), prio(r), id + DOT + 'who: ' + r.who + DOT + (r.milestones.join(', ') || 'no milestone'))),
+      opener(id, { class: 'go' }, h('span', { class: 't' }, plain(r.item)), h('span', { class: 'who' }, fileTag(r), prio(r), id + SEP + 'who: ' + r.who + SEP + (r.milestones.join(', ') || 'no milestone'))),
       extra(r),
       r.opens ? [h('div', { class: 'bar', role: 'img', 'aria-label': 'opens ' + n(r.opens, 'row', 'rows') }, h('i', { style: 'width:' + Math.round((r.opens / max) * 100) + '%' })),
         h('p', { class: 'trig' }, 'Opens ' + n(r.opens, 'row', 'rows') + ' in all. Waiting on it directly:'), chips(r.unlocks)] : null));
@@ -410,7 +430,7 @@ window.DATA = /*DATA*/null;
     lanes() {
       const w = D.whereWeAre;
       return section(
-        w ? h('section', { class: 'card where' }, h('p', { class: 'label' }, 'Where we are' + (w.date ? DOT + w.date : '')), w.text.split('\n').map((l) => h('p', {}, md(l))))
+        w ? h('section', { class: 'card where' }, h('p', { class: 'label' }, 'Where we are' + (w.date ? ', ' + w.date : '')), w.text.split('\n').map((l) => h('p', {}, md(l))))
           : empty('No "where we are" was found: the settings name none, or its section is empty.'),
         intro("One lane per user path, drawn like a metro line: its stations are the path's milestones in order, the shared ones first. Each station lists the open rows before it (duties left out), each after the rows it waits on, the ones that can land first. The longest chain of waits is counted in rows, and the gate is the row it starts from. Select a row to see it."),
         legend(),
@@ -418,7 +438,7 @@ window.DATA = /*DATA*/null;
           const nx = l.stations.find((st) => st.milestone === l.next);
           return h('section', { class: 'lane', 'aria-label': 'Path ' + l.path },
             h('header', {}, h('p', { class: 'when' }, nx ? 'next: ' + nx.milestone : 'all reached'), h('h3', {}, l.path),
-              h('p', { class: 'status' }, nx ? n(nx.stops.length, 'open row', 'open rows') + ' before ' + nx.milestone + (nx.chain ? DOT + 'longest chain ' + n(nx.chain, 'row', 'rows') : '') : 'Every milestone on this path is reached.'),
+              h('p', { class: 'status' }, nx ? n(nx.stops.length, 'open row', 'open rows') + ' before ' + nx.milestone + (nx.chain ? SEP + 'longest chain ' + n(nx.chain, 'row', 'rows') : '') : 'Every milestone on this path is reached.'),
               nx && nx.doneWhen ? h('p', { class: 'trig' }, 'Done when: ', md(nx.doneWhen)) : null),
             l.stations.length ? h('ol', { class: 'metro' }, l.stations.map((st) => station(st, l.next))) : h('p', { class: 'none' }, 'This path names no milestone.'));
         })));
@@ -432,7 +452,7 @@ window.DATA = /*DATA*/null;
         sinceSha = e.target.value;
         try { localStorage.setItem(KEY, sinceSha); } catch (err) { /* a convenience only */ }
         show('since');
-      } }, H.map((e, i) => h('option', { value: e.sha, selected: i === k }, e.sha + DOT + e.date + DOT + e.subject)));
+      } }, H.map((e, i) => h('option', { value: e.sha, selected: i === k }, e.sha + SEP + e.date + SEP + e.subject)));
       const after = H.slice(0, k);
       const sum = (f) => after.reduce((t, e) => t + e[f].length, 0);
       const o = sum('opened'), c = sum('closed');
@@ -458,7 +478,7 @@ window.DATA = /*DATA*/null;
       const max = maxOpens(D.queue.map((q) => q.id));
       return section(intro("What needs the owner's decision or act: the rows whose Land now is a small choice, and those whose Who is owner or both. The ones that hold up the most rows come first, then the earlier milestone, then the higher priority. Triggers are steps, not dates, so when is told as the milestone a row comes before, and on which paths."),
         D.queue.length ? h('div', { class: 'queue' }, D.queue.map((q, k) => qrow(q.id, k, max, (r) => [
-          h('p', {}, h('strong', {}, 'Before: '), q.before === null ? 'no milestone; it waits for its trigger' : q.before + (q.paths.length ? ' (on ' + q.paths.join(', ') + ')' : ' (on no path)'), DOT + 'holds up ' + n(q.holdsUp, 'row', 'rows')),
+          h('p', {}, h('strong', {}, 'Before: '), q.before === null ? 'no milestone; it waits for its trigger' : q.before + (q.paths.length ? ' (on ' + q.paths.join(', ') + ')' : ' (on no path)'), SEP + 'holds up ' + n(q.holdsUp, 'row', 'rows')),
           h('p', {}, landPill(r), r.landNowWhy ? [' ', md(r.landNowWhy)] : null),
           r.defaultUntilDecided === null ? null : h('p', {}, h('strong', {}, 'Default until decided: '), md(r.defaultUntilDecided))]))) : empty('Nothing waits on the owner.'));
     },
@@ -466,7 +486,7 @@ window.DATA = /*DATA*/null;
       const entry = (id, extra) => {
         const r = rows.get(id);
         return h('li', {}, stop(stateOf(r)), h('div', { class: 'body' },
-          opener(id, { class: 'go' }, h('span', { class: 't' }, plain(r.item)), h('span', { class: 'who' }, fileTag(r), prio(r), id + DOT + r.who)), extra(r)));
+          opener(id, { class: 'go' }, h('span', { class: 't' }, plain(r.item)), h('span', { class: 'who' }, fileTag(r), prio(r), id + SEP + r.who)), extra(r)));
       };
       const part = (title, text, ids, extra) => h('div', { class: 'section' }, h('h3', {}, title + ' (' + ids.length + ')'), intro(text),
         ids.length ? h('ul', { class: 'items' }, ids.map((id) => entry(id, extra))) : empty('None.'));
@@ -479,7 +499,7 @@ window.DATA = /*DATA*/null;
         part('Waiting on other rows', 'Rows that wait on open rows; they come back when those close.', D.waitingOnRows, (r) => [h('p', { class: 'trig' }, 'Waits on:'), chips(r.waitsOn), needs(r)]),
         part('Triggers read by hand', 'Rows that wait on something outside the files: a reader checks each trigger.', D.byHand, (r) => [h('p', { class: 'trig' }, 'When: ', md(r.trigger)), needs(r)]),
         part('Duties', 'Standing duties recur and never close. The ones done longest ago come first, then those with no "Last done" date.', duties.map((x) => x.id),
-          (r) => h('p', { class: 'trig' }, md(r.trigger), DOT + (duty.get(r.id).lastDone ? 'last done ' + duty.get(r.id).lastDone : 'no "Last done" date'))));
+          (r) => h('p', { class: 'trig' }, md(r.trigger), SEP + (duty.get(r.id).lastDone ? 'last done ' + duty.get(r.id).lastDone : 'no "Last done" date'))));
     },
     checklists() {
       if (!D.checklists.length) return section(empty('The settings name no checklist, or the checklists have no lines.'));

@@ -63,3 +63,16 @@ test('pageData derives the queue, defaults, duties, first seen and history', () 
   expect([row('PB-01').unlocks, row('PB-01').opens, row('PB-01').landNow]).toEqual([['B-002'], 1, 'no'])
   expect(d.history.map(h => h.subject)).toEqual(['step 2', 'step 1'])
 })
+
+test('the design: lanes first, a colour per line, no tracked capitals, both dark selectors', () => {
+  expect(TEMPLATE.indexOf('id="views"')).toBeLessThan(TEMPLATE.indexOf('id="markers"'))
+  expect(TEMPLATE).toContain('--line: var(--l1)')
+  expect(TEMPLATE).toContain('--l6:')
+  expect(TEMPLATE).not.toContain('text-transform: uppercase')
+  expect(TEMPLATE.split('u00b7').length).toBe(2) // the drawer's kind line only
+  expect(TEMPLATE).toContain(':root:not([data-theme="light"])')
+  expect(TEMPLATE).toContain(':root[data-theme="dark"]')
+  expect(TEMPLATE).toContain('fonts.googleapis.com')
+  expect(TEMPLATE).toContain('name="viewport"')
+  expect(TEMPLATE.split('window.DATA = /*DATA*/null;').length).toBe(2)
+})
