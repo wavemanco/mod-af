@@ -43,7 +43,7 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>): 
   const waits = (c: string) => list(c).filter(x => x !== s.none)
   const text: Record<FileKey, string> = { backlog: '', playbook: '' }
   for (const f of KEYS) {
-    if (files[f] === null) out.findings.push({ level: 'error', rule: 'file', file: f, message: `${s.files[f].path} is missing` })
+    if (files[f] === null) out.findings.push({ level: 'error', rule: 'file', file: f, message: `${s.files[f].path} is not on ${s.mainBranch}` })
     else text[f] = normalise(files[f] as string)
   }
   const c = s.columns

@@ -18,6 +18,7 @@ type World = {
   calls?: { tool: string; action?: string; url?: string; file_path?: string; title?: string }[]
   stored?: Record<string, unknown>
   argv?: string[][]
+  noBranch?: boolean
 }
 
 // The engine stand-ins: git answers from small.ts's files, tools are logged, the store is a map.
@@ -35,7 +36,7 @@ function world(on: On, w: World = {}) {
   on('process.run', (_, e) => {
     w.argv?.push([...e.argv])
     const [, a, b] = e.argv
-    if (a === 'log') return ok(`${SHA}\t2026-09-12\thead\n`)
+    if (a === 'log') return w.noBranch ? ok('', 128) : ok(`${SHA}\t2026-09-12\thead\n`)
     if (a === 'show') {
       const text = files[String(e.argv.at(-1)).split(':')[1]]
       if (w.truncateShow) return ok('# cut', 0, true)
@@ -138,6 +139,15 @@ test('every git log and show puts --end-of-options before the revision', async (
     expect(a.slice(2, at).every(x => x.startsWith('-'))).toBe(true)
     expect(a[at + 1].startsWith('-')).toBe(false)
   }
+})
+
+test('with no main branch, the error names the mainBranch setting', async ($, on) => {
+  world(on, { noBranch: true })
+  await $.session.start(START)
+  const r = await run($, 'check')
+  expect(r.exitCode).toBe(1)
+  expect(r.text).toContain("no branch 'main' in /w")
+  expect(r.text).toContain('"mainBranch"')
 })
 
 test('prompt.context adds the short view', async ($, on) => {

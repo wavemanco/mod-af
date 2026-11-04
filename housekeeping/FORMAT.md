@@ -6,7 +6,7 @@
 
 - `version`: required, must be `1`.
 - `project`: required, the project's name.
-- `mainBranch`: default `"main"`.
+- `mainBranch`: default `"main"`; `init` writes the branch it runs on. It may not be empty or start with `-`. `check` and `map` read the two files as committed on this branch, so commit them there.
 - `files.backlog`, `files.playbook`: required, each `{ "path": "...", "skipSections": [] }`; `skipSections` (default `[]`) lists `##` heading prefixes that are not pending work.
 - `columns`: required, the header text of each table column: `id`, `item`, `milestone`, `who`, `landNow`, `trigger`, `waitsOn` (all required); `details`, `filed`, `priority`, `triggerType` (optional).
 - `values.who`: `agent`, `owner`, `both`, each a list of cell texts; defaults `["agent"]`, `["owner"]`, `["both"]`.

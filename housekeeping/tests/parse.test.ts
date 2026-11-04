@@ -60,7 +60,7 @@ test('an invalid Land now becomes no', () => {
 
 test('a missing file is a finding', () => {
   const p = parseFiles(s, { backlog, playbook: null })
-  expect(p.findings.some(f => f.level === 'error' && f.rule === 'file')).toBe(true)
+  expect(p.findings.filter(f => f.level === 'error' && f.rule === 'file').map(f => f.message)).toEqual(['playbook.md is not on main'])
   expect(p.rows.length).toBe(4)
 })
 

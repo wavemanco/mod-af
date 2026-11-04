@@ -61,7 +61,7 @@ test('the backlog keeps its how-this-file-is-kept section short', () => {
 // the engine may hand back Windows-style paths
 const rel = (p: string) => p.replaceAll('\\', '/').replace(/^([A-Za-z]:)?\/w\//, '')
 
-type World = { existing?: Record<string, string>; writes?: Record<string, string> }
+type World = { existing?: Record<string, string>; writes?: Record<string, string>; branch?: string }
 function world(on: On, w: World) {
   const existing = w.existing ?? {}, writes = (w.writes ??= {})
   on('command.register', (_, e) => ({ value: { command: e.name } }))
@@ -71,7 +71,10 @@ function world(on: On, w: World) {
   on('fs.exists', (_, e) => ({ value: rel(e.path) in existing }))
   on('fs.read', (_, e) => ({ value: existing[rel(e.path)] }))
   on('ui.status', () => ({ value: undefined }))
-  on('process.run', () => ({ value: { exitCode: 1, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('process.run', (_, e) => {
+    const branch = w.branch !== undefined && e.argv.join(' ') === 'git symbolic-ref --short HEAD'
+    return { value: { exitCode: branch ? 0 : 1, stdout: branch ? `${w.branch}\n` : '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
   on('tool.call', { tool: 'Read' }, () => ({ result: 'x' }) as never)
   on('tool.call', { tool: 'Write' }, (_, e) => { writes[rel(e.file_path)] = e.content; return { result: 'ok' } as never })
 }
@@ -87,6 +90,15 @@ test('init in a bare repository writes all four files, lists them, and says ther
   for (const p of Object.keys(w.writes!)) expect(r.text).toContain(p)
   expect(r.text).toContain('no AGENTS.md')
   expect(r.exitCode ?? 0).toBe(0)
+})
+
+// git's init.defaultBranch may be master, and an unborn branch has no commit yet: symbolic-ref still names it
+test('init writes the current branch as mainBranch and ends by saying to commit there', async ($, on) => {
+  const w: World = { branch: 'master' }
+  world(on, w)
+  const r = await init($)
+  expect(JSON.parse(w.writes!['.housekeeping.json']).mainBranch).toBe('master')
+  expect(r.text.endsWith('Commit these files on master: check and map read them from there.')).toBe(true)
 })
 
 test('init leaves an existing backlog as it is and writes the other three', async ($, on) => {

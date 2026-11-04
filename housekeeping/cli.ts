@@ -44,7 +44,7 @@ export async function main(argv: string[]): Promise<number> {
     head = parseLog(git(headArgs(main).slice(1)))[0]
     if (!head) throw new Error('empty')
   } catch {
-    console.log(`housekeeping: no branch '${main}' in ${repo}`)
+    console.log(`housekeeping: no branch '${main}' in ${repo} (the "mainBranch" setting in ${settingsPath})`)
     return 2
   }
   const show = (sha: string, path: string): string | null => {

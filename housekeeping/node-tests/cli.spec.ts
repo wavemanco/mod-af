@@ -70,4 +70,5 @@ test('a repository with no main branch exits 2', () => {
   const r = run('check', '--repo', dir)
   assert.equal(r.status, 2)
   assert.ok((r.stdout + r.stderr).includes("housekeeping: no branch 'main' in "))
+  assert.ok((r.stdout + r.stderr).includes('"mainBranch"'), r.stdout)
 })

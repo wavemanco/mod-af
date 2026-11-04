@@ -21,7 +21,7 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
   const last = await git(headArgs(main).slice(1))
   if (last.isStdoutTruncated) return fail('git log was cut short')
   const head: CommitInfo | undefined = last.exitCode === 0 ? parseLog(last.stdout)[0] : undefined
-  if (!head) return { error: `housekeeping: no branch '${main}' in ${root}` }
+  if (!head) return { error: `housekeeping: no branch '${main}' in ${root} (the "mainBranch" setting in .housekeeping.json)` }
 
   // a null file is a missing one; a cut-short one must not be read as a short one
   const show = async (sha: string, path: string): Promise<string | null | 'cut'> => {

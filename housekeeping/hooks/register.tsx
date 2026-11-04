@@ -45,8 +45,11 @@ async function init($: EngineInterface): Promise<{ text: string; exitCode?: numb
     wrote.push(path)
   }
   const nl = (s: string) => (s === '' || s.endsWith('\n') ? '' : '\n')
+  // the branch init runs on; symbolic-ref names it even before its first commit
+  const sym = await $.process.run(['git', 'symbolic-ref', '--short', 'HEAD'], { cwd: root, timeoutMs: 10_000 }).catch(() => null)
+  const branch = sym?.exitCode === 0 && sym.stdout.trim() ? sym.stdout.trim() : 'main'
   try {
-    for (const f of initFiles(root.split(/[\\/]/).filter(Boolean).pop() ?? 'project', 'main')) {
+    for (const f of initFiles(root.split(/[\\/]/).filter(Boolean).pop() ?? 'project', branch)) {
       const file = `${root}/${f.path}`
       if (!(await $.fs.exists(file))) { await put(f.path, f.content); continue }
       const old = f.path === '.gitignore' ? await $.fs.read(file) : null
@@ -59,7 +62,8 @@ async function init($: EngineInterface): Promise<{ text: string; exitCode?: numb
       if (old.includes(GUIDE_LINE)) guide = 'AGENTS.md already has the agent-guide line'
       else { await put('AGENTS.md', `${old}${nl(old)}\n${GUIDE_LINE}\n`); guide = 'added the agent-guide line to AGENTS.md' }
     }
-    return { text: ['housekeeping: init', ...said(), ...kept.map(p => `${p}: left as it is`), guide].join('\n') }
+    return { text: ['housekeeping: init', ...said(), ...kept.map(p => `${p}: left as it is`), guide,
+      `Commit these files on ${branch}: check and map read them from there.`].join('\n') }
   } catch (err) {
     return { text: [...said(), (err as Error).message].join('\n'), exitCode: 1 }
   }
