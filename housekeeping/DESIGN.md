@@ -1,9 +1,8 @@
 # housekeeping: one place for pending work, and a map made from it
 
-**Date:** 2026-11-03. **Status:** draft 2, for the owner's approval. Draft 1 went through a builder check
-and three other checks (plugin mechanics, fidelity to the owner, the test repositories); section 11 lists
-what changed. Nothing is built until the owner approves this document. The step-by-step build plan comes
-after that.
+**Date:** 2026-11-03. **Status:** approved by the owner on 2026-11-03 ("Approve it"). Draft 1 went through
+a builder check and three other checks (plugin mechanics, fidelity to the owner, the test repositories);
+section 11 lists what changed. The step-by-step build plans are in [`plans/`](plans/).
 
 **Where this comes from:** the owner's request of 2026-10-31 and the question-and-answer session of
 2026-10-31 to 2026-11-03. The research behind it is in [`research/`](research/README.md).
@@ -609,6 +608,7 @@ Stop, report and wait for the owner when:
 | 2026-11-03 | The three existing plugins | "They already work so I would be careful so that they continue to work on their own as well." | Their procedures already defer to the project's own records | Claude's draft plan of a few lines in each | 3.10's fallback, still with no edits |
 | 2026-11-03 | Test repository B in Phase 1 | "No, wait for Phase 2" | — | Converting a clone of B in Phase 1 | — |
 | 2026-11-03 | Pushing this branch | "Push after the privacy check (Recommended)" | A backup off the machine | Keeping it local until approval | — |
+| 2026-11-03 | The design | "Approve it" (draft 2) | — | "Changes first" | Stop rules 2, 6 and 8 bring any change back to the owner |
 | 2026-11-03 | Naming repositories | "you can describe the state of these repos instead of naming them ... that's the important bit not their actual names"; "in fcat this goes for any repo the research mentions, public or private." | What matters is what each taught | Naming them, or copying their content | Stop rule 10 |
 
 ## 10. Calls Claude made, for the owner to check
@@ -682,8 +682,8 @@ the answers:
 - test repository B in Phase 1;
 - pushing.
 
-The owner also answered one question asked in return: the three existing plugins are not edited. What
-remains is the owner's approval of this document.
+The owner also answered one question asked in return: the three existing plugins are not edited. The
+owner approved this document on 2026-11-03.
 
 ## 13. Left to the builder
 
