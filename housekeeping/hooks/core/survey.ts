@@ -27,7 +27,7 @@ const HISTORY_DIR = /^(?:archive|history|logs?|passes|responses)$/i
 const GUIDE_LINE = /backlog|source of truth|single|defer|pending|trigger|docket/i
 const MARKDOWN = /\.(?:md|markdown|mdx)$/i
 const LOCKFILE = /(?:^|\/)(?:[^/]*\.lock|pnpm-lock\.yaml|package-lock\.json)$/
-const TOP = 15
+const TOP = 15, REFS = 5
 
 const baseOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
 const count = (re: RegExp, text: string): number => text.match(re)?.length ?? 0
@@ -119,12 +119,16 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
     const n = inv.skipped.filter(noise).length
     if (n) lines.push(`and ${n} more: lockfiles and binaries (the --json output names them)`)
   }
+  // at most REFS files per target, so the references (unbounded) cannot crowd the guide lines out of the budget
   if (inv.references.length) {
-    lines.push('', `## Files that name the top ${TOP} (machine: not Markdown, so a rename can break it)`)
-    let target = ''
-    for (const r of inv.references) {
-      if (r.target !== target) lines.push((target = r.target))
-      lines.push(`${String(r.count).padStart(6)}  ${r.from}${r.machine ? ' (machine)' : ''}`)
+    lines.push('', `## Files that name the top ${TOP}, at most ${REFS} each (machine: not Markdown, so a rename can break it)`)
+    const byTarget = new Map<string, Reference[]>()
+    for (const r of inv.references) { const a = byTarget.get(r.target); if (a) a.push(r); else byTarget.set(r.target, [r]) }
+    for (const [target, refs] of byTarget) {
+      lines.push(target)
+      for (const r of refs.slice(0, REFS)) lines.push(`${String(r.count).padStart(6)}  ${r.from}${r.machine ? ' (machine)' : ''}`)
+      const rest = refs.slice(REFS)
+      if (rest.length) lines.push(`        and ${rest.length} more, ${rest.filter(r => r.machine).length} of them machine (the --json output names them)`)
     }
   }
   if (inv.guides.length) {

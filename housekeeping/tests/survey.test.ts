@@ -95,6 +95,25 @@ test('formatInventory names the top candidate and stays within maxChars', () => 
   for (const max of [50, 500, 5000]) expect(formatInventory(inv, max).length).toBeLessThanOrEqual(max)
 })
 
+test('the text shows at most 5 files per target and counts the rest, so the references leave room for the guide lines', () => {
+  const plans = Array.from({ length: 15 }, (_, i) => `docs/plan-${String(i).padStart(2, '0')}.md`)
+  const names = plans.map(p => p.slice(5)).join(' ')
+  const inv = inventory([...plans.map(path => ({ path, text: '- [ ] a\n' })),
+    { path: 'README.md', text: 'Deferred work: the single tracker is docs/plan-00.md.\n' },
+    ...Array.from({ length: 300 }, (_, i) => ({ path: `src/f${String(i).padStart(3, '0')}.ts`, text: names })),
+    { path: 'zz/notes.md', text: 'see plan-01.md' }])
+  expect(inv.references.length).toBe(15 * 300 + 2) // the inventory keeps every one
+  const text = formatInventory(inv)
+  expect(text.length).toBeLessThanOrEqual(20_000)
+  expect(text).toContain('\n## What the guide files say\nREADME.md:1: Deferred work: the single tracker is docs/plan-00.md.')
+  expect(text).toContain('\ndocs/plan-00.md\n     1  README.md\n     1  src/f000.ts (machine)\n')
+  expect(text).toContain('\n     1  src/f003.ts (machine)\n        and 296 more, 296 of them machine (the --json output names them)\ndocs/plan-01.md\n')
+  expect(text).toContain('\n        and 296 more, 295 of them machine (the --json output names them)\ndocs/plan-02.md\n')
+  expect(text).toContain('\ndocs/plan-14.md\n')
+  expect(text).not.toContain('src/f005.ts')
+  expect(text).not.toContain('cut at')
+})
+
 // The readers' rules, on stand-ins for git's list, stat and read. readTracked is these over $.fs, and the Node
 // command's survey these over node:fs (node-tests/cli.spec.ts). The kit lets only a hooks module that calls
 // $.process.run call it, so readTracked itself is reached through /housekeeping survey (Task 7).
