@@ -1,5 +1,5 @@
 import type { EngineInterface, Register } from 'claude-code'
-import { readInput, repoKey, writeFile } from './adapter.ts'
+import { PAGE, readInput, repoKey, writeFile, writePage } from './adapter.ts'
 import { brief } from './core/brief.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
@@ -9,7 +9,6 @@ import type { BuildOutput } from './core/types.ts'
 type Loaded = { root: string; out: BuildOutput; sha: string; text: string; failed: boolean; project: string } | { error: string }
 
 const SETTINGS = '.housekeeping.json'
-const PAGE = '.housekeeping/route-map.html'
 const say = (r: { deny?: string; isError?: boolean; text?: string }) => r.deny ?? (r.isError ? r.text ?? 'error' : null)
 
 // Reads the repository and builds. The view may read the clock; the page may not.
@@ -96,7 +95,7 @@ export const register: Register = on => {
 
     if (l.failed || l.out.html === null) return { text: l.text, exitCode: 1 }
     const path = `${l.root}/${PAGE}`
-    const denied = await writeFile($, path, l.out.html)
+    const denied = await writePage($, l.root, path, l.out.html)
     if (denied !== null) return { text: denied, exitCode: 1 }
     if (!(await $.tool.list()).some(t => t.name === 'Artifact')) return { text: `${l.out.partition}\n${path}` }
 

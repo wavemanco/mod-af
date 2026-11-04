@@ -1,4 +1,5 @@
-// The plugin's reads and writes: git through $.process.run, files through the session's own tools.
+// The plugin's reads and writes: git through $.process.run, files through the session's own tools, except the
+// plugin's own page (writePage).
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
 import { headArgs, logArgs, parseLog, showArgs, snapshot } from './core/history.ts'
@@ -68,6 +69,40 @@ export async function writeFile($: Dollar, path: string, content: string): Promi
       if (read !== null) return read
     }
     return say(await $.tool.call({ tool: 'Write', file_path: path, content }) as never)
+  } catch (err) {
+    return String(err)
+  }
+}
+
+// The page is the one file the plugin writes itself, with no Write tool and no Read before it (the owner,
+// 2026-11-03): it is git-ignored and never committed. Every other write goes through writeFile.
+export const PAGE = '.housekeeping/route-map.html'
+
+// "/" separators, with "." and ".." folded
+const fold = (p: string): string => {
+  const q = p.replaceAll('\\', '/'), out: string[] = []
+  for (const s of q.split('/')) if (s === '..') out.pop(); else if (s !== '.' && s !== '') out.push(s)
+  return (q.startsWith('/') ? '/' : '') + out.join('/')
+}
+
+/** True when path, resolved under root, is root's own page. */
+export const isOwnPage = (root: string, path: string): boolean =>
+  fold(/^([A-Za-z]:)?[\\/]/.test(path) ? path : `${root}/${path}`) === fold(`${root}/${PAGE}`)
+
+// null on success, else why not. Refuses any other path, and a page or folder that a link sends out of the root.
+export async function writePage($: Dollar, root: string, path: string, html: string): Promise<string | null> {
+  const no = `housekeeping: refused to write ${path}: the plugin itself writes only ${PAGE} in the session root`
+  if (!isOwnPage(root, path)) return no
+  try {
+    const at = (p: string) => $.fs.stat(p, { resolve: true }).catch(() => undefined)
+    const base = (await at(root))?.realPath
+    if (!base) return no
+    for (const rel of ['.housekeeping', PAGE]) {
+      const s = await at(`${root}/${rel}`)
+      if (s && (s.isLink || !s.realPath || fold(s.realPath) !== fold(`${base}/${rel}`))) return no
+    }
+    await $.fs.write(`${root}/${PAGE}`, html)
+    return null
   } catch (err) {
     return String(err)
   }

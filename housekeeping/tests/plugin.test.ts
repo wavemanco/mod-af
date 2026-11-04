@@ -1,6 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 import * as small from './fixtures/small.ts'
+import { isOwnPage } from '../hooks/adapter.ts'
 
 const START = { cwd: '/w', surface: 'terminal', isInteractive: true } as const
 const RUN = { origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } } as const
@@ -13,13 +14,18 @@ type World = {
   hasSettings?: boolean
   truncateShow?: boolean
   noArtifact?: boolean
-  denyWrite?: string
+  failWrite?: string
+  stats?: Record<string, { isLink: boolean; realPath?: string }>
+  written?: Record<string, string>
   status?: (string | undefined)[]
   calls?: { tool: string; action?: string; url?: string; file_path?: string; title?: string }[]
   stored?: Record<string, unknown>
   argv?: string[][]
   noBranch?: boolean
 }
+
+// the engine may hand a hook a Windows-style path
+const posix = (p: string) => p.replaceAll('\\', '/').replace(/^[A-Za-z]:/, '')
 
 // The engine stand-ins: git answers from small.ts's files, tools are logged, the store is a map.
 function world(on: On, w: World = {}) {
@@ -52,11 +58,19 @@ function world(on: On, w: World = {}) {
   on('tool.list', () => ({ value: w.noArtifact ? [{ name: 'Write', description: '', mcp: false }] : [{ name: 'Write', description: '', mcp: false }, { name: 'Artifact', description: '', mcp: false }] }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('ui.status', (_, e) => { w.status?.push(e.text); return { value: undefined } })
-  on('tool.call', { tool: 'Read' }, () => ({ result: 'x' }) as never)
-  on('tool.call', { tool: 'Write' }, (_, e) => {
-    calls.push({ tool: 'Write', file_path: e.file_path })
-    return (w.denyWrite ? { deny: w.denyWrite } : { result: 'ok' }) as never
+  // the root is itself; the page and its folder are missing unless w.stats says otherwise
+  on('fs.stat', (_, e) => {
+    const s = posix(e.path) === '/w' ? { isLink: false, realPath: '/w' } : w.stats?.[posix(e.path)]
+    if (!s) throw new Error(`ENOENT: ${e.path}`)
+    return { value: { kind: 'file', size: 1, mtimeMs: 0, ...s } }
   })
+  on('fs.write', (_, e) => {
+    if (w.failWrite) throw new Error(w.failWrite)
+    ;(w.written ??= {})[posix(e.path)] = e.text
+    return { value: undefined }
+  })
+  on('tool.call', { tool: 'Read' }, (_, e) => { calls.push({ tool: 'Read', file_path: e.file_path }); return { result: 'x' } as never })
+  on('tool.call', { tool: 'Write' }, (_, e) => { calls.push({ tool: 'Write', file_path: e.file_path }); return { result: 'ok' } as never })
   on('tool.call', { tool: 'Artifact' }, (_, e) => {
     calls.push({ tool: 'Artifact', action: e.action, url: e.url, title: e.title })
     return { result: { url: 'https://claude.ai/artifact/abc', path: e.file_path } } as never
@@ -78,9 +92,10 @@ test('/housekeeping map writes the page, publishes it, and says the partition an
   world(on, w)
   await $.session.start(START)
   const r = await run($, 'map')
-  expect(w.calls!.map(c => c.tool + (c.action ? ':' + c.action : ''))).toEqual(['Write', 'Artifact:publish'])
-  expect(w.calls![0].file_path!.endsWith('.housekeeping/route-map.html')).toBe(true)
-  expect(w.calls![1].title).toBe('Small Route Map')
+  expect(w.calls!.map(c => c.tool + (c.action ? ':' + c.action : ''))).toEqual(['Artifact:publish'])
+  expect(Object.keys(w.written!)).toEqual(['/w/.housekeeping/route-map.html'])
+  expect(w.written!['/w/.housekeeping/route-map.html']).toContain('window.DATA = {')
+  expect(w.calls![0].title).toBe('Small Route Map')
   expect(r.text).toContain(LINE)
   expect(r.text).toContain('https://claude.ai/artifact/abc')
   expect(w.stored!['repo:/w/.git']).toEqual({ url: 'https://claude.ai/artifact/abc', sha: SHA })
@@ -108,12 +123,52 @@ test('without an Artifact tool, map says the file path', async ($, on) => {
   expect(w.calls!.some(c => c.tool === 'Artifact')).toBe(false)
 })
 
-test('a Write deny is reported and nothing is published', async ($, on) => {
-  const w: World = { denyWrite: 'not allowed here' }
+// The owner chose "Directly, that one path only (Recommended)": no Write tool, so no Read first, which a large page failed
+test('map overwrites its own page directly, with no Read and no Write tool', async ($, on) => {
+  const w: World = { stats: { '/w/.housekeeping': { isLink: false, realPath: '/w/.housekeeping' },
+    '/w/.housekeeping/route-map.html': { isLink: false, realPath: '/w/.housekeeping/route-map.html' } } }
   world(on, w)
   await $.session.start(START)
   const r = await run($, 'map')
-  expect(r.text).toContain('not allowed here')
+  expect(r.exitCode ?? 0).toBe(0)
+  expect(w.calls!.some(c => c.tool === 'Read' || c.tool === 'Write')).toBe(false)
+  expect(Object.keys(w.written!)).toEqual(['/w/.housekeeping/route-map.html'])
+})
+
+test('the plugin writes only its own page, resolved under the root', () => {
+  for (const p of ['/w/.housekeeping/route-map.html', '/w/./.housekeeping/route-map.html', '.housekeeping/route-map.html'])
+    expect(isOwnPage('/w', p)).toBe(true)
+  expect(isOwnPage('C:\\w', 'C:\\w\\.housekeeping\\route-map.html')).toBe(true)
+  expect(isOwnPage('C:\\w', 'C:/w/.housekeeping/route-map.html')).toBe(true)
+  for (const p of ['/w/other.html', '/w/.housekeeping/../x.html', '/w/.housekeeping/route-map.html.bak', '/w/.housekeeping/a/route-map.html',
+    '/elsewhere/.housekeeping/route-map.html', '/w/.gitignore', '/w/AGENTS.md', '../.housekeeping/route-map.html'])
+    expect(isOwnPage('/w', p)).toBe(false)
+})
+
+test('a page or folder that a link sends elsewhere is refused, and nothing is written', async ($, on) => {
+  const w: World = {}
+  world(on, w)
+  await $.session.start(START)
+  for (const stats of [{ '/w/.housekeeping/route-map.html': { isLink: true, realPath: '/home/x/.bashrc' } },
+    { '/w/.housekeeping': { isLink: true, realPath: '/home/x' } },
+    { '/w/.housekeeping': { isLink: false, realPath: '/elsewhere/.housekeeping' } }]) {
+    w.stats = stats
+    const r = await run($, 'map')
+    expect(r.exitCode).toBe(1)
+    expect(r.text).toContain('refused to write')
+    expect(w.written).toBeUndefined()
+    expect(w.calls!.length).toBe(0)
+  }
+})
+
+// a hook that throws is skipped, so the write rejects as unanswered: still a failed write
+test('a failed page write is reported and nothing is published', async ($, on) => {
+  const w: World = { failWrite: 'EACCES' }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'map')
+  expect(r.exitCode).toBe(1)
+  expect(r.text).toContain('fs.write')
   expect(w.calls!.some(c => c.tool === 'Artifact')).toBe(false)
 })
 
