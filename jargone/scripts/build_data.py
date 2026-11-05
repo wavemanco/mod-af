@@ -18,11 +18,13 @@ What it writes:
 - hooks/data.ts: three strings, FAMILIARITY, REPLACEMENTS and EXCEPTIONS (the plugin's loader and its
   test kit import code files only, so the lists ship as a generated code module).
 - data/NOTICE.md: only the part between <!-- build:start --> and <!-- build:end -->: the build date,
-  each source's address and fingerprint, the counts, and every entry this script changed or left out.
-  The rest of NOTICE.md is written by hand.
+  each source's address and fingerprint, the counts, every entry kept on the replacement list and why,
+  and every entry this script changed or left out. The rest of NOTICE.md is written by hand.
 
-The technical-exceptions list is jargone's own. It lives in EXCEPTIONS below, one reason per word, and
-this is the only place to change it.
+The replacement list that ships is a short allowlist, KEEP below, with one reason per entry: the
+four sources are still read and merged, so each kept entry names every source that lists it, but
+only the entries on KEEP are written out. The technical-exceptions list is jargone's own. It lives in
+EXCEPTIONS below, one reason per word. Those two dicts are the only places to change either list.
 """
 
 from __future__ import annotations
@@ -468,6 +470,125 @@ def merge(lists: list[tuple[str, list]]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------------------------
+# J07's allowlist: the only replacement-list entries that ship.
+#
+# Version 0.1.0 shipped every merged entry (336). Its trial (research/trial.md) found J07 right in 5
+# of 18 findings on documents and in none of 88 on replies; 47 of those 88 swaps would have changed
+# the meaning if acted on. So J07 is now a hint, and it offers only the swaps below: a short list,
+# each entry reviewed by hand, each with the reason it is kept.
+#
+# An entry is kept only when all of these hold:
+# - the swap says the same thing in technical and in everyday prose, with no field (software, law,
+#   medicine, statistics, finance) where the word has a precise sense the swap would lose;
+# - it holds for every form J07 matches. The checker compares words after removing a plural or verb
+#   ending, so "utilize" also matches "utilizes", "utilized" and "utilizing", and the 0.1.0 entry
+#   "evidenced" matched the noun "evidence". The swap must fit each of those forms, with the same
+#   part of speech, once the writer gives it the same ending;
+# - each swap is a word or phrase to put in its place: not advice, and not "(omit)";
+# - the swap is plainer or shorter, not only different.
+# The swaps given here must be among the source's own replacements (the build checks this), and an
+# entry may not be on TRIAL_FOUND or EXCEPTIONS below (the build checks that too). The EXCEPTIONS
+# check is on the whole entry: a phrase may hold an exception word in its everyday sense, and J07
+# matches the phrase anyway, so judge such a phrase by hand ("take into consideration" is one).
+# ---------------------------------------------------------------------------------------------
+
+
+def keep(to: list[str], reason: str, unless: str | None = None) -> dict:
+    """`unless` is jargone's own note on the one sense where the swap is wrong. J07 shows it as
+    "Keep it if <unless>." It replaces any note the source gives (no kept entry has one today)."""
+    return {"to": to, "reason": reason, "unless": unless}
+
+
+KEEP = {
+    # Single words: a formal word with an everyday word of the same part of speech.
+    "utilize": keep(["use"], "'use' says the same in every form (utilizes, utilized, utilizing); "
+                             "the noun 'utilization' is a separate entry and a technical exception"),
+    "utilise": keep(["use"], "the British spelling of 'utilize'"),
+    "commence": keep(["start", "begin"], "a formal verb with no technical sense; 'commencement' is "
+                                         "another word, which J07 does not match"),
+    "ascertain": keep(["find out"], "a formal verb; 'find out' says the same in every form"),
+    "expedite": keep(["speed up"], "a formal verb; 'speed up' says the same, including 'expedited'"),
+    "expend": keep(["spend"], "a formal verb; 'spend' says the same in every form, of money, time "
+                              "or energy"),
+    "numerous": keep(["many"], "a formal adjective; 'many' says the same"),
+    # Wordy phrases with a shorter equivalent.
+    "in order to": keep(["to"], "means 'to' before a verb; the source's '(omit)' is left out. Where "
+                                "'in order' means 'in sequence' the swap is wrong, so the entry says so",
+                        unless="\"in order\" means \"in sequence\", as in \"apply the changes in order to each copy\""),
+    "in order that": keep(["so"], "means 'so that'; the source's 'for' is left out because it does not fit"),
+    "prior to": keep(["before"], "means 'before' in every field; where 'prior' is a noun (a Bayesian "
+                                 "prior) the swap is wrong, so the entry says so",
+                     unless="\"prior\" is a noun, as in \"assign a prior to each weight\""),
+    "subsequent to": keep(["after"], "means 'after' in every field"),
+    "in an effort to": keep(["to"], "means 'to' before a verb"),
+    "due to the fact that": keep(["because"], "means 'because'; the source's 'due to' and 'since' "
+                                              "are left out ('since' can also mean time)"),
+    "in spite of the fact that": keep(["although"], "means 'although'"),
+    "notwithstanding the fact that": keep(["although"], "means 'although'"),
+    "at this point in time": keep(["now"], "means 'now'"),
+    "at this moment in time": keep(["now"], "means 'now'"),
+    "at the present time": keep(["now"], "means 'now'; the source's 'at present' is left out as "
+                                         "barely shorter"),
+    "in the event that": keep(["if"], "means 'if' before a clause; 'in the event of', which needs a "
+                                      "noun after it, is not kept"),
+    "in the near future": keep(["soon"], "means 'soon'; the source's 'shortly' is left out"),
+    "until such time as": keep(["until"], "means 'until'"),
+    "has the ability to": keep(["can"], "means 'can'"),
+    "is able to": keep(["can"], "means 'can'"),
+    "take into consideration": keep(["consider"], "means 'consider' in every form J07 matches; "
+                                                  "'consideration' here is the everyday sense, not the "
+                                                  "legal one on the exceptions list"),
+    "make a decision": keep(["decide"], "means 'decide' in every form J07 matches"),
+    "the majority of": keep(["most"], "means 'most' (more than half), in statistics too"),
+    "a large number of": keep(["many"], "means 'many'"),
+    "a small number of": keep(["a few"], "means 'a few'"),
+    "in the absence of": keep(["without"], "means 'without', in medicine and research too"),
+    "for a period of": keep(["for"], "means 'for' before a length of time"),
+    "is applicable to": keep(["applies to"], "says the same with one verb"),
+    "with regard to": keep(["about"], "means 'about'; J07 also matches 'with regards to'"),
+    "in regard to": keep(["about"], "means 'about'; the source's 'concerning' and 'on' are left out"),
+    "pursuant to": keep(["under"], "means 'under' a rule, law or contract; the source's 'per' and "
+                                   "'following' are left out ('following' can also mean 'after')"),
+    # Doublets: two words where one says it all.
+    "each and every": keep(["each"], "a doublet; 'each' says the same"),
+    "end result": keep(["result"], "a doublet; 'result' says the same"),
+    "revert back": keep(["revert"], "a doublet; 'revert' already means going back"),
+    "repeat again": keep(["repeat"], "a doublet; 'repeat' already means doing it again"),
+    "general consensus": keep(["consensus"], "a doublet; a consensus is already general"),
+}
+
+# Entries the 0.1.0 trial found would harm the text if acted on, or found unusable (research/trial.md
+# has the totals; the detailed records quote private material and are kept outside this repository,
+# so the examples in brackets are ours, not the trial's). The build stops if one of them is put on
+# KEEP. Each key is the entry's `from`; the reason names the forms J07 matched where they differ.
+TRIAL_FOUND = {
+    "it is": "'(omit)' often cannot be applied: where 'it' refers to something, removing 'it is' breaks the sentence",
+    "there is": "'(omit)' often cannot be applied: removing the words leaves no verb",
+    "there are": "'(omit)' often cannot be applied: removing the words leaves no verb",
+    "evidenced": "J07 matched the noun 'evidence', and the swap 'showed' is a verb",
+    "approximate": "the adjective 'approximate' cannot become the adverb 'about'",
+    "remain": "J07 matched 'remaining' and 'remains', which often mean 'left' (the remaining tests), not 'stay'",
+    "depart": "'departs from' often means 'differs from' (this departs from the standard), not 'leaves'",
+    "land": "'land a change' and 'where it lands' cannot become 'get' or 'achieve'",
+    "advance": "'in advance' cannot become 'in improve'",
+    "touchpoint": "the only replacement is advice, not a word",
+    "identical": "J07 matched inside 'byte-identical', a fixed term, and two identical files are not 'the same file'",
+    "combined": "J07 matched the verb 'combine', and the swap 'joint' is not a verb",
+    "contains": "J07 matched inside 'self-contained', and 'self-has' is not English",
+    "caveat": "a caveat is a condition that limits a claim; 'warning' can change the meaning",
+    "progress": "'in progress' is an idiom, and the noun 'progress' cannot become 'work on'",
+    "simple": "the swaps are longer, not plainer, and 'simple' can be part of a name",
+    "establish": "'set up' does not mean 'shown' or 'proved'",
+    "reflect": "'reflect' often means 'are based on' (the scores reflect last year's data), not 'show' or 'say'",
+    "relative to": "'relative to' often means 'compared with' (fast relative to disk), not 'about'",
+    "it appears": "'it appears' often means 'it occurs' (the word appears twice), not 'it seems'",
+    "aircraft": "'plane' narrows the meaning: aircraft include helicopters",
+    "identify": "the trial's hit was a quoted title, which a swap would misquote; the swaps also change the sense",
+    "ensure": "the trial's hit was a quoted title, which a swap would misquote",
+}
+
+
+# ---------------------------------------------------------------------------------------------
 # Technical-exceptions list: jargone's own. A word here is one whose plain swap would change a
 # precise meaning in software, law, medicine, statistics or finance. J07 does not suggest a swap for
 # it; J01 still asks for it to be defined if the reader may not know it. Google's developer
@@ -656,6 +777,76 @@ def check_exceptions() -> list[str]:
     return sorted(EXCEPTIONS)
 
 
+def is_advice(t: str) -> bool:
+    """A `to` item that is advice in round brackets, including "(omit)", rather than words to put in."""
+    return t.startswith("(")
+
+
+def curate(merged: list[dict]) -> tuple[list[dict], dict[str, list[str]]]:
+    """Keep only the KEEP entries, with KEEP's swaps. Return them, and every other entry by why it was left out.
+
+    Stops the build when KEEP and the sources disagree: a kept entry no source lists any more, a swap
+    the source does not give, advice kept as a swap, or an entry on TRIAL_FOUND or EXCEPTIONS kept.
+    """
+    by_from = {e["from"]: e for e in merged}
+    problems = []
+    for name, d in (("KEEP", KEEP), ("TRIAL_FOUND", TRIAL_FOUND)):
+        gone = [k for k in d if k not in by_from]
+        if gone:
+            problems.append(f"{name} names entries no source lists any more (read the sources again): {gone}")
+    for k, v in KEEP.items():
+        e = by_from.get(k)
+        if e is None:
+            continue
+        given = [t.lower() for t in e["to"]]
+        if not v["to"]:
+            problems.append(f"KEEP {k!r}: no swap given")
+        if any(is_advice(t) for t in v["to"]):
+            problems.append(f"KEEP {k!r}: {v['to']} holds advice or '(omit)'; keep only words to put in")
+        missing = [t for t in v["to"] if t.lower() not in given]
+        if missing:
+            problems.append(f"KEEP {k!r}: {missing} is not among the source's replacements {e['to']}")
+        if len(set(t.lower() for t in v["to"])) != len(v["to"]):
+            problems.append(f"KEEP {k!r}: a swap is listed twice")
+        for what in ("reason", "unless"):
+            s = v[what]
+            if (what == "reason" or s is not None) and (not (s or "").strip() or "|" in s or "\n" in s):
+                problems.append(f"KEEP {k!r}: give one line of {what}, without '|' (it goes in a table)")
+        if k in TRIAL_FOUND:
+            problems.append(f"KEEP {k!r}: the trial found this entry harmful ({TRIAL_FOUND[k]})")
+        if k in EXCEPTIONS:
+            problems.append(f"KEEP {k!r}: on the technical-exceptions list, so J07 would never offer it")
+    if problems:
+        raise BuildError("the J07 allowlist does not fit the sources:\n  " + "\n  ".join(problems))
+
+    kept = []
+    for e in merged:
+        if e["from"] in KEEP:
+            k = KEEP[e["from"]]
+            out = {"from": e["from"], "to": list(k["to"]), "source": e["source"]}
+            unless = k["unless"] or e.get("unless")
+            if unless:
+                out["unless"] = clean(unless)
+            kept.append(out)
+    # Every entry left out lands in exactly one group, the first that fits.
+    left: dict[str, list[str]] = {"trial": [], "exception": [], "advice": [], "other": []}
+    for e in merged:
+        f = e["from"]
+        if f in KEEP:
+            continue
+        if f in TRIAL_FOUND:
+            left["trial"].append(f)
+        elif f in EXCEPTIONS:
+            left["exception"].append(f)
+        elif all(is_advice(t) for t in e["to"]):  # also true when `to` is empty
+            left["advice"].append(f)
+        else:
+            left["other"].append(f)
+    if len(kept) + sum(len(v) for v in left.values()) != len(merged):
+        raise BuildError("curate: an entry was counted twice or lost")
+    return kept, left
+
+
 # ---------------------------------------------------------------------------------------------
 # Output
 # ---------------------------------------------------------------------------------------------
@@ -681,10 +872,11 @@ def render_data_ts(date: str, fam: list[tuple[str, str]], reps: list[dict], exc:
         "//   Forms ending in 's are not listed: remove a final 's before looking a word up. A word that is\n"
         "//   not listed was rated lowest by the source's authors (about 3.5 or below) or not rated at all:\n"
         "//   treat it as unfamiliar.\n"
-        f"// REPLACEMENTS: a JSON array of {len(reps)} entries {{ from, to, source, unless? }}. `from` is lower\n"
-        "//   case and may be a phrase. A `to` item in round brackets is advice, not a word to paste in;\n"
-        "//   \"(omit)\" means leave it out. `to` may be empty when the source gives no replacement.\n"
-        "//   `source` names every source that lists it, joined with \", \".\n"
+        f"// REPLACEMENTS: a JSON array of {len(reps)} entries {{ from, to, source, unless? }}: J07's reviewed\n"
+        "//   allowlist (KEEP in the script). `from` is lower case and may be a phrase. Each `to` item is a\n"
+        "//   word or phrase to put in its place, never advice and never \"(omit)\", and `to` is never empty.\n"
+        "//   `source` names every source that lists it, joined with \", \". `unless`, when there, says when\n"
+        "//   to keep the word anyway: jargone's own note, or else the source's.\n"
         f"// EXCEPTIONS: {len(exc)} lines, one lower-case word each: jargone's own technical-exceptions list.\n"
         "\n"
         f"export const FAMILIARITY: string = `{fam_body}`\n"
@@ -695,8 +887,9 @@ def render_data_ts(date: str, fam: list[tuple[str, str]], reps: list[dict], exc:
     )
 
 
-def render_notice_block(date: str, got: dict, fam_stats: dict, per_source: dict, reps: list[dict],
-                        exc: list[str], changes: list[tuple[str, str, str]], skipped: list) -> str:
+def render_notice_block(date: str, got: dict, fam_stats: dict, per_source: dict, merged: list[dict],
+                        reps: list[dict], left: dict[str, list[str]], exc: list[str],
+                        changes: list[tuple[str, str, str]], skipped: list) -> str:
     L = []
     L.append(f"Built on {date} by `scripts/build_data.py`. This part of the file is written by the script; "
              "do not edit it by hand.")
@@ -716,18 +909,40 @@ def render_notice_block(date: str, got: dict, fam_stats: dict, per_source: dict,
              f"{s['same_word_other_case']:,} words appeared twice once lower-cased; one of each was kept.")
     L.append("")
     counts = "; ".join(f"{name} {n}" for name, n in per_source.items())
-    L.append(f"**Replacement list:** {len(reps)} entries after merging. Entries read from each source "
+    n_left = sum(len(v) for v in left.values())
+    L.append(f"**Replacement list:** {len(merged)} entries after merging. Entries read from each source "
              f"(a line naming several words counts once per word): {counts}. "
-             f"{sum(1 for e in reps if ', ' in e['source'])} entries are listed by more than one source.")
+             f"{sum(1 for e in merged if ', ' in e['source'])} entries are listed by more than one source. "
+             f"**{len(reps)} are kept** on J07's allowlist and {n_left} are left out.")
     L.append("")
     L.append(f"**Technical-exceptions list:** {len(exc)} words.")
-    overlap = [e["from"] for e in reps if e["from"] in set(exc)]
     L.append("")
-    L.append(f"**Replacement-list words made exceptions** ({len(overlap)}), because their plain swap would "
-             "damage technical writing (the reason for each is next to the word in `scripts/build_data.py`): "
-             + ", ".join(overlap) + ".")
+    L.append(f"**Kept** ({len(reps)}). The swap is the one J07 offers; it is always among the source's own "
+             "replacements, and the build stops if it is not.")
     L.append("")
-    L.append("**Replacement-list entries this script changed or left out:**")
+    L.append("| Word or phrase | Swap | Listed by | Why it is kept | Keep the word if |")
+    L.append("|---|---|---|---|---|")
+    for e in reps:
+        swap = " or ".join(f"\"{t}\"" for t in e["to"])
+        L.append(f"| {e['from']} | {swap} | {e['source']} | {KEEP[e['from']]['reason']} | {e.get('unless', '')} |")
+    L.append("")
+    L.append(f"**Left out** ({n_left}), each in the first group that fits:")
+    L.append("")
+    L.append(f"- **The trial found it harmful** ({len(left['trial'])}):")
+    for f in left["trial"]:
+        L.append(f"  - {f}: {TRIAL_FOUND[f]}.")
+    L.append(f"- **On the technical-exceptions list** ({len(left['exception'])}), because a plain swap would "
+             "change a precise meaning (the reason for each is next to the word in `scripts/build_data.py`): "
+             + ", ".join(left["exception"]) + ".")
+    L.append(f"- **Advice or \"(omit)\" only, or no replacement at all** ({len(left['advice'])}): "
+             + ", ".join(left["advice"]) + ".")
+    L.append(f"- **Not on the allowlist** ({len(left['other'])}): the swap depends on the sense or the part "
+             "of speech, changes a precise meaning in some field, needs the sentence rebuilt, is not plainer, "
+             "or is for a word nearly every reader knows. J07 matches other forms of a kept word, so the "
+             "sources' separate entries for those forms (\"commenced\", \"utilizing\") are not needed: "
+             + ", ".join(left["other"]) + ".")
+    L.append("")
+    L.append("**Source lines this script read differently, or left out, while merging** (before the allowlist):")
     L.append("")
     for src, line, reason in changes:
         L.append(f"- {src}, \"{line}\": {reason}.")
@@ -794,23 +1009,25 @@ def main(argv: list[str] | None = None) -> int:
     for name, n in per_source.items():
         if n == 0:
             raise BuildError(f"{name}: no entries read")
-    reps = merge(lists)
+    merged = merge(lists)
     exc = check_exceptions()
+    reps, left = curate(merged)
 
     out_ts = root / "hooks" / "data.ts"
     out_ts.parent.mkdir(parents=True, exist_ok=True)
     ts = render_data_ts(today, fam, reps, exc)
     out_ts.write_text(ts, encoding="utf-8")
 
-    block = render_notice_block(today, got, fam_stats, per_source, reps, exc, changes, skipped)
+    block = render_notice_block(today, got, fam_stats, per_source, merged, reps, left, exc, changes, skipped)
     notice = re.sub(r"<!-- build:start -->.*?<!-- build:end -->",
                     lambda _: "<!-- build:start -->\n" + block + "\n<!-- build:end -->", notice, flags=re.S)
     notice_path.write_text(notice, encoding="utf-8")
 
     print(f"familiarity: {fam_stats['rows']} rows read, {fam_stats['kept']} words kept "
           f"({fam_stats['at_or_above_6']} at 6.0 or above)")
-    print(f"replacements: {len(reps)} entries; read per source: {per_source}")
-    print(f"exceptions: {len(exc)} words; {sum(1 for e in reps if e['from'] in set(exc))} are also replacement-list entries")
+    print(f"replacements: {len(merged)} entries merged (read per source: {per_source}); {len(reps)} kept; "
+          f"left out: " + ", ".join(f"{k} {len(v)}" for k, v in left.items()))
+    print(f"exceptions: {len(exc)} words; {len(left['exception'])} merged entries left out as exceptions")
     print(f"wrote {out_ts} ({len(ts.encode('utf-8'))} bytes) and the build part of {notice_path}")
     return 0
 

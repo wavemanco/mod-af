@@ -16,7 +16,7 @@ test('the shipped lists load through loadLists, and the checker reads them as in
   expect(lists.familiarity.has('idempotent')).toBe(false) // not on the list: unfamiliar
   expect(lists.replacements.find(r => r.from === 'utilize')?.to).toContain('use')
   expect(lists.exceptions.has('implement')).toBe(true)
-  expect(lists.replacements.find(r => r.from === 'implement')).toBeDefined() // so the exception is what silences it
+  expect(lists.replacements.find(r => r.from === 'implement')).toBeUndefined() // not on J07's allowlist (data/NOTICE.md)
 
   // The same words through the checker.
   const text = [
