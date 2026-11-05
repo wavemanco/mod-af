@@ -191,6 +191,9 @@ export async function collect(paths: string[], stat: (path: string) => Stat | Pr
   read: (path: string) => string | null | Promise<string | null>): Promise<{ files: SurveyFile[]; skipped: Skipped[] }> {
   const files: SurveyFile[] = [], skipped: Skipped[] = []
   let total = 0
+  // names that look like trackers or guides first, so the limits fall on the rest
+  const looks = (p: string) => NAME.test(baseOf(p)) || GUIDE.test(baseOf(p))
+  paths = [...paths.filter(looks), ...paths.filter(p => !looks(p))]
   for (let i = 0; i < paths.length; i++) {
     const path = paths[i]
     const skip = (why: string) => skipped.push({ path, why })

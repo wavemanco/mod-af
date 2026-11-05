@@ -206,6 +206,15 @@ test('the readers stop at 3,000 files and say so', async () => {
   expect(r.skipped).toEqual([{ path: 'f3000.txt', why: 'stopped at 3,000 files: this file and the 4 after it were not read' }])
 })
 
+// finding 30: read in path order, the limits fell on a tracker in docs/ behind apps/
+test('the readers read the names that look like trackers or guides first, so the limits fall on the rest', async () => {
+  const big = 'x'.repeat(500_000)
+  const r = await collect(...reader({ ...Object.fromEntries(Array.from({ length: 70 }, (_, i) => [`apps/f${String(i).padStart(2, '0')}.txt`, big])),
+    'docs/backlog.md': '## B-1 x\n', 'docs/README.md': 'the backlog\n' }))
+  expect(r.files.slice(0, 2).map(f => f.path)).toEqual(['docs/backlog.md', 'docs/README.md'])
+  expect(r.skipped).toEqual([{ path: 'apps/f62.txt', why: 'stopped at 30 MB in all: this file and the 7 after it were not read' }])
+})
+
 test('the readers stop at 30 MB in all and say so', async () => {
   const big = 'x'.repeat(500_000)
   const r = await collect(...reader(Object.fromEntries(Array.from({ length: 70 }, (_, i) => [`f${String(i).padStart(2, '0')}.txt`, big]))))
