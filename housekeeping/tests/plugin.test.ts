@@ -47,6 +47,7 @@ type World = {
   backlog?: string // main's backlog.md, small.ts's by default
   settings?: string // .housekeeping.json, small.ts's by default
   gate?: Promise<void> // the history walk's git log waits for it: a slow repository
+  badPrompt?: boolean // a procedure file reads as a number, so the command's reply is one the site refuses
 }
 
 // the engine may hand a hook a Windows-style path
@@ -70,6 +71,7 @@ function world(on: On, w: World = {}) {
     w.reads?.push(posix(e.path))
     if (w.failRead) throw new Error('EIO')
     const prompt = /\/prompts\/(survey|plan)\.md$/.exec(posix(e.path))
+    if (prompt && w.badPrompt) return { value: 42 as never }
     return { value: prompt ? PROMPTS[prompt[1]] : w.tracked?.[under(e.path)] ?? w.settings ?? small.settings }
   })
   on('process.run', (_, e) => {
@@ -470,6 +472,18 @@ test('a command that throws still replies, with exit code 1 (HK-031)', async ($,
     expect(r.exitCode).toBe(1)
     expect(r.text).toContain('housekeeping:')
   }
+})
+
+// finding 11: a hook that failed outside its own promise, past its 10 s budget above all, was skipped, so the reply
+// was the engine's with exit 0 and a check read as passed. The kit gives a hook no cheap way past 10 s of its own
+// time (a 117 s walk of $ calls stayed inside it), so a reply the site refuses stands in: both are a failed hook,
+// which the registration's .catch answers.
+test('a command hook that fails is answered by its .catch, with exit 1 and the Node command to run', async ($, on) => {
+  world(on, { tracked: { ...TRACKED }, badPrompt: true })
+  await $.session.start(START)
+  const r = await run($, 'survey').catch((err: unknown) => ({ text: String(err), exitCode: undefined }))
+  expect(r.exitCode).toBe(1)
+  expect(r.text).toMatch(/^housekeeping: \/housekeeping survey failed in the hook \(.+\); run node .+\/cli\.ts survey in the repository instead, which has no time limit$/)
 })
 
 test('a failed publish still says the partition line and the page path (HK-032)', async ($, on) => {

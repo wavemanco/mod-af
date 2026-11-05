@@ -247,6 +247,13 @@ export const register: Register = on => {
     // a throw anywhere below still gives the person a reply (HK-031)
     const room = e.presentation.isFullscreen && e.presentation.columns >= 110
     return command($, e.args.trim(), b => { view = b }, room).catch(err => ({ text: `housekeeping: ${err instanceof Error ? err.message : String(err)}`, exitCode: 1 }))
+  }).catch(($, e, next) => {
+    // the hook failed outside its own promise, past its 10 s budget above all: a reply still, exit 1, and the Node
+    // command, which has no such budget, to run instead (finding 11)
+    const args = e.args.trim(), word = args.split(/\s/)[0]
+    const as = word === '' ? 'brief' : ['map', 'check', 'survey'].includes(word) ? word : word === 'plan' ? 'survey' : '<map|check|brief|survey>'
+    const why = next.error.kind === 'timeout' ? 'ran past the 10 s a hook may take' : `failed in the hook (${next.error.message ?? 'no reason given'})`
+    return { text: `housekeeping: /housekeeping${args ? ` ${args}` : ''} ${why}; run node ${$.plugin.root}/cli.ts ${as} in the repository instead, which has no time limit`, exitCode: 1 }
   })
 
   on('ui.render', { component: 'Pane', requestId: 'housekeeping' }, ($, e) => {
