@@ -270,8 +270,9 @@ export async function collect(paths: string[], stat: (path: string) => Stat | Pr
     const path = paths[i]
     const skip = (why: string) => skipped.push({ path, why })
     const stop = (why: string) => skipped.push({ path, why: `${why}: this file and the ${paths.length - i - 1} after it were not read`, unread: paths.length - i })
-    if (files.length >= MAX_FILES) { stop(AT_FILES); break }
+    // the deny first, so no stop names a denied file
     if (allow && !(await allow(path))) { denied++; continue }
+    if (files.length >= MAX_FILES) { stop(AT_FILES); break }
     if (LOCKFILE.test(path)) { skip(LOCK); continue }
     const s = await stat(path)
     if (!s) { skip(MISSING); continue }

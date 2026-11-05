@@ -273,6 +273,16 @@ test('the readers stop at 3,000 files and say so', async () => {
   expect(r.skipped).toEqual([{ path: 'f3000.txt', why: 'stopped at 3,000 files: this file and the 4 after it were not read', unread: 5 }])
 })
 
+// finding 3: a denied file is never named, even where a limit stops the reading
+test('a file the Read rules deny is counted, never named, and not the file a stop names', async () => {
+  const tracked = Object.fromEntries(Array.from({ length: 3003 }, (_, i) => [`f${String(i).padStart(4, '0')}.txt`, 'x']))
+  const deny = new Set(['f0001.txt', 'f3001.txt'])
+  const r = await collect(...reader(tracked), { allow: p => !deny.has(p) })
+  expect(r.files.length).toBe(3000)
+  expect(r.denied).toBe(2)
+  expect(r.skipped).toEqual([{ path: 'f3002.txt', why: 'stopped at 3,000 files: this file and the 0 after it were not read', unread: 1 }])
+})
+
 // finding 30: read in path order, the limits fell on a tracker in docs/ behind apps/
 test('the readers read the names that look like trackers or guides first, so the limits fall on the rest', async () => {
   const big = 'x'.repeat(500_000)
