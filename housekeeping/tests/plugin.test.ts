@@ -46,6 +46,7 @@ type World = {
   reads?: string[] // every path fs.read was asked for
   backlog?: string // main's backlog.md, small.ts's by default
   settings?: string // .housekeeping.json, small.ts's by default
+  gate?: Promise<void> // the history walk's git log waits for it: a slow repository
 }
 
 // the engine may hand a hook a Windows-style path
@@ -81,6 +82,7 @@ function world(on: On, w: World = {}) {
       stderr: 'fatal: not a git repository (or any of the parent directories): .git\n' } }
     if (a === 'ls-files') return ok(Object.keys(w.tracked ?? {}).map(p => `${p}\0`).join(''), 0, w.lsCut)
     if (w.gitFail && (a === 'log' || b === '--verify')) return { value: { exitCode: 128, stdout: '', stderr: w.gitFail, isStdoutTruncated: false, isStderrTruncated: false } }
+    if (a === 'log' && w.gate && e.argv.includes('--reverse')) return w.gate.then(() => ok(`${SHA}\t2026-09-12\thead\n`))
     if (a === 'log') return w.noBranch ? ok('', 128) : ok(`${SHA}\t2026-09-12\thead\n`)
     if (a === 'show') {
       const text = files()[String(e.argv.at(-1)).split(':')[1]]
@@ -327,26 +329,47 @@ test('a repository git cannot open gives git\'s first error line, not "no branch
   expect(r.text).toBe("housekeeping: cannot read 'main' in /w: git said: fatal: detected dubious ownership in repository at '/w'")
 })
 
+const walks = (w: World) => w.argv!.filter(a => a[1] === 'log' && a.includes('--reverse')).length
+const brief = (r: { blocks: { name: string; text: string }[] }) => r.blocks.find(x => x.name === 'housekeeping')?.text ?? ''
+// what is under way runs on while the test waits a little, up to a second
+const until = async (done: () => boolean) => { for (let i = 0; i < 200 && !done(); i++) await new Promise(r => setTimeout(r, 5)) }
+const late = <T>(p: Promise<T>) => Promise.race([p, new Promise<'late'>(r => setTimeout(() => r('late'), 1000))])
+// session start's view stored, for the tests of what a prompt then gets
+const stored = (w: World, sha = SHA) => until(() => (w.stored!['brief:/w/.git'] as { sha?: string } | undefined)?.sha === sha)
+
 test('prompt.context adds the short view', async ($, on) => {
-  world(on)
+  const w: World = {}
+  world(on, w)
   on('prompt.context', (_, e) => ({ blocks: e.blocks }))
   await $.session.start(START)
+  await stored(w)
   const r = await $.prompt.context({ blocks: [{ name: 'currentDate', text: 'today' }] })
   const b = r.blocks.find((x: { name: string }) => x.name === 'housekeeping')
   expect(b.text.startsWith('# Small: where we are')).toBe(true)
 })
 
-const walks = (w: World) => w.argv!.filter(a => a[1] === 'log' && a.includes('--reverse')).length
-const brief = (r: { blocks: { name: string; text: string }[] }) => r.blocks.find(x => x.name === 'housekeeping')?.text ?? ''
-
-test('prompt.context awaits the load session start began, with no second history walk', async ($, on) => {
-  const w: World = { argv: [] }
+// finding 20: prompt.context awaited session start's walk, whose time counted against its own budget, so a slow
+// history lost the short view for the session
+test('prompt.context never awaits the walk: the view is being built, then the stored one, labelled, while a rebuild runs', async ($, on) => {
+  let open!: () => void
+  const shut = () => new Promise<void>(r => { open = r })
+  const w: World = { argv: [], gate: shut() }
   world(on, w)
   on('prompt.context', (_, e) => ({ blocks: e.blocks }))
   await $.session.start(START)
-  const r = await $.prompt.context({ blocks: [] })
-  expect(brief(r).startsWith('# Small: where we are')).toBe(true)
-  expect(walks(w)).toBe(1)
+  const cold = await late($.prompt.context({ blocks: [] }))
+  expect(cold === 'late' ? 'late' : brief(cold)).toBe('housekeeping: the short view is being built and is not ready yet; /housekeeping shows it once it is.')
+  open()
+  await until(() => 'brief:/w/.git' in w.stored!)
+  const first = brief(await $.prompt.context({ blocks: [] }))
+  expect(first.startsWith('# Small: where we are (abcdef0, 2026-09-12)')).toBe(true)
+  w.gate = shut()
+  w.mainSha = 'f'.repeat(40)
+  const stale = await late($.prompt.context({ blocks: [] }))
+  expect(stale === 'late' ? 'late' : brief(stale)).toBe(`Stored view of main at abcdef0, shown while a new one is built.\n${first}`)
+  open()
+  await until(() => walks(w) === 2 && (w.stored!['brief:/w/.git'] as { sha: string }).sha === 'f'.repeat(40))
+  expect(walks(w)).toBe(2) // session start's and the rebuild: a prompt starts no second walk of its own
 })
 
 test('with main unchanged, the short view costs one git rev-parse; a new main commit rebuilds it', async ($, on) => {
@@ -354,6 +377,7 @@ test('with main unchanged, the short view costs one git rev-parse; a new main co
   world(on, w)
   on('prompt.context', (_, e) => ({ blocks: e.blocks }))
   await $.session.start(START)
+  await stored(w)
   const first = brief(await $.prompt.context({ blocks: [] }))
   w.argv!.length = 0
   expect(brief(await $.prompt.context({ blocks: [] }))).toBe(first)
@@ -361,7 +385,8 @@ test('with main unchanged, the short view costs one git rev-parse; a new main co
   expect(walks(w)).toBe(0)
   w.mainSha = 'f'.repeat(40)
   w.argv!.length = 0
-  expect(brief(await $.prompt.context({ blocks: [] }))).toBe(first)
+  expect(brief(await $.prompt.context({ blocks: [] })).endsWith(`\n${first}`)).toBe(true) // the stored one, labelled
+  await stored(w, w.mainSha)
   expect(walks(w)).toBe(1)
 })
 
@@ -370,9 +395,10 @@ test('a moved remote copy of main rebuilds the short view (HK-034)', async ($, o
   world(on, w)
   on('prompt.context', (_, e) => ({ blocks: e.blocks }))
   await $.session.start(START)
-  await $.prompt.context({ blocks: [] })
+  await stored(w)
   w.remoteSha = 'a'.repeat(40)
   await $.prompt.context({ blocks: [] })
+  await until(() => walks(w) === 2)
   expect(walks(w)).toBe(2)
 })
 
@@ -381,6 +407,7 @@ test('a new day with main unchanged does not walk the history again (HK-035)', a
   world(on, w)
   on('prompt.context', (_, e) => ({ blocks: e.blocks }))
   await $.session.start(START)
+  await stored(w)
   await $.prompt.context({ blocks: [] })
   w.now = '2026-09-13T10:00:00Z'
   await $.prompt.context({ blocks: [] })

@@ -50,11 +50,17 @@ function statusLine(out: BuildOutput): string {
 }
 
 type View = { brief: string; status: string }
+type Builds = Map<string, Promise<View | null>> // the rebuilds under way, by stamp: one walk however many ask
+
+const BUILDING = 'housekeeping: the short view is being built and is not ready yet; /housekeeping shows it once it is.'
 
 // The short view and the status line, kept in $.store by repository with what they were built from. While main's
 // commit, its remote copy's commit, the branch and the settings are as they were, a few git rev-parse calls are all they cost.
 // shortcut: the day is not in the stamp (HK-035), so "Duties due" is as of the day the view was built; it is rebuilt when main, its remote copy, the branch or the settings change.
-async function cachedView($: EngineInterface): Promise<View | null> {
+// wait false, for prompt.context (finding 20): the walk is never awaited, since its time would count against that
+// hook's budget; the last stored view stands in, labelled with its commit, while the rebuild runs, or with nothing
+// stored the view says it is being built.
+async function cachedView($: EngineInterface, builds: Builds, wait = true): Promise<View | null> {
   const root = await repoRoot($)
   const file = `${root}/${SETTINGS}`
   if (!(await $.fs.exists(file))) return null
@@ -66,13 +72,26 @@ async function cachedView($: EngineInterface): Promise<View | null> {
   const [dir, sha, branch] = r.stdout.split('\n').map(x => x.trim())
   const remote = (await $.process.run(['git', 'rev-parse', '--verify', '--quiet', `refs/remotes/origin/${main}`], { cwd: root, timeoutMs: 10_000 }).catch(() => null))?.stdout.trim() ?? ''
   const key = `brief:${dir}`, stamp = [sha, remote, branch, text].join('\n')
-  const hit = r.exitCode === 0 && sha ? (await $.store.get(key)) as (View & { sha: string; stamp: string }) | undefined : undefined
+  const keep = r.exitCode === 0 && !!sha // main resolves, so the view can be stored
+  const hit = keep ? (await $.store.get(key)) as (View & { sha: string; stamp: string }) | undefined : undefined
   if (hit?.stamp === stamp) return { brief: hit.brief, status: hit.status }
-  const l = await load($)
-  if ('error' in l) return null
-  const v = { brief: l.out.brief, status: statusLine(l.out) }
-  if (r.exitCode === 0 && sha) await $.store.set(key, { sha, stamp, ...v })
-  return v
+  const fresh = async () => {
+    const l = await load($)
+    if ('error' in l) return null
+    const v = { brief: l.out.brief, status: statusLine(l.out) }
+    if (keep) await $.store.set(key, { sha, stamp, ...v })
+    return v
+  }
+  if (!keep) return fresh() // nothing to store or serve: main does not resolve, so the load stops before any walk
+  let build = builds.get(stamp)
+  if (!build) {
+    build = fresh().finally(() => builds.delete(stamp))
+    builds.set(stamp, build)
+  }
+  if (wait) return build
+  build.catch(() => {}) // a failed rebuild leaves the stored view; the next ask tries again
+  return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}, shown while a new one is built.\n${hit.brief}`, status: hit.status }
+    : { brief: BUILDING, status: '' }
 }
 
 const GUIDE_LINE = 'At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.'
@@ -214,14 +233,13 @@ async function command($: EngineInterface, arg: string, show: (brief: string) =>
 
 export const register: Register = on => {
   let view = 'housekeeping: run /housekeeping to build the short view.'
-  let started: Promise<View | null> | null = null // session start's view, which the first prompt.context awaits
+  const builds: Builds = new Map()
 
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init, survey, plan.', argumentHint: '[map|map new|check|init|survey [--tracker <path>] [--not-tracker <path>]|plan]' })
     const got = await next(e)
     // not awaited: a slow repository must not hold up the session
-    started = cachedView($)
-    started.then(v => { if (v) $.ui.status(v.status) }).catch(() => {})
+    cachedView($, builds).then(v => { if (v) $.ui.status(v.status) }).catch(() => {})
     return got
   })
 
@@ -238,13 +256,8 @@ export const register: Register = on => {
 
   on('prompt.context', async ($, e, next) => {
     const got = await next(e)
-    const add = async () => {
-      // the first one awaits session start's load; later ones (compaction, /clear) ask the cache again
-      const pending = started ?? cachedView($)
-      started = null
-      const v = await pending
-      return v ? { ...got, blocks: [...got.blocks, { name: 'housekeeping', text: v.brief }] } : got
-    }
-    return add().catch(() => got)
+    // each one (the first, compaction, /clear) asks the cache, which never makes it wait on a walk (finding 20)
+    const v = await cachedView($, builds, false).catch(() => null)
+    return v ? { ...got, blocks: [...got.blocks, { name: 'housekeeping', text: v.brief }] } : got
   })
 }

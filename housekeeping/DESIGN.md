@@ -285,7 +285,9 @@ The short view comes from the same core and runs to about 2,000 tokens at most:
 - a Markdown pane when `/housekeeping` runs with no argument (panes cannot show HTML);
 - given to the agent as context at session start and again after the conversation is compressed. After a
   commit, an updated view rides on that tool call's result, because the session-start context block cannot
-  be changed once sent.
+  be changed once sent. The context never waits for the history walk, whose time would count against its
+  hook's budget: while the view is rebuilt it carries the last stored view, labelled with its commit, or with
+  nothing stored says the view is being built (finding 20 of the Phase 2 check).
 
 **For agents outside Claude Code:** `init` and `plan` add one line to the repository's agent guide (its
 AGENTS.md or equivalent): at session start, run `node <plugin>/cli.ts brief`, or read the page.
