@@ -4,7 +4,8 @@ import * as small from './fixtures/small.ts'
 import { isOwnPage } from '../hooks/adapter.ts'
 
 const START = { cwd: '/w', surface: 'terminal', isInteractive: true } as const
-const RUN = { origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } } as const
+// the fullscreen layout from 110 columns, where the pane docks beside the transcript with room
+const RUN = { origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 120 } } as const
 const SHA = 'abcdef0123456789abcdef0123456789abcdef01'
 const LINE = '8 rows in all = 2 closed + 6 open; open = 2 land now + 1 small choice + 3 not now; 4 open in the backlog, 2 in the playbook'
 const ok = (stdout: string, exitCode = 0, isStdoutTruncated = false) =>
@@ -508,6 +509,18 @@ test('no argument opens the pane and sets the status line', async ($, on) => {
 
 const PANE = { plugin: 'housekeeping', surface: 'terminal', component: 'Pane', requestId: 'housekeeping',
   props: { title: 'housekeeping', isFocused: false, bodyColumns: 60, placement: 'dock', scroll: { offset: 0, bodyRows: 20 }, view: {} } } as const
+
+// finding 19: on the main screen, and under 110 columns, the pane is placed inline and shows a few lines of the view
+test('where the pane has no room to dock, the short view also comes back as text', async ($, on) => {
+  const w: World = { status: [] }
+  world(on, w)
+  await $.session.start(START)
+  for (const presentation of [{ isFullscreen: false, columns: 200 }, { isFullscreen: true, columns: 100 }]) {
+    const r = await $.command.run({ command: 'housekeeping', args: '', ...RUN, presentation } as never) as { text: string }
+    expect(r.text.startsWith('# Small: where we are')).toBe(true)
+  }
+  expect(w.status!.length).toBe(2)
+})
 
 // finding 18: the open pane kept the first run's rows and counts
 test('a second /housekeeping redraws the open pane with the new view', async ($, on) => {

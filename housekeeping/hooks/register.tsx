@@ -152,7 +152,9 @@ function surveyArgs(rest: string): { tracker: string[]; notTracker: string[] } |
   return named
 }
 
-async function command($: EngineInterface, arg: string, show: (brief: string) => void): Promise<{ text: string; exitCode?: number; context?: string[] }> {
+// room: the pane docks beside the transcript, which the fullscreen layout does from 110 columns; elsewhere it is
+// placed inline above the prompt, where a few of the view's lines show (finding 19)
+async function command($: EngineInterface, arg: string, show: (brief: string) => void, room: boolean): Promise<{ text: string; exitCode?: number; context?: string[] }> {
   if (arg === 'init') return init($)
   if (arg === 'plan') return procedure($, arg)
   const named = /^survey(?:\s|$)/.test(arg) ? surveyArgs(arg.slice(6)) : null
@@ -166,8 +168,8 @@ async function command($: EngineInterface, arg: string, show: (brief: string) =>
     $.ui.invalidate('ui.render') // a pane already open draws the new view (finding 18)
     const pane = await $.ui.open({ id: 'housekeeping', title: 'housekeeping' })
     $.ui.status(statusLine(l.out))
-    // no pane placed: the person would see nothing, so the brief comes back as text (HK-029)
-    return { text: pane.isPlaced ? 'housekeeping: short view open' : l.out.brief }
+    // no pane placed, or one with no room: the person would see nothing or a part, so the brief comes back as text (HK-029)
+    return { text: pane.isPlaced && room ? 'housekeeping: short view open' : l.out.brief }
   }
 
   if (l.failed || l.out.html === null) return { text: l.text, exitCode: 1 }
@@ -225,7 +227,8 @@ export const register: Register = on => {
 
   on('command.run', { command: 'housekeeping' }, async ($, e) => {
     // a throw anywhere below still gives the person a reply (HK-031)
-    return command($, e.args.trim(), b => { view = b }).catch(err => ({ text: `housekeeping: ${err instanceof Error ? err.message : String(err)}`, exitCode: 1 }))
+    const room = e.presentation.isFullscreen && e.presentation.columns >= 110
+    return command($, e.args.trim(), b => { view = b }, room).catch(err => ({ text: `housekeeping: ${err instanceof Error ? err.message : String(err)}`, exitCode: 1 }))
   })
 
   on('ui.render', { component: 'Pane', requestId: 'housekeeping' }, ($, e) => {
