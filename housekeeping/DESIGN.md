@@ -325,8 +325,8 @@ The short view is a view of the files, never a store of its own.
 - every file that names the pending-work files, with counts;
 - the machine readers that depend on names, IDs or formatting: tests, scripts, frozen configurations,
   merge guards;
-- the repository's own rules that constrain the move. Examples: who may write which paths, a "one backlog,
-  never a parallel register" rule, a separate file for open research questions kept apart by rule, fields
+- the repository's own rules that constrain the move. Examples: who may write which paths, a rule of one
+  backlog and no second register, a separate file for open research questions kept apart by rule, fields
   that must never be edited, or a rule that every correction gets its own review.
 
 **What the survey measures, and what it does not** (the owner, 2026-11-04; finding 8 of the Phase 2 check;
