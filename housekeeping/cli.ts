@@ -1,6 +1,6 @@
 // The Node command: reads a repository's files through git, builds with the core, writes or prints.
 // Usage: node cli.ts <map|check|brief> [--repo <dir>] [--settings <file>] [--out <file>]
-//        node cli.ts survey [--repo <dir>] [--json]
+//        node cli.ts survey [--repo <dir>] [--json] [--tracker <path>]... [--not-tracker <path>]...
 import { execFileSync } from 'node:child_process'
 import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -9,21 +9,24 @@ import { brief } from './hooks/core/brief.ts'
 import { formatFindings } from './hooks/core/findings.ts'
 import { headArgs, logArgs, parseLog, showArgs, snapshot } from './hooks/core/history.ts'
 import { parseSettings } from './hooks/core/settings.ts'
-import { collect, formatInventory, inventory } from './hooks/core/survey.ts'
+import { checkNamed, collect, formatInventory, inventory } from './hooks/core/survey.ts'
 import type { CommitInfo, FileKey, Snapshot } from './hooks/core/types.ts'
 
 const USAGE = 'usage: node cli.ts <map|check|brief> [--repo <dir>] [--settings <file>] [--out <file>]\n' +
-  '       node cli.ts survey [--repo <dir>] [--json]'
+  '       node cli.ts survey [--repo <dir>] [--json] [--tracker <path>]... [--not-tracker <path>]...'
 const OPTIONS: Record<string, string[]> = { map: ['repo', 'settings', 'out'], check: ['repo', 'settings', 'out'],
-  brief: ['repo', 'settings', 'out'], survey: ['repo', 'json'] }
+  brief: ['repo', 'settings', 'out'], survey: ['repo', 'json', 'tracker', 'not-tracker'] }
 
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv
   const opt: Record<string, string> = {}
+  const named = { tracker: [] as string[], 'not-tracker': [] as string[] } // repeatable
   for (let i = 0; i < rest.length; i++) {
     if (rest[i] === '--json') { opt.json = 'yes'; continue }
     if (!rest[i]?.startsWith('--') || rest[i + 1] === undefined) { console.error(USAGE); return 2 }
-    opt[rest[i].slice(2)] = rest[++i]
+    const k = rest[i].slice(2)
+    opt[k] = rest[++i]
+    if (k === 'tracker' || k === 'not-tracker') named[k].push(opt[k])
   }
   if (!Object.hasOwn(OPTIONS, cmd) || Object.keys(opt).some(k => !OPTIONS[cmd].includes(k))) {
     console.error(USAGE)
@@ -43,10 +46,12 @@ export async function main(argv: string[]): Promise<number> {
     }
     const paths = listed.split('\0')
     paths.pop() // the empty tail after the last NUL
+    const n = checkNamed(paths, named.tracker, named['not-tracker'])
+    if ('error' in n) { console.log(`housekeeping: ${n.error} (paths are from the top of ${repo})`); return 2 }
     const { files, skipped } = await collect(paths,
       p => { try { const s = lstatSync(join(repo, p)); return { file: s.isFile(), size: s.size } } catch { return null } },
-      p => { try { return readFileSync(join(repo, p), 'utf8') } catch { return null } })
-    const inv = inventory(files, skipped)
+      p => { try { return readFileSync(join(repo, p), 'utf8') } catch { return null } }, { first: n.tracker })
+    const inv = inventory(files, skipped, n)
     console.log(opt.json ? JSON.stringify(inv, null, 2) : formatInventory(inv))
     return 0
   }

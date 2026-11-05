@@ -109,11 +109,12 @@ async function init($: EngineInterface): Promise<{ text: string; exitCode?: numb
 
 // survey and plan: the procedure, then the inventory, for the agent to follow; plan adds check's findings when
 // there are settings. Neither writes anything.
-async function procedure($: EngineInterface, arg: 'survey' | 'plan'): Promise<{ text: string; exitCode?: number; context?: string[] }> {
+async function procedure($: EngineInterface, arg: 'survey' | 'plan', named?: { tracker: string[]; notTracker: string[] }):
+  Promise<{ text: string; exitCode?: number; context?: string[] }> {
   const root = await repoRoot($)
-  const t = await readTracked($, root)
+  const t = await readTracked($, root, named)
   if ('error' in t) return { text: t.error, exitCode: 1 }
-  const inv = inventory(t.files, t.skipped, { denied: t.denied })
+  const inv = inventory(t.files, t.skipped, { denied: t.denied, ...t.named })
   const context = [await $.fs.read(`${$.plugin.root}/prompts/${arg}.md`), formatInventory(inv)]
   if (arg === 'plan' && (await $.fs.exists(`${root}/${SETTINGS}`))) {
     const l = await load($)
@@ -128,10 +129,25 @@ async function procedure($: EngineInterface, arg: 'survey' | 'plan'): Promise<{ 
   return { text: `housekeeping ${arg}: ${inv.files} files read, ${inv.candidates.length} candidates${none}${stopped}`, context }
 }
 
+// survey's --tracker and --not-tracker, each repeatable, a path in double quotes when it holds a space; null when
+// anything else is there
+function surveyArgs(rest: string): { tracker: string[]; notTracker: string[] } | null {
+  const words = (rest.match(/"[^"]*"|\S+/g) ?? []).map(w => w.replace(/^"(.*)"$/, '$1'))
+  const named = { tracker: [] as string[], notTracker: [] as string[] }
+  for (let i = 0; i < words.length; i += 2) {
+    const k = words[i] === '--tracker' ? 'tracker' : words[i] === '--not-tracker' ? 'notTracker' : null
+    if (!k || words[i + 1] === undefined) return null
+    named[k].push(words[i + 1])
+  }
+  return named
+}
+
 async function command($: EngineInterface, arg: string, show: (brief: string) => void): Promise<{ text: string; exitCode?: number; context?: string[] }> {
   if (arg === 'init') return init($)
-  if (arg === 'survey' || arg === 'plan') return procedure($, arg)
-  if (!['', 'check', 'map', 'map new'].includes(arg)) return { text: 'housekeeping: [map | map new | check | init | survey | plan]; no argument opens the short view' }
+  if (arg === 'plan') return procedure($, arg)
+  const named = /^survey(?:\s|$)/.test(arg) ? surveyArgs(arg.slice(6)) : null
+  if (named) return procedure($, 'survey', named)
+  if (!['', 'check', 'map', 'map new'].includes(arg)) return { text: 'housekeeping: [map | map new | check | init | survey [--tracker <path>] [--not-tracker <path>] | plan]; no argument opens the short view' }
   const l = await load($)
   if ('error' in l) return { text: l.error, exitCode: 1 }
   if (arg === 'check') return { text: l.text, exitCode: l.failed ? 1 : 0 }
@@ -187,7 +203,7 @@ export const register: Register = on => {
   let started: Promise<View | null> | null = null // session start's view, which the first prompt.context awaits
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init, survey, plan.', argumentHint: '[map|map new|check|init|survey|plan]' })
+    await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init, survey, plan.', argumentHint: '[map|map new|check|init|survey [--tracker <path>] [--not-tracker <path>]|plan]' })
     const got = await next(e)
     // not awaited: a slow repository must not hold up the session
     started = cachedView($)

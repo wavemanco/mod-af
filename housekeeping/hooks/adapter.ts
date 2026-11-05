@@ -5,7 +5,7 @@ import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
 import { headArgs, logArgs, parseLog, showArgs, snapshot } from './core/history.ts'
 import { parseSettings } from './core/settings.ts'
-import { collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
+import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
 
 type Dollar = EngineInterface
@@ -113,16 +113,20 @@ export async function writePage($: Dollar, root: string, path: string, html: str
 // The survey's reader: the tracked files, under collect's rules. GIT_OPTIONAL_LOCKS=0: the survey writes nothing,
 // not even git's index refresh. Each file is first put to the person's Read rules, which the survey obeys (the
 // owner, 2026-11-04: "Obey the deny rules"); a check that fails counts as a deny.
-export async function readTracked($: Dollar, root: string): Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number } | { error: string }> {
+// The person's --tracker and --not-tracker paths come back checked, for the inventory.
+export async function readTracked($: Dollar, root: string, named = { tracker: [] as string[], notTracker: [] as string[] }):
+  Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number; named: { tracker: string[]; notTracker: string[] } } | { error: string }> {
   const r = await $.process.run(['git', 'ls-files', '-z'], { cwd: root, timeoutMs: TIMEOUT, env: { GIT_OPTIONAL_LOCKS: '0' } })
   // as the Node command says it; a survey that could not list is no survey (finding 7)
   if (r.exitCode !== 0) return { error: `housekeeping: cannot list the tracked files in ${root}: git said: ${r.stderr.split('\n')[0].trim()}` }
   const paths = r.stdout.split('\0')
   paths.pop() // the empty tail after the last NUL, or the entry the cut left half written
+  const n = checkNamed(paths, named.tracker, named.notTracker)
+  if ('error' in n) return { error: `housekeeping: ${n.error} (paths are from the top of ${root})` }
   const got = await collect(paths,
     p => $.fs.stat(`${root}/${p}`).then(s => ({ file: s.kind === 'file' && !s.isLink, size: s.size }), () => null),
     p => $.fs.read(`${root}/${p}`).catch(() => null),
-    { allow: p => $.tool.check({ tool: 'Read', input: { file_path: `${root}/${p}` } }).then(v => v.decision !== 'deny', () => false) })
+    { first: n.tracker, allow: p => $.tool.check({ tool: 'Read', input: { file_path: `${root}/${p}` } }).then(v => v.decision !== 'deny', () => false) })
   if (r.isStdoutTruncated) got.skipped.push({ path: root, why: CUT_LIST })
-  return got
+  return { ...got, named: n }
 }

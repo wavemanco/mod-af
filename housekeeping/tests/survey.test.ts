@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { collect, formatInventory, inventory, notRead } from '../hooks/core/survey.ts'
+import { checkNamed, collect, formatInventory, inventory, notRead } from '../hooks/core/survey.ts'
 
 // A made-up repository: a backlog, a guide that names it, a dated pass note, an archived copy and a test that reads it.
 const BACKLOG = [
@@ -29,12 +29,12 @@ test('a backlog with ID headings and an ID table scores above a README', () => {
   const at = (p: string) => inv.candidates.findIndex(c => c.path === p)
   expect(inv.files).toBe(6)
   expect(inv.candidates[0].path).toBe('BACKLOG.md')
-  expect(inv.candidates[0].signals).toEqual({ name: true, idHeadings: 2, idTables: 1, openBoxes: 1, doneBoxes: 0,
+  expect(inv.candidates[0].signals).toEqual({ named: false, name: true, idHeadings: 2, idTables: 1, openBoxes: 1, doneBoxes: 0,
     todos: 0, statusWords: 3, dated: false, guide: false })
   expect(inv.candidates[0].score).toBe(10.6) // 3 + 2*2 + 2*1 + 1 + 3/5
   expect(inv.candidates[0].hint).toBe('likely-tracker')
   expect(at('README.md')).toBeGreaterThan(0)
-  expect(inv.candidates[at('README.md')]).toEqual({ path: 'README.md', score: 3, hint: 'maybe', signals: { name: false,
+  expect(inv.candidates[at('README.md')]).toEqual({ path: 'README.md', score: 3, hint: 'maybe', signals: { named: false, name: false,
     idHeadings: 0, idTables: 0, openBoxes: 3, doneBoxes: 1, todos: 0, statusWords: 0, dated: false, guide: true } })
   expect(at('src/app.ts')).toBe(-1)
 })
@@ -169,6 +169,29 @@ test('with no candidates the text says no file reached the score of 3, and lists
     'and Suspects the files with some sign of pending work.\n\n## Not measured\n')
   expect(text).toContain('\n## Suspects (below the score of 3, with some sign of pending work)\nNOTES.md: 2 TODOs\nREADME.md: a TODO, roadmap')
   expect(text).not.toContain('nothing to move')
+})
+
+// finding 8, re-scoring: the person settles what the score cannot
+test('a --tracker path is a candidate with a named signal, first, with its readers; a --not-tracker path leaves candidates and suspects', () => {
+  const inv = inventory([...FILES, { path: 'tasks.yaml', text: 'items: []\n' }, { path: 'NOTES.md', text: 'TODO: x\n' },
+    { path: 'scripts/load.py', text: 'open("tasks.yaml")\n' }], [], { tracker: ['tasks.yaml', 'denied.md'], notTracker: ['BACKLOG.md', 'NOTES.md'] })
+  expect(inv.candidates.slice(0, 2).map(c => [c.path, c.signals.named, c.score])).toEqual([['denied.md', true, 0], ['tasks.yaml', true, 0]])
+  expect(inv.candidates.some(c => c.path === 'BACKLOG.md' || c.path === 'NOTES.md')).toBe(false)
+  expect(inv.suspects.some(s => s.path === 'NOTES.md' || s.path === 'tasks.yaml')).toBe(false)
+  expect(inv.references.filter(r => r.target === 'tasks.yaml')).toEqual([{ target: 'tasks.yaml', from: 'scripts/load.py', count: 1, machine: true }])
+  expect(inv.files).toBe(9)
+  expect(formatInventory(inv)).toContain('\n   0.0  maybe           tasks.yaml: named by --tracker\n')
+})
+
+test('the named paths are made repository-relative with "/"; one git does not track, or named both ways, is an error naming it', () => {
+  expect(checkNamed(['docs/a.md', 'b.md'], ['./docs/a.md', 'docs\\a.md'], ['b.md'])).toEqual({ tracker: ['docs/a.md'], notTracker: ['b.md'] })
+  expect(checkNamed(['a.md'], ['nope.md', 'a.md'], ['gone.md'])).toEqual({ error: 'not a tracked file: nope.md, gone.md' })
+  expect(checkNamed(['a.md'], ['a.md'], ['./a.md'])).toEqual({ error: 'named both --tracker and --not-tracker: a.md' })
+})
+
+test('the readers read the --tracker paths first', async () => {
+  const r = await collect(...reader({ 'a.txt': 'x', 'b.txt': 'x', 'z.yaml': 'x' }), { first: ['z.yaml'] })
+  expect(r.files.map(f => f.path)).toEqual(['z.yaml', 'a.txt', 'b.txt'])
 })
 
 test('the text shows at most 15 suspects and counts the rest; the inventory keeps them all', () => {

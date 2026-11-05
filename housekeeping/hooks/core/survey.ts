@@ -4,7 +4,8 @@ import { scanTables } from './markdown.ts'
 import { maskPrivacy } from './privacy.ts'
 
 export type SurveyFile = { path: string; text: string }
-export type Signals = { name: boolean; idHeadings: number; idTables: number; openBoxes: number;
+// named: the person named it a tracker (--tracker)
+export type Signals = { named: boolean; name: boolean; idHeadings: number; idTables: number; openBoxes: number;
   doneBoxes: number; todos: number; statusWords: number; dated: boolean; guide: boolean }
 export type Candidate = { path: string; signals: Signals; score: number;
   hint: 'likely-tracker' | 'maybe' | 'likely-history' }
@@ -59,9 +60,10 @@ const fold = (p: string): string => {
 // a script with no extension (#!) is code
 const isProse = (base: string, text: string): boolean => PROSE.test(base) && !text.startsWith('#!')
 
-function signalsOf({ path, text }: SurveyFile): Signals {
+function signalsOf({ path, text }: SurveyFile, named: boolean): Signals {
   const base = baseOf(path), prose = isProse(base, text)
   return {
+    named,
     name: prose && NAME.test(base),
     idHeadings: count(ID_HEADING, text),
     idTables: scanTables(text).filter(t => ID_HEADERS.includes(t.header[0])).length,
@@ -89,18 +91,23 @@ function suspectOf({ path, text }: SurveyFile, s: Signals): string {
     s.openBoxes && `${s.openBoxes} open boxes`].filter(Boolean).join(', ')
 }
 
-export function inventory(files: SurveyFile[], skipped: Skipped[] = [], { denied = 0 } = {}): Inventory {
-  const sorted = [...files].sort((a, b) => byPath(a.path, b.path))
+// The person's answers (the owner, 2026-11-04): a tracker is a candidate, ranked first, even when it was not read; a
+// not-tracker is neither a candidate nor a suspect. checkNamed has made both tracked, "/"-separated paths.
+export function inventory(files: SurveyFile[], skipped: Skipped[] = [],
+  { denied = 0, tracker = [] as string[], notTracker = [] as string[] } = {}): Inventory {
+  const read = new Set(files.map(f => f.path))
+  const sorted = [...files, ...tracker.filter(p => !read.has(p)).map(path => ({ path, text: '' }))].sort((a, b) => byPath(a.path, b.path))
   const candidates: Candidate[] = [], suspects: Suspect[] = []
   for (const f of sorted) {
-    const signals = signalsOf(f), score = scoreOf(signals)
-    if (score < 3) { const why = suspectOf(f, signals); if (why) suspects.push({ path: f.path, why }); continue }
+    if (notTracker.includes(f.path)) continue
+    const signals = signalsOf(f, tracker.includes(f.path)), score = scoreOf(signals)
+    if (score < 3 && !signals.named) { const why = suspectOf(f, signals); if (why) suspects.push({ path: f.path, why }); continue }
     const history = signals.dated || f.path.split('/').slice(0, -1).some(d => HISTORY_DIR.test(d))
     candidates.push({ path: f.path, signals, score, hint: history ? 'likely-history' : score >= 10 ? 'likely-tracker' : 'maybe' })
   }
-  // history last: it stays where it is, so it should not spend the top places the references are counted for
+  // named first; history last: it stays where it is, so it should not spend the top places the references are counted for
   const old = (c: Candidate) => +(c.hint === 'likely-history')
-  candidates.sort((a, b) => old(a) - old(b) || b.score - a.score || byPath(a.path, b.path))
+  candidates.sort((a, b) => +b.signals.named - +a.signals.named || old(a) - old(b) || b.score - a.score || byPath(a.path, b.path))
 
   // one pass per file for all the top names, each with the path written before it; a name inside a longer one
   // ("MY-BACKLOG.md", "backlog.mdx") is not it
@@ -149,7 +156,7 @@ const LABELS: [keyof Signals, string][] = [['idHeadings', 'ID headings'], ['idTa
   ['openBoxes', 'open boxes'], ['doneBoxes', 'done boxes'], ['statusWords', 'status words'], ['todos', 'TODOs']]
 
 function said(s: Signals): string {
-  const out = s.name ? ['name'] : []
+  const out = [...(s.named ? ['named by --tracker'] : []), ...(s.name ? ['name'] : [])]
   for (const [k, label] of LABELS) if (s[k]) out.push(`${s[k]} ${label}`)
   if (s.dated) out.push('dated path')
   if (s.guide) out.push('guide file')
@@ -237,15 +244,28 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
 export const MAX_FILE = 2 * 1024 * 1024, MAX_FILES = 3000, MAX_TOTAL = 30 * 1024 * 1024
 type Stat = { file: boolean; size: number } | null
 
-// allow: false for a file the person's Read rules deny, which is counted and never named, read or stat'ed
+/** The person's --tracker and --not-tracker paths, "/"-separated from the top, each once; an error names any that
+ *  git does not track, or that is named both ways. */
+export function checkNamed(paths: string[], tracker: string[], notTracker: string[]): { tracker: string[]; notTracker: string[] } | { error: string } {
+  const norm = (ps: string[]) => [...new Set(ps.map(p => p.replaceAll('\\', '/').replace(/^(?:\.\/)+/, '')))]
+  const t = norm(tracker), n = norm(notTracker), tracked = new Set(paths)
+  const bad = [...t, ...n].filter(p => !tracked.has(p)), both = t.filter(p => n.includes(p))
+  if (bad.length) return { error: `not a tracked file: ${bad.join(', ')}` }
+  if (both.length) return { error: `named both --tracker and --not-tracker: ${both.join(', ')}` }
+  return { tracker: t, notTracker: n }
+}
+
+// first: the --tracker paths, read before the rest. allow: false for a file the person's Read rules deny, which is
+// counted and never named, read or stat'ed.
 export async function collect(paths: string[], stat: (path: string) => Stat | Promise<Stat>,
   read: (path: string) => string | null | Promise<string | null>,
-  { allow }: { allow?: (path: string) => boolean | Promise<boolean> } = {}): Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number }> {
+  { allow, first = [] }: { allow?: (path: string) => boolean | Promise<boolean>; first?: string[] } = {}): Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number }> {
   const files: SurveyFile[] = [], skipped: Skipped[] = []
   let total = 0, denied = 0
-  // names that look like trackers or guides first, so the limits fall on the rest
+  // then names that look like trackers or guides, so the limits fall on the rest
   const looks = (p: string) => NAME.test(baseOf(p)) || GUIDE.test(baseOf(p))
-  paths = [...paths.filter(looks), ...paths.filter(p => !looks(p))]
+  const rest = paths.filter(p => !first.includes(p))
+  paths = [...first, ...rest.filter(looks), ...rest.filter(p => !looks(p))]
   for (let i = 0; i < paths.length; i++) {
     const path = paths[i]
     const skip = (why: string) => skipped.push({ path, why })

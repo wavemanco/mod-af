@@ -104,6 +104,26 @@ test('survey needs no settings, prints the top candidate first, and writes nothi
   assert.equal(git(dir, 'status', '--porcelain', '--ignored'), '')
 })
 
+// finding 8, re-scoring: the person's answers on the Node command too
+test('survey takes --tracker and --not-tracker, repeatable; a path git does not track is an error naming it', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  git(dir, 'init', '-q', '-b', 'main')
+  writeFileSync(join(dir, 'TODO.md'), '## T-1 one\n## T-2 two\n')
+  writeFileSync(join(dir, 'tasks.yaml'), 'items: []\n')
+  writeFileSync(join(dir, 'load.py'), 'open("tasks.yaml")\n')
+  git(dir, 'add', '.')
+  git(dir, 'commit', '-q', '-m', 'first')
+  const j = run('survey', '--json', '--repo', dir, '--tracker', 'tasks.yaml', '--not-tracker', 'TODO.md', '--not-tracker', 'load.py')
+  assert.equal(j.status, 0, j.stderr + j.stdout)
+  const inv = JSON.parse(j.stdout)
+  assert.deepEqual(inv.candidates.map((c: { path: string; signals: { named: boolean } }) => [c.path, c.signals.named]), [['tasks.yaml', true]])
+  assert.deepEqual(inv.references, [{ target: 'tasks.yaml', from: 'load.py', count: 1, machine: true }])
+  const bad = run('survey', '--repo', dir, '--tracker', 'nope.md')
+  assert.equal(bad.status, 2)
+  assert.match(bad.stdout, /not a tracked file: nope\.md/)
+  assert.equal(run('check', '--repo', dir, '--tracker', 'tasks.yaml').status, 2) // survey's option only
+})
+
 test('survey outside a git repository says what git said, exit 2', () => {
   const r = run('survey', '--repo', mkdtempSync(join(tmpdir(), 'hk-cli-')))
   assert.equal(r.status, 2)

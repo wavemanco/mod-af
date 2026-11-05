@@ -511,6 +511,25 @@ test('a failed git listing replies exit 1 with what git said, and a limit that s
   expect(cut.text).toContain('; a limit stopped the reading: past the end of a cut-short list of tracked files')
 })
 
+// finding 8, re-scoring: the person answers the suspects, and the survey runs again with the answers
+test('/housekeeping survey takes --tracker and --not-tracker, repeatable, a quoted path with spaces too', async ($, on) => {
+  const w: World = { tracked: { ...TRACKED, 'tasks.yaml': 'items: []\n', 'docs/my list.md': 'TODO: x\n', 'NOTES.md': 'TODO: y\n' } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'survey --tracker tasks.yaml --tracker "docs/my list.md" --not-tracker docs/todo.md --not-tracker NOTES.md')
+  expect(r.exitCode ?? 0).toBe(0)
+  const inv = r.context.at(-1)
+  expect(inv).toContain('\n## Candidates (score, hint, path: signals)\n   0.0  maybe           docs/my list.md: named by --tracker\n' +
+    '   0.0  maybe           tasks.yaml: named by --tracker\n\n')
+  expect(inv).not.toContain('docs/todo.md')
+  expect(inv).not.toContain('NOTES.md')
+  const bad = await run($, 'survey --tracker gone.md')
+  expect(bad.exitCode).toBe(1)
+  expect(bad.text).toBe('housekeeping: not a tracked file: gone.md (paths are from the top of /w)')
+  for (const arg of ['survey --tracker', 'survey --other x', 'plan --tracker tasks.yaml'])
+    expect((await run($, arg)).text).toContain('housekeeping: [map | map new | check | init | survey')
+})
+
 // finding 8: "nothing to move" is for a repository with no tracked files; otherwise the reply says what was measured
 test('with no candidates the survey says no file reached its score of 3, and counts the suspects', async ($, on) => {
   world(on, { tracked: { 'src/a.ts': TRACKED['src/a.ts'], 'NOTES.md': 'TODO: one\n' } })
