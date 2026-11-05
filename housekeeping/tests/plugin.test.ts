@@ -55,7 +55,7 @@ const under = (p: string) => posix(p).replace(/^\/w\//, '')
 
 // The engine stand-ins: git answers from small.ts's files, tools are logged, the store is a map.
 function world(on: On, w: World = {}) {
-  const files: Record<string, string> = { 'backlog.md': w.backlog ?? small.backlog, 'playbook.md': small.playbook }
+  const files = (): Record<string, string> => ({ 'backlog.md': w.backlog ?? small.backlog, 'playbook.md': small.playbook })
   const stored = (w.stored ??= {})
   const calls = (w.calls ??= [])
   on('command.register', (_, e) => ({ value: { command: e.name } }))
@@ -82,7 +82,7 @@ function world(on: On, w: World = {}) {
     if (w.gitFail && (a === 'log' || b === '--verify')) return { value: { exitCode: 128, stdout: '', stderr: w.gitFail, isStdoutTruncated: false, isStderrTruncated: false } }
     if (a === 'log') return w.noBranch ? ok('', 128) : ok(`${SHA}\t2026-09-12\thead\n`)
     if (a === 'show') {
-      const text = files[String(e.argv.at(-1)).split(':')[1]]
+      const text = files()[String(e.argv.at(-1)).split(':')[1]]
       if (w.truncateShow) return ok('# cut', 0, true)
       return ok(text ?? '', text === undefined ? 128 : 0)
     }
@@ -503,6 +503,24 @@ test('no argument opens the pane and sets the status line', async ($, on) => {
   })
   const md = await ui.find({ type: 'Markdown' })
   expect(md?.props.text).toContain('# Small: where we are')
+  await ui.unmount()
+})
+
+const PANE = { plugin: 'housekeeping', surface: 'terminal', component: 'Pane', requestId: 'housekeeping',
+  props: { title: 'housekeeping', isFocused: false, bodyColumns: 60, placement: 'dock', scroll: { offset: 0, bodyRows: 20 }, view: {} } } as const
+
+// finding 18: the open pane kept the first run's rows and counts
+test('a second /housekeeping redraws the open pane with the new view', async ($, on) => {
+  const w: World = {}
+  world(on, w)
+  await $.session.start(START)
+  await run($, '')
+  const ui = await $.ui.mount(PANE)
+  const shown = async () => String((await ui.find({ type: 'Markdown' }))?.props.text)
+  expect(await shown()).toContain('B-005 Tidy the build scripts')
+  w.backlog = small.backlog.replace('Tidy the build scripts', 'Tidy the build and test scripts')
+  await run($, '')
+  expect(await shown()).toContain('B-005 Tidy the build and test scripts')
   await ui.unmount()
 })
 

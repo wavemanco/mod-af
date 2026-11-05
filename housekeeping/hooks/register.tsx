@@ -163,6 +163,7 @@ async function command($: EngineInterface, arg: string, show: (brief: string) =>
   if (arg === 'check') return { text: [l.on.branch, ...l.on.behind, l.text].filter(Boolean).join('\n'), exitCode: l.failed ? 1 : 0 }
   if (arg === '') {
     show(l.out.brief)
+    $.ui.invalidate('ui.render') // a pane already open draws the new view (finding 18)
     const pane = await $.ui.open({ id: 'housekeeping', title: 'housekeeping' })
     $.ui.status(statusLine(l.out))
     // no pane placed: the person would see nothing, so the brief comes back as text (HK-029)
