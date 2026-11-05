@@ -190,6 +190,18 @@ test('checklist and where-we-are headings match whole; a row table in skipSectio
   expect(good().findings).toEqual([])
 })
 
+// finding 16: a reopened row is legitimate, so a warning, not an error
+test('an ID both open and in Done, or twice in Done, is a warning', () => {
+  const done = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'done-id')
+  const reopened = once(backlog, '| Merge the export branch (B-004) |', '| Merge the export branch (B-001) |')
+  expect(done(reopened).map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 29]])
+  expect(done(reopened)[0].message).toContain('B-001')
+  const twice = once(backlog, '| Sign the hosting contract (PB-02) |', '| Sign the hosting contract (B-004) |')
+  expect(done(twice).map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 30]])
+  expect(done(twice)[0].message).toContain('B-004')
+  expect(done(backlog)).toEqual([])
+})
+
 // HK-020
 test('a date after the head commit does not make where-we-are look fresh', () => {
   const b = once(backlog, '(B-004 is closed).', '(B-004 is closed). Checked 2026-10-01; due 2027-01-01.')
