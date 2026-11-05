@@ -30,6 +30,22 @@ test('a hit in the short view is masked, not blocked', () => {
   expect(t).toContain('ask ja**************om')
 })
 
+test('the short view masks before it cuts, and never shows a private key\'s body', () => {
+  const [k, e] = SMALL.landNow
+  const item = (r: PageData['rows'][number]) => r.id === k ? 'x'.repeat(100) + ' sk-ant-FAKEFAKEFAKEFAKEFAKEFAKE'
+    : r.id === e ? 'y'.repeat(105) + ' jane.doe@corp.io' : r.item
+  const t = brief({ ...SMALL, rows: SMALL.rows.map(r => ({ ...r, item: item(r) })) }, {})
+  expect(t.includes('FAKE')).toBe(false)
+  expect(t.includes('jane.doe@')).toBe(false)
+  const block = '-----BEGIN PRIVATE KEY-----\nMIIE' + 'FAKE'.repeat(10) + '\n' + 'FAKE'.repeat(10) + '\n-----END PRIVATE KEY-----'
+  const where = (text: string) => brief({ ...SMALL, whereWeAre: { file: 'backlog', line: 1, text, date: null } }, {})
+  for (const w of [where(`keys: ${block} done`), where('word '.repeat(100) + block)]) {
+    expect(w.includes('FAKE')).toBe(false)
+    expect(w).toContain('Needs you:')
+  }
+  expect(where(`keys: ${block} done`)).toContain(' done')
+})
+
 test('branch and remote notes', () => {
   const t = brief(SMALL, { branch: 'feature/x', behindRemote: 3 })
   expect(t).toContain('On branch feature/x; the map shows main.')

@@ -89,6 +89,15 @@ test('a hit in a commit subject is masked from the decoded subject', () => {
   expect(page.includes('fix “@jane.doe” wording; ask “ja************io”—sk')).toBe(true)
 })
 
+test('a one-line private key in a commit subject is masked whole', () => {
+  const o = build(withSubject('add -----BEGIN RSA PRIVATE KEY-----MIIEFAKEFAKEFAKEFAKE-----END RSA PRIVATE KEY----- by mistake'))
+  expect(o.html).not.toBeNull()
+  const page = decoded(o.html!)
+  expect(page.includes('FAKE')).toBe(false)
+  expect(page.includes('PRIVATE KEY')).toBe(false)
+  expect(page.includes(' by mistake')).toBe(true)
+})
+
 test('missing playbook blocks the page', () => {
   const o = build(input({ playbook: null }))
   expect(o.html).toBeNull()

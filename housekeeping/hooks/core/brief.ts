@@ -20,8 +20,9 @@ function dutyDue(trigger: string, lastDone: string | null, today: string): boole
   return addInterval(lastDone, m[1] ? Number(m[1]) : 1, m[2].toLowerCase()) <= today
 }
 
+// mask, then cut: a key or address cut short no longer has its shape, so the mask would miss it
 // shortcut: cuts at 120 characters, mid-word; upgrade if items need a word boundary
-const short = (t: string) => t.length <= 120 ? t : t.slice(0, 119) + '…'
+const short = (t: string) => (t = maskPrivacy(t)).length <= 120 ? t : t.slice(0, 119) + '…'
 
 export function brief(d: PageData, opts: { today?: string; branch?: string; behindRemote?: number; main?: string }): string {
   const main = opts.main ?? 'main'
@@ -29,7 +30,7 @@ export function brief(d: PageData, opts: { today?: string; branch?: string; behi
   const out: string[] = [`# ${d.project}: where we are (${d.commit}, ${d.date})`]
   if (opts.branch && opts.branch !== main) out.push(`On branch ${opts.branch}; the map shows ${main}.`)
   if (opts.behindRemote && opts.behindRemote > 0) out.push(`Local ${main} is ${opts.behindRemote} commits behind its remote copy.`)
-  const w = d.whereWeAre?.text ?? ''
+  const w = maskPrivacy(d.whereWeAre?.text ?? '')
   if (w) {
     // shortcut: cuts at the last space inside 600 characters, or hard at 600 for one long word
     const cut = w.length <= 600 ? w : w.slice(0, 600).replace(/\s+\S*$/, '') || w.slice(0, 600)
