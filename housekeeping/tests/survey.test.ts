@@ -92,6 +92,21 @@ test('a mention with a path names the target that path ends; a bare name names e
   expect(formatInventory(inv)).toContain('\n     1  notes.md (ambiguous: a bare name several targets share)\n')
 })
 
+// finding 32: a file named TODO took every TODO comment for a reader, and a script named open scored on its name
+test('for a target with no extension a bare word is a possible use, after the readers and not by count; a #! file is not prose', () => {
+  const inv = inventory([{ path: 'TODO', text: '## T-1 one\n## T-2 two\n' },
+    { path: 'src/a.ts', text: '// TODO one\n'.repeat(25) }, { path: 'src/b.ts', text: '// TODO\n'.repeat(2) },
+    { path: 'lib/c.ts', text: '// TODO\n'.repeat(5) }, { path: 'scripts/check.sh', text: 'grep T- ../TODO\n' },
+    { path: 'bin/open', text: '#!/bin/sh\nexec open "$@"\n' }])
+  expect(inv.candidates.map(c => c.path)).toEqual(['TODO'])
+  expect(inv.references).toEqual([
+    { target: 'TODO', from: 'scripts/check.sh', count: 1, machine: true },
+    { target: 'TODO', from: 'lib/c.ts', count: 5, machine: true, possible: true },
+    { target: 'TODO', from: 'src/a.ts', count: 25, machine: true, possible: true },
+    { target: 'TODO', from: 'src/b.ts', count: 2, machine: true, possible: true }])
+  expect(formatInventory(inv)).toContain('\n    25  src/a.ts (machine) (possible use: a bare word)\n')
+})
+
 test('the guide lines that say where pending work goes: whole in the inventory, cut at 200 and marked in the text', () => {
   const inv = inventory(FILES), g = inv.guides
   expect(g.map(l => [l.path, l.line])).toEqual([['README.md', 1], ['README.md', 6]])
