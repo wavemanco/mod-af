@@ -115,7 +115,10 @@ async function procedure($: EngineInterface, arg: 'survey' | 'plan', named?: { t
   const t = await readTracked($, root, named)
   if ('error' in t) return { text: t.error, exitCode: 1 }
   const inv = inventory(t.files, t.skipped, { denied: t.denied, ...t.named })
-  const context = [await $.fs.read(`${$.plugin.root}/prompts/${arg}.md`), formatInventory(inv)]
+  // where housekeeping lives, which the procedures need for the Node command and FORMAT.md (finding 22)
+  const home = $.plugin.root
+  const context = [await $.fs.read(`${home}/prompts/${arg}.md`), `housekeeping is installed at ${home}: run its Node command as ` +
+    `node ${home}/cli.ts (survey takes --tracker and --not-tracker), and read its row format in ${home}/FORMAT.md.`, formatInventory(inv)]
   if (arg === 'plan' && (await $.fs.exists(`${root}/${SETTINGS}`))) {
     const l = await load($)
     context.push(`The current /housekeeping check findings:\n${'error' in l ? l.error : l.text || 'none'}`)

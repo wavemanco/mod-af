@@ -449,16 +449,21 @@ test('no argument opens the pane and sets the status line', async ($, on) => {
 // a made-up repository: one list with ID headings and a box, and a code file
 const TRACKED = { 'docs/todo.md': '## T-1 one\n## T-2 two\n- [ ] three\n', 'src/a.ts': 'export const a = 1\n' }
 
-test('/housekeeping survey hands over the procedure, then the inventory, and writes nothing', async ($, on) => {
-  const w: World = { tracked: { ...TRACKED } }
+// finding 22: the agent was never told where housekeeping lives, so it guessed the Node command and the format
+const WHERE = /^housekeeping is installed at (.+): run its Node command as node \1\/cli\.ts \(survey takes --tracker and --not-tracker\), and read its row format in \1\/FORMAT\.md\.$/
+
+test('/housekeeping survey hands over the procedure, where housekeeping lives, then the inventory, and writes nothing', async ($, on) => {
+  const w: World = { tracked: { ...TRACKED }, reads: [] }
   world(on, w)
   await $.session.start(START)
   const r = await run($, 'survey')
   // finding 21: the reply read as the finished result; it says the agent goes on at the next message
   expect(r.text).toBe('housekeeping survey: 2 files read, 1 candidates\nThe agent carries out the survey procedure on your next message, for example "go ahead".')
   expect(r.context[0]).toBe(PROMPTS.survey)
-  expect(r.context[1]).toMatch(/## Candidates.*\n +8\.0 +maybe +docs\/todo\.md: name, 2 ID headings/)
-  expect(r.context.length).toBe(2)
+  expect(r.context[1]).toMatch(WHERE)
+  expect(w.reads).toContain(posix(`${WHERE.exec(r.context[1])![1]}/prompts/survey.md`))
+  expect(r.context[2]).toMatch(/## Candidates.*\n +8\.0 +maybe +docs\/todo\.md: name, 2 ID headings/)
+  expect(r.context.length).toBe(3)
   expect(w.written).toBeUndefined()
   expect(w.calls!.length).toBe(0)
 })
@@ -470,10 +475,11 @@ test('/housekeeping plan adds the check findings when a .housekeeping.json exist
   const r = await run($, 'plan')
   expect(r.text).toBe('housekeeping plan: 2 files read, 1 candidates\nThe agent carries out the plan procedure on your next message, for example "go ahead".')
   expect(r.context[0]).toBe(PROMPTS.plan)
-  expect(r.context[1]).toContain('docs/todo.md')
-  expect(r.context[2]).toContain('recommendation done-milestone')
+  expect(r.context[1]).toMatch(WHERE)
+  expect(r.context[2]).toContain('docs/todo.md')
+  expect(r.context[3]).toContain('recommendation done-milestone')
   w.hasSettings = false
-  expect((await run($, 'plan')).context.length).toBe(2)
+  expect((await run($, 'plan')).context.length).toBe(3)
 })
 
 // finding 3: the survey read past the person's Read deny rules, and its context carried the denied files' lines
