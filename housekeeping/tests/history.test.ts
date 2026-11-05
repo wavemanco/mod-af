@@ -19,10 +19,11 @@ const files3 = { backlog: b2.replace(line(b2, 'B-005') + '\n', line(b2, 'B-005')
 const info = (n: number) => ({ sha: `abcdef${n}0123456789`, date: `2026-09-0${n}`, subject: `c${n}` })
 const snaps = [files1, files2, files3].map((f, i) => ({ ...snapshot(s, f), ...info(i + 1) }))
 
-// --end-of-options: a revision that starts with "-" is never read as an option
+// --end-of-options: a revision that starts with "-" is never read as an option; --no-show-signature: a signed
+// commit's gpg lines never reach the log's lines (finding 14)
 test('the git arguments', () => {
-  expect(headArgs('main')).toEqual(['git', 'log', '-1', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main'])
-  expect(logArgs(s)).toEqual(['git', 'log', '--first-parent', '--reverse', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--', ':(literal)backlog.md', ':(literal)playbook.md'])
+  expect(headArgs('main')).toEqual(['git', 'log', '-1', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main'])
+  expect(logArgs(s)).toEqual(['git', 'log', '--first-parent', '--reverse', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--', ':(literal)backlog.md', ':(literal)playbook.md'])
   expect(showArgs('abc', 'backlog.md')).toEqual(['git', 'show', '--end-of-options', 'abc:backlog.md'])
 })
 

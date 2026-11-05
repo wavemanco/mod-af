@@ -54,6 +54,22 @@ test('the command never runs a git.exe that the repository holds', { skip: proce
   assert.equal(JSON.parse(s.stdout).files, 3)
 })
 
+// finding 14: with log.showSignature on, git printed the signature lines among the commits
+test('a signed commit with log.showSignature on leaves check, map and brief as they are', () => {
+  const dir = repo(), key = join(dir, '..', `${dir.split(/[\\/]/).pop()}-key`)
+  execFileSync('ssh-keygen', ['-q', '-t', 'ed25519', '-N', '', '-C', 'test', '-f', key], { stdio: 'ignore' })
+  writeFileSync(join(dir, 'backlog.md'), backlog.replace('Tidy the build scripts', 'Tidy the build and test scripts'))
+  git(dir, '-c', 'gpg.format=ssh', '-c', `user.signingkey=${key}`, 'commit', '-qam', 'a signed change', '-S')
+  const plain = run('map', '--repo', dir, '--out', join(dir, 'plain.html'))
+  assert.equal(plain.status, 0, plain.stdout + plain.stderr)
+  const env = { ...process.env, GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'log.showSignature', GIT_CONFIG_VALUE_0: 'true' }
+  const at = (...a: string[]) => spawnSync('node', [CLI, ...a], { encoding: 'utf8', env })
+  for (const cmd of ['check', 'brief']) assert.equal(at(cmd, '--repo', dir).status, 0, cmd)
+  const m = at('map', '--repo', dir, '--out', join(dir, 'signed.html'))
+  assert.equal(m.status, 0, m.stdout + m.stderr)
+  assert.equal(readFileSync(join(dir, 'signed.html'), 'utf8'), readFileSync(join(dir, 'plain.html'), 'utf8'))
+})
+
 test('check exits 0 on a sound repository', () => {
   assert.equal(run('check', '--repo', repo()).status, 0)
 })
