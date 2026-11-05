@@ -20,7 +20,7 @@
 - `checklists`: list of `{ file, heading, milestone? }`; default `[]`.
 - `notDoing`: optional `{ file, heading }`.
 - `decisions`: optional, the decisions folder.
-- `duties.triggerPrefix`: default `"Every"`; a trigger starting with it is a standing duty.
+- `duties.triggerPrefix`: default `"Every"`; a trigger starting with it is a standing duty. With a `Last done: YYYY-MM-DD` in its Details (the latest one counts), the short view computes when it is due for `Every session` and for `Every [n] day`, `week`, `month`, `quarter` or `year` (plurals too, `n` in digits). Any other period is a `duty-period` warning, and a day not on the calendar a `last-done` warning.
 - `defaultUntilDecided`: default `"Default until decided:"`.
 
 ## Rows and sections

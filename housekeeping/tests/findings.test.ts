@@ -74,6 +74,19 @@ test('a real Last done date passes; an impossible one names its row', () => {
   expect(fs.map(f => [f.level, f.file, f.line, f.message])).toEqual([['warning', 'backlog', 23, 'B-005: Last done "2026-13-01" is not a real YYYY-MM-DD date']])
 })
 
+// finding 25: the warning also covers spelled-out numbers and another triggerPrefix
+test('a duty with a Last done and a period the short view cannot read is a warning', () => {
+  const at = (trigger: string, details = '**Why:** slow builds. Last done: 2026-10-01') =>
+    rules(run({ b: [DUTY, `| ${trigger} | — | ${details} |`] }))
+  for (const t of ['Every three months.', 'Every two weeks.', 'Every fortnight.'])
+    expect([t, at(t)]).toEqual([t, ['duty-period']])
+  for (const t of ['Every quarter.', 'Every 2 years.', 'Every session.', 'Every 3 weeks.', 'Every month.'])
+    expect([t, at(t)]).toEqual([t, []])
+  expect(at('Every three months.', '**Why:** slow builds.')).toEqual([])
+  const each = run({ s: ['"version":1', '"version":1,"duties":{"triggerPrefix":"Each"}'], b: [DUTY, '| Each 30 days. | — | Last done: 2026-10-01 |'] })
+  expect(rules(each)).toEqual(['duty-period'])
+})
+
 test('a 30-word Trigger passes; 31 fails', () => {
   const t = (n: number) => Array.from({ length: n }, () => 'word').join(' ')
   const at = (n: number): Mut => ({ b: ['| Whenever an agent picks it up. |', `| ${t(n)} |`] })

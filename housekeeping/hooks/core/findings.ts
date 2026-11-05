@@ -1,6 +1,6 @@
 import type { Facts, Finding, HistoryEntry, Lane, Level, Parsed, Row, Settings } from './types.ts'
 import { idsIn } from './parse.ts'
-import { lastDones, realDay } from './brief.ts'
+import { lastDones, readsPeriod, realDay } from './brief.ts'
 
 const ORDER: Level[] = ['error', 'warning', 'recommendation']
 
@@ -38,8 +38,12 @@ export function findingsFor(s: Settings, p: Parsed, f: Facts, _lanes: Lane[], hi
       w('value', `Trigger type "${tt}" is not in the list`)
     // "before <date>" is a legal Filed: the day is known to be no later
     if (has(c.filed) && !realDay(r.filed.replace(/^before /, ''))) w('filed', `Filed "${r.filed}" is not a real YYYY-MM-DD date`)
-    if (duties.has(r.id))
-      for (const d of lastDones(r.details)) if (!realDay(d)) w('last-done', `Last done "${d}" is not a real YYYY-MM-DD date`)
+    if (duties.has(r.id)) {
+      const days = lastDones(r.details)
+      for (const d of days) if (!realDay(d)) w('last-done', `Last done "${d}" is not a real YYYY-MM-DD date`)
+      if (days.length && !readsPeriod(r.trigger))
+        w('duty-period', 'the short view reads no period in this Trigger, so it never says the duty is due: it reads "Every session" and "Every [n] day, week, month, quarter or year", n in digits')
+    }
     const words = r.trigger.split(/\s+/).filter(Boolean).length
     if (words === 0) w('trigger', 'Trigger is empty')
     else if (words > 30) w('trigger', `Trigger has ${words} words, 30 at most`)

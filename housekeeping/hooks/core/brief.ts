@@ -2,14 +2,18 @@ import type { PageData } from './types.ts'
 import { maskPrivacy } from './privacy.ts'
 
 const MAX = 8000
-const EVERY = /^Every\s+(?:(\d+)\s+)?(day|days|week|weeks|month|months)\b/i
+const EVERY = /^Every\s+(?:(\d+)\s+)?(day|days|week|weeks|month|months|quarter|quarters|year|years)\b/i
 const EVERY_SESSION = /^Every session\b/i
+const MONTHS: Record<string, number> = { month: 1, quarter: 3, year: 12 }
 
-// The date n days/weeks/months after an ISO date (UTC, no clock read).
+// The periods the short view computes; check warns on a duty with a Last done and any other.
+export const readsPeriod = (trigger: string): boolean => EVERY_SESSION.test(trigger) || EVERY.test(trigger)
+
+// The date n days/weeks/months/quarters/years after an ISO date (UTC, no clock read).
 function addInterval(iso: string, n: number, unit: string): string {
-  const d = new Date(iso + 'T00:00:00Z')
-  if (unit.startsWith('month')) d.setUTCMonth(d.getUTCMonth() + n)
-  else d.setUTCDate(d.getUTCDate() + n * (unit.startsWith('week') ? 7 : 1))
+  const d = new Date(iso + 'T00:00:00Z'), u = unit.replace(/s$/, '')
+  if (MONTHS[u]) d.setUTCMonth(d.getUTCMonth() + n * MONTHS[u])
+  else d.setUTCDate(d.getUTCDate() + n * (u === 'week' ? 7 : 1))
   return d.toISOString().slice(0, 10)
 }
 

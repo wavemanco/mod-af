@@ -24,6 +24,18 @@ test('a duty is due by its last-done date and interval', () => {
   expect(brief(d, {})).not.toContain('Duties due:')
 })
 
+// finding 25
+test('quarter and year periods are read, and the latest Last done counts', () => {
+  const due = (trigger: string, details: string, today: string) => brief(smallData(once(small.backlog,
+    '| Whenever an agent picks it up. | — | **Why:** slow builds. |', `| ${trigger} | — | ${details} |`)), { today }).includes('Duties due: B-005')
+  expect(due('Every quarter.', 'Last done: 2026-09-01', '2026-11-30')).toBe(false)
+  expect(due('Every quarter.', 'Last done: 2026-09-01', '2026-12-01')).toBe(true)
+  expect(due('Every 2 years.', 'Last done: 2025-01-01', '2026-12-31')).toBe(false)
+  expect(due('Every 2 years.', 'Last done: 2025-01-01', '2027-01-01')).toBe(true)
+  expect(due('Every year.', 'Last done: 2020-01-01', '2026-11-04')).toBe(true)
+  expect(due('Every 30 days.', 'Last done: 2020-01-01. Last done: 2026-10-01', '2026-10-15')).toBe(false)
+})
+
 // finding 15
 test('an impossible Last done date makes no duty due, and nothing throws', () => {
   for (const day of ['2026-13-01', '2026-10-40', '2026-02-30']) {
