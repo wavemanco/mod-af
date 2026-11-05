@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { build } from './hooks/core/index.ts'
-import { brief } from './hooks/core/brief.ts'
+import { behind, brief, onBranch } from './hooks/core/brief.ts'
 import { formatFindings } from './hooks/core/findings.ts'
 import { blobArgs, headArgs, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot,
   unreadable } from './hooks/core/history.ts'
@@ -110,23 +110,26 @@ export async function main(argv: string[]): Promise<number> {
   const findings = [...settingsFindings, ...(shallow ? [SHALLOW_WARNING] : []), ...result.findings]
   const failed = findings.some(f => f.level === 'error')
 
+  let branch = main // an unborn HEAD names no branch: read as main's
+  try { branch = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim() } catch { /* as above */ }
+  let behindRemote = 0
+  try {
+    git(['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${main}`])
+    behindRemote = Number(git(['rev-list', '--count', `${main}..origin/${main}`]).trim())
+  } catch { /* no remote copy: nothing is behind */ }
+
   if (cmd === 'check') {
-    if (findings.length) console.log(formatFindings(findings))
+    const said = [...onBranch(branch, main, 'check read'), ...behind(behindRemote, main), ...(findings.length ? [formatFindings(findings)] : [])]
+    if (said.length) console.log(said.join('\n'))
     return failed ? 1 : 0
   }
   if (cmd === 'map') {
     if (failed || result.html === null) { console.log(formatFindings(findings)); return 1 }
     mkdirSync(dirname(out), { recursive: true })
     writeFileSync(out, result.html)
-    console.log(result.partition)
+    console.log([result.partition, ...behind(behindRemote, main)].join('\n'))
     return 0
   }
-  const branch = git(['rev-parse', '--abbrev-ref', 'HEAD']).trim()
-  let behindRemote = 0
-  try {
-    git(['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${main}`])
-    behindRemote = Number(git(['rev-list', '--count', `${main}..origin/${main}`]).trim())
-  } catch { /* no remote copy: nothing is behind */ }
   console.log(brief(result.data, { today: new Date().toISOString().slice(0, 10), branch, behindRemote, main }))
   return 0
 }

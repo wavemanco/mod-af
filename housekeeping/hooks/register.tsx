@@ -1,6 +1,6 @@
 import type { EngineInterface, Register } from 'claude-code'
 import { PAGE, readInput, readTracked, repoKey, writeFile, writePage } from './adapter.ts'
-import { brief } from './core/brief.ts'
+import { behind, brief, onBranch } from './core/brief.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
 import { parseSettings } from './core/settings.ts'
@@ -8,7 +8,9 @@ import { formatInventory, inventory, notRead } from './core/survey.ts'
 import { initFiles } from './core/templates.ts'
 import type { BuildOutput } from './core/types.ts'
 
-type Loaded = { root: string; out: BuildOutput; sha: string; text: string; failed: boolean; project: string } | { error: string }
+// on: the lines that say which branch check read and whether local main is behind its remote copy (finding 12)
+type Loaded = { root: string; out: BuildOutput; sha: string; text: string; failed: boolean; project: string;
+  on: { branch: string; behind: string[] } } | { error: string }
 
 const SETTINGS = '.housekeeping.json'
 // Only a page that is not there forgets the link; a refusal for access or permission keeps it (HK-033).
@@ -33,8 +35,10 @@ async function load($: EngineInterface): Promise<Loaded> {
   const out = build(r.input)
   const findings = [...r.findings, ...out.findings]
   const today = new Date(await $.clock.now()).toISOString().slice(0, 10)
-  out.brief = brief(out.data, { today, branch: r.branch, behindRemote: r.behindRemote, main: r.input.settings.mainBranch })
-  return { root, out, sha: r.input.head.sha, text: formatFindings(findings), failed: findings.some(f => f.level === 'error'), project: r.input.settings.project }
+  const main = r.input.settings.mainBranch
+  out.brief = brief(out.data, { today, branch: r.branch, behindRemote: r.behindRemote, main })
+  return { root, out, sha: r.input.head.sha, text: formatFindings(findings), failed: findings.some(f => f.level === 'error'), project: r.input.settings.project,
+    on: { branch: onBranch(r.branch, main, 'check read').join(''), behind: behind(r.behindRemote, main) } }
 }
 
 function statusLine(out: BuildOutput): string {
@@ -155,7 +159,7 @@ async function command($: EngineInterface, arg: string, show: (brief: string) =>
   if (!['', 'check', 'map', 'map new'].includes(arg)) return { text: 'housekeeping: [map | map new | check | init | survey [--tracker <path>] [--not-tracker <path>] | plan]; no argument opens the short view' }
   const l = await load($)
   if ('error' in l) return { text: l.error, exitCode: 1 }
-  if (arg === 'check') return { text: l.text, exitCode: l.failed ? 1 : 0 }
+  if (arg === 'check') return { text: [l.on.branch, ...l.on.behind, l.text].filter(Boolean).join('\n'), exitCode: l.failed ? 1 : 0 }
   if (arg === '') {
     show(l.out.brief)
     const pane = await $.ui.open({ id: 'housekeeping', title: 'housekeeping' })
@@ -166,7 +170,8 @@ async function command($: EngineInterface, arg: string, show: (brief: string) =>
 
   if (l.failed || l.out.html === null) return { text: l.text, exitCode: 1 }
   const path = `${l.root}/${PAGE}`
-  const kept = `${l.out.partition}\n${path}`
+  const partition = [l.out.partition, ...l.on.behind].join('\n')
+  const kept = `${partition}\n${path}`
   const denied = await writePage($, l.root, path, l.out.html)
   if (denied !== null) return { text: denied, exitCode: 1 }
   if (!(await $.tool.list()).some(t => t.name === 'Artifact')) return { text: kept }
@@ -195,9 +200,9 @@ async function command($: EngineInterface, arg: string, show: (brief: string) =>
     if (bad !== null) return { text: `${kept}\n${bad}`, exitCode: 1 }
     // the tool's result, else the first claude.ai link in its text (HK-036)
     const url = pub.result?.url ?? URL_IN_TEXT.exec(pub.text ?? '')?.[0].replace(/[.,;:]+$/, '') ?? known?.url
-    if (!url) return { text: `${l.out.partition}\nhousekeeping: the publish gave no URL (page at ${path})`, exitCode: 1 }
+    if (!url) return { text: `${partition}\nhousekeeping: the publish gave no URL (page at ${path})`, exitCode: 1 }
     await $.store.set(key, { url, sha: l.sha })
-    return { text: `${l.out.partition}\n${url}` }
+    return { text: `${partition}\n${url}` }
   } catch (err) {
     return { text: `${kept}\n${String(err)}`, exitCode: 1 }
   }

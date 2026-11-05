@@ -112,6 +112,27 @@ test('in a blobless clone the command never fetches, and says which file it cann
   assert.equal(has(), false)
 })
 
+// finding 12: on another branch a passing check said nothing of which branch it read; a tied minor: map and check
+// never said local main was behind its remote copy
+test('check names the branch it read when HEAD is elsewhere, and map and check say local main is behind', () => {
+  const dir = repo(), clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  execFileSync('git', ['clone', '-q', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
+  writeFileSync(join(dir, 'code.txt'), 'more\n')
+  git(dir, 'add', 'code.txt')
+  git(dir, 'commit', '-q', '-m', 'upstream moves on')
+  git(clone, 'fetch', '-q')
+  git(clone, 'checkout', '-q', '-b', 'feature')
+  const BEHIND = 'Local main is 1 commits behind its remote copy.'
+  const c = run('check', '--repo', clone)
+  assert.equal(c.status, 0, c.stdout + c.stderr)
+  assert.match(c.stdout, /^On branch feature; check read main\.$/m)
+  assert.ok(c.stdout.includes(BEHIND), c.stdout)
+  const m = run('map', '--repo', clone, '--out', join(clone, 'm.html'))
+  assert.equal(m.status, 0, m.stdout + m.stderr)
+  assert.equal(m.stdout, `${LINE}\n${BEHIND}\n`)
+  assert.doesNotMatch(run('check', '--repo', dir).stdout, /On branch|behind/)
+})
+
 test('check exits 0 on a sound repository', () => {
   assert.equal(run('check', '--repo', repo()).status, 0)
 })

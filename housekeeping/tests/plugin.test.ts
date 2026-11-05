@@ -26,6 +26,8 @@ type World = {
   gitFail?: string // git log and rev-parse --verify exit 128 with this stderr: the repository does not open
   shallow?: boolean // rev-parse --is-shallow-repository says true
   blobless?: boolean // git show cannot read a blob the commit's tree names
+  branch?: string // the checked-out branch, main by default
+  behind?: number // commits local main is behind its remote copy (with remoteSha)
   envs?: (Record<string, string> | undefined)[] // each git call's env
   mainSha?: string
   remoteSha?: string
@@ -83,7 +85,8 @@ function world(on: On, w: World = {}) {
       if (w.truncateShow) return ok('# cut', 0, true)
       return ok(text ?? '', text === undefined ? 128 : 0)
     }
-    if (a === 'rev-parse' && b === '--abbrev-ref') return ok('main\n')
+    if (a === 'rev-parse' && b === '--abbrev-ref') return ok(`${w.branch ?? 'main'}\n`)
+    if (a === 'rev-list' && b === '--count') return ok(`${w.behind ?? 0}\n`)
     if (a === 'rev-parse' && b === '--is-shallow-repository') return ok(w.shallow ? 'true\n' : 'false\n')
     if (a === 'rev-parse' && b === '--show-toplevel') return w.top ? ok(w.top + '\n') : ok('', 128)
     if (a === 'rev-parse' && b === '--verify') return w.remoteSha ? ok(w.remoteSha + '\n') : ok('', 1)
@@ -404,6 +407,20 @@ test('git runs with lazy fetching off, and a blob the clone does not hold is rep
   expect(r.exitCode).toBe(1)
   expect(r.text).toContain(`cannot read backlog.md at ${SHA.slice(0, 7)}, which this clone does not hold: housekeeping never fetches (git said: fatal: bad object x)`)
   w.argv!.forEach((a, i) => { if (a[1] === 'log' || a[1] === 'show') expect(w.envs![i]?.GIT_NO_LAZY_FETCH).toBe('1') })
+})
+
+// finding 12 and a tied minor: check names the branch it read, and map and check say local main is behind
+test('check names the branch it read when HEAD is elsewhere, and map and check say local main is behind', async ($, on) => {
+  const w: World = { branch: 'feature', remoteSha: 'a'.repeat(40), behind: 2, noArtifact: true }
+  world(on, w)
+  await $.session.start(START)
+  const BEHIND = 'Local main is 2 commits behind its remote copy.'
+  const c = await run($, 'check')
+  expect(c.exitCode).toBe(0)
+  expect(c.text.split('\n').slice(0, 2)).toEqual(['On branch feature; check read main.', BEHIND])
+  expect((await run($, 'map')).text).toBe(`${LINE}\n${BEHIND}\n/w/.housekeeping/route-map.html`)
+  Object.assign(w, { branch: 'main', behind: 0 })
+  expect((await run($, 'check')).text).not.toMatch(/On branch|behind/)
 })
 
 test('a session started in a sub-folder reads the top of the git tree (HK-030)', async ($, on) => {

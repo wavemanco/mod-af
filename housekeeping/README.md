@@ -39,6 +39,8 @@ node housekeeping/cli.ts survey [--repo <dir>] [--json]
 
 `check` exits 1 when it finds an error. The page it writes is byte-identical to the plugin's.
 
+`check` reads the main branch, not the commit checked out, and says which branch it read when HEAD is on another. To check a pull request's own records, in CI for example, run it with a copy of the settings whose `mainBranch` is `HEAD`: `node housekeeping/cli.ts check --settings <copy>`.
+
 ## Using it with `claude -p`
 
 A non-interactive run loads the plugin and its three dependencies by folder, and should leave the Artifact tool out, so that nothing is published with nobody there:

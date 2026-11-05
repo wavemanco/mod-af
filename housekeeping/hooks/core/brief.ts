@@ -37,12 +37,18 @@ function dutyDue(trigger: string, lastDone: string | null, today: string): boole
 // shortcut: cuts at 120 characters, mid-word; upgrade if items need a word boundary
 const short = (t: string) => (t = maskPrivacy(t)).length <= 120 ? t : t.slice(0, 119) + '…'
 
+// What a run read against what is checked out, for the short view, check and map (finding 12; DESIGN 3.4: the
+// command's output says when local main is behind a known remote copy)
+export const onBranch = (branch: string | undefined, main: string, what: string): string[] =>
+  branch && branch !== main ? [`On branch ${branch}; ${what} ${main}.`] : []
+export const behind = (n: number | undefined, main: string): string[] =>
+  n && n > 0 ? [`Local ${main} is ${n} commits behind its remote copy.`] : []
+
 export function brief(d: PageData, opts: { today?: string; branch?: string; behindRemote?: number; main?: string }): string {
   const main = opts.main ?? 'main'
   const byId = new Map(d.rows.map(r => [r.id, r]))
-  const out: string[] = [`# ${d.project}: where we are (${d.commit}, ${d.date})`]
-  if (opts.branch && opts.branch !== main) out.push(`On branch ${opts.branch}; the map shows ${main}.`)
-  if (opts.behindRemote && opts.behindRemote > 0) out.push(`Local ${main} is ${opts.behindRemote} commits behind its remote copy.`)
+  const out: string[] = [`# ${d.project}: where we are (${d.commit}, ${d.date})`,
+    ...onBranch(opts.branch, main, 'the map shows'), ...behind(opts.behindRemote, main)]
   const w = maskPrivacy(d.whereWeAre?.text ?? '')
   if (w) {
     // shortcut: cuts at the last space inside 600 characters, or hard at 600 for one long word
