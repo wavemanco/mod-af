@@ -1,13 +1,19 @@
 export type PrivacyHit = { kind: 'email' | 'key'; index: number; sample: string }
 
-const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g
+// the domain may hold non-ASCII letters; a percent-encoded address stays out, at the owner's choice (2026-11-04)
+const EMAIL = /[A-Za-z0-9._%+-]+@[\p{L}0-9.-]+\.\p{L}{2,}/gu
 const KEYS = [
   /(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9_-]{20,}/g, // not the end of a word: "task-add-..."
-  /AKIA[0-9A-Z]{16}/g,
+  /(?<![A-Za-z0-9])[rs]k_live_[A-Za-z0-9]{20,}/g, // a live payment key
+  /A[KS]IA[0-9A-Z]{16}/g, // an AWS key, long-term or temporary
   /gh[pousr]_[A-Za-z0-9]{36,}/g,
   /github_pat_[A-Za-z0-9_]{22,}/g,
+  /glpat-[A-Za-z0-9_-]{20,}/g,
+  /npm_[A-Za-z0-9]{36,}/g,
   /xox[abposr]-[A-Za-z0-9-]{10,}/g,
   /AIza[0-9A-Za-z_-]{35}/g,
+  /whsec_[A-Za-z0-9+/]{24,}/g, // a webhook signing secret
+  /eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, // a JWT
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/g,
 ]
 

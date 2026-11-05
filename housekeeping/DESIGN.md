@@ -235,7 +235,12 @@ So the reference repository's files, unchanged, pass `check` with recommendation
 
 **Privacy:**
 - It refuses to write a page that holds an email address (apart from no-reply and example addresses) or a
-  key-shaped string, and reports where it found it.
+  key of a shape it knows, and reports where it found it. It reads the page's text, not its escaped code.
+  - The shapes: `sk-` keys, live payment keys (`sk_live_`, `rk_live_`), AWS access keys, long-term and
+    temporary, GitHub, GitLab, npm, Slack and Google API tokens, webhook signing secrets (`whsec_`), JWTs and
+    private key blocks. An address's domain may hold non-ASCII letters.
+  - What passes: a password, a key of any other shape, and a percent-encoded address (the owner's choice,
+    2026-11-04).
 - It never shows commit authors.
 - A privacy hit in a commit subject, which cannot be edited, is masked and does not block the page
   (decided 2026-11-03; section 9). The short view is masked in the same way.

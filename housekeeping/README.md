@@ -75,7 +75,7 @@ The three keep working alone in any repository.
 - No dates in triggers, no durations, no estimates.
 - No database, no sync layer, no server.
 - It never commits, pushes or fetches, and installs no CI workflow.
-- It never shows commit authors, and it refuses to build a page that holds a personal email address or a key-shaped string, saying where. One in a commit subject, which cannot be edited, is masked in the page instead.
+- It never shows commit authors, and it refuses to build a page that holds a personal email address or a key of a shape it knows, saying where. The shapes are `sk-` keys, live payment keys, AWS access keys, GitHub, GitLab, npm, Slack and Google API tokens, webhook signing secrets, JWTs and private key blocks. A password or a key of another shape passes, so keep them out of the records. A hit in a commit subject, which cannot be edited, is masked in the page instead.
 - It changes no other plugin here.
 
 ## Not built: filing after every commit

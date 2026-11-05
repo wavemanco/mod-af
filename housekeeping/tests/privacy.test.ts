@@ -40,12 +40,20 @@ test('each key shape is found on a made-up value', () => {
   const samples = [
     'sk-' + a('a', 24), 'sk-ant-' + a('b', 24), 'AKIA' + a('A', 16), 'ghp_' + a('c', 36), 'gho_' + a('d', 40),
     'github_pat_' + a('e', 22), 'xoxb-' + a('1', 12), 'AIza' + a('f', 35), '-----BEGIN RSA PRIVATE KEY-----',
-    '-----BEGIN PRIVATE KEY-----']
-  for (const k of samples) expect(kinds(`token: ${k} end`)).toEqual(['key'])
+    '-----BEGIN PRIVATE KEY-----', 'sk_live_' + a('g', 24), 'rk_live_' + a('h', 24), 'glpat-' + a('i', 20),
+    'npm_' + a('j', 36), 'ASIA' + a('B', 16), 'whsec_' + a('k', 32),
+    'eyJ' + a('l', 12) + '.eyJ' + a('m', 12) + '.' + a('n', 16)]
+  for (const k of samples) expect([k, kinds(`token: ${k} end`)]).toEqual([k, ['key']])
+})
+
+test('an address whose domain has non-ASCII letters is found; a percent-encoded one is not, at the owner\'s choice', () => {
+  expect(kinds('write to jane@bücher.de today')).toEqual(['email'])
+  expect(kinds('write to jane@corp.рф today')).toEqual(['email'])
+  expect(scanPrivacy('write to jane%40corp.io today')).toEqual([])
 })
 
 test('near misses are not keys', () => {
-  expect(scanPrivacy('sk-short AKIA123 ghp_abc xoxb-1')).toEqual([])
+  expect(scanPrivacy('sk-short AKIA123 ghp_abc xoxb-1 sk_live_short glpat-short npm_abc ASIA123 whsec_abc eyJa.eyJb.c')).toEqual([])
 })
 
 test('sample never holds more than four characters of the match', () => {
