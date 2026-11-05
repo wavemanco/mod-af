@@ -1,8 +1,8 @@
 # housekeeping
 
-One place for a repository's pending work, and a Route Map made only from it. The work lives in two Markdown files, a backlog (work done in the repository) and a playbook (what happens outside it), each row with its trigger. `housekeeping` reads those files and nothing else, and builds from them a one-page map (lanes per path, what is ready, what unblocks what), a short view for an agent, and a list of problems with the files.
+One place for a repository's pending work, and a Route Map made only from it. The work lives in two Markdown files, a backlog (work done in the repository) and a playbook (what happens outside it), each row with its trigger. Its map, short view and `check` read those files and nothing else, and it builds from them a one-page map (lanes per path, what is ready, what unblocks what), a short view for an agent, and a list of problems with the files.
 
-It never decides anything for you: no commits, no pushes, no fetches. Every write goes through Claude Code's own Write tool, so your permissions apply, except for its own generated page, `.housekeeping/route-map.html`, which it writes directly and never commits.
+It never decides anything for you: no commits, no pushes, no fetches. Every write goes through Claude Code's own tools, so your permissions apply, except for its own generated page, `.housekeeping/route-map.html`, which it writes directly and never commits. Under `plan`, the agent commits on a new branch only the steps you approve.
 
 ## What Phase 1 delivers
 
@@ -34,7 +34,7 @@ The same computed parts run without Claude Code:
 
 ```
 node housekeeping/cli.ts <map|check|brief> [--repo <dir>] [--settings <file>] [--out <file>]
-node housekeeping/cli.ts survey [--repo <dir>] [--json]
+node housekeeping/cli.ts survey [--repo <dir>] [--json] [--tracker <path>]... [--not-tracker <path>]...
 ```
 
 `check` exits 1 when it finds an error. The page it writes is byte-identical to the plugin's.
@@ -86,4 +86,4 @@ An automatic filing run after every commit was not built. The owner's reason: it
 
 ## More
 
-[`DESIGN.md`](./DESIGN.md) is the record of the design and its decisions; [`research/`](./research/README.md) holds the distilled research and the Phase 1 results.
+[`DESIGN.md`](./DESIGN.md) is the record of the design and its decisions; [`research/`](./research/README.md) holds the distilled research and the Phase 1 and Phase 2 results.
