@@ -2,8 +2,12 @@ import type { CommitInfo, FileKey, HistoryEntry, Settings, Snapshot } from './ty
 import { parseFiles } from './parse.ts'
 
 // --end-of-options before each revision, so none is ever read as an option; --no-show-signature, so a
-// log.showSignature setting never puts gpg lines among the commits (finding 14)
-export const headArgs = (main: string): string[] => ['git', 'log', '-1', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', main]
+// log.showSignature setting never puts gpg lines among the commits (finding 14); "--" after the head's revision,
+// so a file named like the branch is not ambiguous (finding 28)
+export const headArgs = (main: string): string[] => ['git', 'log', '-1', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', main, '--']
+
+// exits 1 where the repository opens and the name does not resolve, 128 where git cannot open it (finding 28)
+export const resolveArgs = (main: string): string[] => ['git', 'rev-parse', '--verify', '--quiet', '--end-of-options', `${main}^{commit}`]
 
 export const logArgs = (s: Settings): string[] =>
   ['git', 'log', '--first-parent', '--reverse', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', s.mainBranch, '--', `:(literal)${s.files.backlog.path}`, `:(literal)${s.files.playbook.path}`]

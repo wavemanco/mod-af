@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { backlog, playbook, settings } from '../tests/fixtures/small.ts'
 
 const CLI = join(import.meta.dirname, '..', 'cli.ts')
@@ -113,6 +113,23 @@ test('a directory that is no git repository says what git said, exit 2', () => {
   const r = run('check', '--repo', dir)
   assert.equal(r.status, 2)
   assert.match(r.stdout, /not a git repository/)
+  assert.doesNotMatch(r.stdout, /no branch|mainBranch/) // finding 28: the setting is not what is wrong
+})
+
+// finding 28: any git failure read as "no branch", and a file named like the branch made git log ambiguous
+test('a file named like the main branch is no problem, and with git off the PATH the error says why', () => {
+  const dir = repo()
+  writeFileSync(join(dir, 'main'), 'a file named main\n')
+  git(dir, 'add', 'main')
+  git(dir, 'commit', '-q', '-m', 'a file named main')
+  const c = run('check', '--repo', dir)
+  assert.equal(c.status, 0, c.stdout + c.stderr)
+  // a PATH of Node's own folder alone: one left out is filled in from this process's on Windows
+  const env = { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k.toLowerCase() !== 'path')), PATH: dirname(process.execPath) }
+  const r = spawnSync(process.execPath, [CLI, 'check', '--repo', dir], { encoding: 'utf8', env })
+  assert.equal(r.status, 2)
+  assert.match(r.stdout, /ENOENT/)
+  assert.doesNotMatch(r.stdout, /no branch/)
 })
 
 test('survey needs no settings, prints the top candidate first, and writes nothing', () => {

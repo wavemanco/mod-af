@@ -7,7 +7,7 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { build } from './hooks/core/index.ts'
 import { brief } from './hooks/core/brief.ts'
 import { formatFindings } from './hooks/core/findings.ts'
-import { headArgs, logArgs, parseLog, showArgs, snapshot } from './hooks/core/history.ts'
+import { headArgs, logArgs, parseLog, resolveArgs, showArgs, snapshot } from './hooks/core/history.ts'
 import { parseSettings } from './hooks/core/settings.ts'
 import { checkNamed, collect, formatInventory, inventory } from './hooks/core/survey.ts'
 import type { CommitInfo, FileKey, Snapshot } from './hooks/core/types.ts'
@@ -81,8 +81,11 @@ export async function main(argv: string[]): Promise<number> {
     head = parseLog(git(headArgs(main).slice(1)))[0]
     if (!head) throw new Error('empty')
   } catch (e) {
-    const why = gitSaid(e)
-    console.log(`housekeeping: no branch '${main}' in ${repo} (the "mainBranch" setting in ${settingsPath})${why ? `: git said: ${why}` : ''}`)
+    // "no branch" only where the repository opens and the name does not resolve; otherwise git's words (finding 28)
+    let status: number | null | undefined = 0
+    try { git(resolveArgs(main).slice(1)) } catch (v) { status = (v as { status?: number | null }).status }
+    console.log(status === 1 ? `housekeeping: no branch '${main}' in ${repo} (the "mainBranch" setting in ${settingsPath})`
+      : `housekeeping: cannot read '${main}' in ${repo}: git said: ${gitSaid(e) || (e as Error).message}`)
     return 2
   }
   const show = (sha: string, path: string): string | null => {

@@ -3,7 +3,7 @@
 // session's own tools, except the plugin's own page (writePage).
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
-import { headArgs, logArgs, parseLog, showArgs, snapshot } from './core/history.ts'
+import { headArgs, logArgs, parseLog, resolveArgs, showArgs, snapshot } from './core/history.ts'
 import { parseSettings } from './core/settings.ts'
 import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
@@ -24,7 +24,12 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
   const last = await git(headArgs(main).slice(1))
   if (last.isStdoutTruncated) return fail('git log was cut short')
   const head: CommitInfo | undefined = last.exitCode === 0 ? parseLog(last.stdout)[0] : undefined
-  if (!head) return { error: `housekeeping: no branch '${main}' in ${root} (the "mainBranch" setting in .housekeeping.json)` }
+  if (!head) {
+    // "no branch" only where the repository opens and the name does not resolve; otherwise git's words (finding 28)
+    const v = await git(resolveArgs(main).slice(1))
+    return { error: v.exitCode === 1 ? `housekeeping: no branch '${main}' in ${root} (the "mainBranch" setting in .housekeeping.json)`
+      : `housekeeping: cannot read '${main}' in ${root}: git said: ${(last.stderr || v.stderr).split('\n')[0].trim()}` }
+  }
 
   // a null file is a missing one; a cut-short one must not be read as a short one
   const show = async (sha: string, path: string): Promise<string | null | 'cut'> => {

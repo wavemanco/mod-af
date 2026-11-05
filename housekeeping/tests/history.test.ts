@@ -20,9 +20,10 @@ const info = (n: number) => ({ sha: `abcdef${n}0123456789`, date: `2026-09-0${n}
 const snaps = [files1, files2, files3].map((f, i) => ({ ...snapshot(s, f), ...info(i + 1) }))
 
 // --end-of-options: a revision that starts with "-" is never read as an option; --no-show-signature: a signed
-// commit's gpg lines never reach the log's lines (finding 14)
+// commit's gpg lines never reach the log's lines (finding 14); "--" after the head's revision, so a file named
+// like the branch is not ambiguous (finding 28)
 test('the git arguments', () => {
-  expect(headArgs('main')).toEqual(['git', 'log', '-1', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main'])
+  expect(headArgs('main')).toEqual(['git', 'log', '-1', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--'])
   expect(logArgs(s)).toEqual(['git', 'log', '--first-parent', '--reverse', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--', ':(literal)backlog.md', ':(literal)playbook.md'])
   expect(showArgs('abc', 'backlog.md')).toEqual(['git', 'show', '--end-of-options', 'abc:backlog.md'])
 })

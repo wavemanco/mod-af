@@ -23,6 +23,7 @@ type World = {
   stored?: Record<string, unknown>
   argv?: string[][]
   noBranch?: boolean
+  gitFail?: string // git log and rev-parse --verify exit 128 with this stderr: the repository does not open
   mainSha?: string
   remoteSha?: string
   now?: string
@@ -69,6 +70,7 @@ function world(on: On, w: World = {}) {
     if (a === 'ls-files' && w.lsFail) return { value: { exitCode: 128, stdout: '', isStdoutTruncated: false, isStderrTruncated: false,
       stderr: 'fatal: not a git repository (or any of the parent directories): .git\n' } }
     if (a === 'ls-files') return ok(Object.keys(w.tracked ?? {}).map(p => `${p}\0`).join(''), 0, w.lsCut)
+    if (w.gitFail && (a === 'log' || b === '--verify')) return { value: { exitCode: 128, stdout: '', stderr: w.gitFail, isStdoutTruncated: false, isStderrTruncated: false } }
     if (a === 'log') return w.noBranch ? ok('', 128) : ok(`${SHA}\t2026-09-12\thead\n`)
     if (a === 'show') {
       const text = files[String(e.argv.at(-1)).split(':')[1]]
@@ -302,6 +304,15 @@ test('with no main branch, the error names the mainBranch setting', async ($, on
   expect(r.exitCode).toBe(1)
   expect(r.text).toContain("no branch 'main' in /w")
   expect(r.text).toContain('"mainBranch"')
+})
+
+// finding 28: dubious ownership, a broken config or no repository all read as "no branch", pointing at a sound setting
+test('a repository git cannot open gives git\'s first error line, not "no branch"', async ($, on) => {
+  world(on, { gitFail: "fatal: detected dubious ownership in repository at '/w'\nTo add an exception for this directory, call:\n" })
+  await $.session.start(START)
+  const r = await run($, 'check')
+  expect(r.exitCode).toBe(1)
+  expect(r.text).toBe("housekeeping: cannot read 'main' in /w: git said: fatal: detected dubious ownership in repository at '/w'")
 })
 
 test('prompt.context adds the short view', async ($, on) => {
