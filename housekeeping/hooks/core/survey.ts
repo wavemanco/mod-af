@@ -8,7 +8,8 @@ export type Signals = { name: boolean; idHeadings: number; idTables: number; ope
   doneBoxes: number; todos: number; statusWords: number; dated: boolean; guide: boolean }
 export type Candidate = { path: string; signals: Signals; score: number;
   hint: 'likely-tracker' | 'maybe' | 'likely-history' }
-export type Reference = { target: string; from: string; count: number; machine: boolean }
+// ambiguous: some of the mentions are a bare name that more than one of the top files has
+export type Reference = { target: string; from: string; count: number; machine: boolean; ambiguous?: true }
 export type Skipped = { path: string; why: string }
 export type Inventory = { files: number; candidates: Candidate[]; references: Reference[];
   guides: { path: string; line: number; text: string }[]; skipped: Skipped[] }
@@ -36,6 +37,12 @@ const TOP = 15, REFS = 5
 const baseOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
 const count = (re: RegExp, text: string): number => text.match(re)?.length ?? 0
 const byPath = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
+// "/" separators, with "." and ".." folded
+const fold = (p: string): string => {
+  const out: string[] = []
+  for (const s of p.split('/')) if (s === '..') out.pop(); else if (s !== '.' && s !== '') out.push(s)
+  return out.join('/')
+}
 
 function signalsOf({ path, text }: SurveyFile): Signals {
   const base = baseOf(path), prose = PROSE.test(base)
@@ -69,19 +76,31 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = []): Invento
   const old = (c: Candidate) => +(c.hint === 'likely-history')
   candidates.sort((a, b) => old(a) - old(b) || b.score - a.score || byPath(a.path, b.path))
 
-  // one pass per file for all the top names; a name inside a longer one ("MY-BACKLOG.md", "backlog.mdx") is not it
+  // one pass per file for all the top names, each with the path written before it; a name inside a longer one
+  // ("MY-BACKLOG.md", "backlog.mdx") is not it
   const top = candidates.slice(0, TOP).map(c => c.path)
   const references: Reference[] = []
   if (top.length) {
-    const names = [...new Set(top.map(baseOf))].sort((a, b) => b.length - a.length).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    const re = new RegExp(`(?<![\\w-])(?:${names.join('|')})(?![\\w-])`, 'g')
+    const same = new Map<string, string[]>()
+    for (const t of top) same.set(baseOf(t), [...(same.get(baseOf(t)) ?? []), t])
+    const names = [...same.keys()].sort((a, b) => b.length - a.length).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    const re = new RegExp(`(?<![\\w./-])(/?(?:[\\w.-]+/)*)(${names.join('|')})(?![\\w-])`, 'g')
     for (const f of sorted) {
-      const hits = new Map<string, number>()
-      for (const m of f.text.matchAll(re)) hits.set(m[0], (hits.get(m[0]) ?? 0) + 1)
-      for (const target of top) {
-        const n = hits.get(baseOf(target))
-        if (n && target !== f.path) references.push({ target, from: f.path, count: n, machine: !MARKDOWN.test(f.path) })
+      const hits = new Map<string, { count: number; ambiguous: boolean }>()
+      const hit = (t: string, ambiguous = false) => {
+        const h = hits.get(t) ?? { count: 0, ambiguous: false }
+        hits.set(t, { count: h.count + 1, ambiguous: h.ambiguous || ambiguous })
       }
+      for (const [, before, name] of f.text.matchAll(re)) {
+        const targets = same.get(name)!
+        if (!before) { for (const t of targets) hit(t, targets.length > 1); continue }
+        // shortcut: a path that does not end a target ($ROOT/x, a URL) names none, short of the base-name match it had; upgrade when one is missed
+        const relative = /^\.\.?\//.test(before)
+        const said = fold(relative ? `${f.path}/../${before}${name}` : before + name)
+        for (const t of targets) if (t === said || (!relative && t.endsWith(`/${said}`))) hit(t)
+      }
+      for (const [target, h] of hits) if (target !== f.path)
+        references.push({ target, from: f.path, count: h.count, machine: !MARKDOWN.test(f.path), ...(h.ambiguous ? { ambiguous: true as const } : {}) })
     }
     references.sort((a, b) => top.indexOf(a.target) - top.indexOf(b.target) || b.count - a.count || byPath(a.from, b.from))
   }
@@ -130,7 +149,8 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
     for (const r of inv.references) { const a = byTarget.get(r.target); if (a) a.push(r); else byTarget.set(r.target, [r]) }
     for (const [target, refs] of byTarget) {
       lines.push(target)
-      for (const r of refs.slice(0, REFS)) lines.push(`${String(r.count).padStart(6)}  ${r.from}${r.machine ? ' (machine)' : ''}`)
+      for (const r of refs.slice(0, REFS))
+        lines.push(`${String(r.count).padStart(6)}  ${r.from}${r.machine ? ' (machine)' : ''}${r.ambiguous ? ' (ambiguous: a bare name several targets share)' : ''}`)
       const rest = refs.slice(REFS)
       if (rest.length) lines.push(`        and ${rest.length} more, ${rest.filter(r => r.machine).length} of them machine (the --json output names them)`)
     }

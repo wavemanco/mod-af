@@ -73,6 +73,25 @@ test('a test that names the backlog is a machine reference; a guide is not; a lo
   ])
 })
 
+// finding 31: matched by base name, every same-named file shared every reader
+test('a mention with a path names the target that path ends; a bare name names each same-named target, marked ambiguous', () => {
+  const todo = '## T-1 one\n## T-2 two\n'
+  const inv = inventory([{ path: 'BACKLOG.md', text: BACKLOG },
+    { path: 'packages/a/TODO.md', text: todo }, { path: 'packages/b/TODO.md', text: todo },
+    { path: 'scripts/b.py', text: 'open("packages/b/TODO.md")\n' },
+    { path: 'packages/a/guide.md', text: 'See [the list](./TODO.md) and ../b/TODO.md.\n' },
+    { path: 'notes.md', text: 'Each package has a TODO.md.\n' },
+    { path: 'tools/old.sh', text: 'cat archive/BACKLOG.md\n' }])
+  expect(inv.candidates.map(c => c.path)).toEqual(['BACKLOG.md', 'packages/a/TODO.md', 'packages/b/TODO.md'])
+  expect(inv.references).toEqual([
+    { target: 'packages/a/TODO.md', from: 'notes.md', count: 1, machine: false, ambiguous: true },
+    { target: 'packages/a/TODO.md', from: 'packages/a/guide.md', count: 1, machine: false },
+    { target: 'packages/b/TODO.md', from: 'notes.md', count: 1, machine: false, ambiguous: true },
+    { target: 'packages/b/TODO.md', from: 'packages/a/guide.md', count: 1, machine: false },
+    { target: 'packages/b/TODO.md', from: 'scripts/b.py', count: 1, machine: true }])
+  expect(formatInventory(inv)).toContain('\n     1  notes.md (ambiguous: a bare name several targets share)\n')
+})
+
 test('the guide lines that say where pending work goes: whole in the inventory, cut at 200 and marked in the text', () => {
   const inv = inventory(FILES), g = inv.guides
   expect(g.map(l => [l.path, l.line])).toEqual([['README.md', 1], ['README.md', 6]])
