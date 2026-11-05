@@ -96,6 +96,22 @@ test('in a shallow clone no history is read, and check says the clone holds part
   assert.match(readFileSync(join(clone, 'm.html'), 'utf8'), /"history":\[\]/)
 })
 
+// a tied minor: in a blobless clone git show fetched the old files, and offline a failed show read as a missing file
+test('in a blobless clone the command never fetches, and says which file it cannot read', () => {
+  const dir = repo()
+  writeFileSync(join(dir, 'backlog.md'), backlog.replace('Tidy the build scripts', 'Tidy the build and test scripts'))
+  git(dir, 'commit', '-qam', 'a change')
+  const first = git(dir, 'rev-list', '--max-parents=0', 'HEAD').trim()
+  const clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  execFileSync('git', ['clone', '-q', '--filter=blob:none', '-u', 'git -c uploadpack.allowFilter=true upload-pack', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
+  const has = () => spawnSync('git', ['cat-file', '-e', `${first}:backlog.md`], { cwd: clone, env: { ...process.env, GIT_NO_LAZY_FETCH: '1' } }).status === 0
+  assert.equal(has(), false) // the clone holds the head's files only
+  const c = run('check', '--repo', clone)
+  assert.equal(c.status, 2, c.stdout + c.stderr)
+  assert.match(c.stdout, new RegExp(`^housekeeping: cannot read backlog\\.md at ${first.slice(0, 7)}, which this clone does not hold: housekeeping never fetches`, 'm'))
+  assert.equal(has(), false)
+})
+
 test('check exits 0 on a sound repository', () => {
   assert.equal(run('check', '--repo', repo()).status, 0)
 })

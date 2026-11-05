@@ -7,7 +7,8 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { build } from './hooks/core/index.ts'
 import { brief } from './hooks/core/brief.ts'
 import { formatFindings } from './hooks/core/findings.ts'
-import { headArgs, logArgs, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot } from './hooks/core/history.ts'
+import { blobArgs, headArgs, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot,
+  unreadable } from './hooks/core/history.ts'
 import { parseSettings } from './hooks/core/settings.ts'
 import { checkNamed, collect, formatInventory, inventory } from './hooks/core/survey.ts'
 import type { CommitInfo, FileKey, Snapshot } from './hooks/core/types.ts'
@@ -38,7 +39,7 @@ export async function main(argv: string[]): Promise<number> {
   let repo = resolve(opt.repo ?? '.')
   // GIT_OPTIONAL_LOCKS=0 keeps a read from taking the index lock in a checkout someone else is using
   const git = (args: string[]) => execFileSync('git', args, { cwd: repo, maxBuffer: 64 * 1024 * 1024, encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } })
+    stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', ...NO_FETCH } })
   const gitSaid = (e: unknown) => String((e as { stderr?: string }).stderr ?? '').split('\n')[0].trim()
 
   if (cmd === 'survey') {
@@ -88,8 +89,13 @@ export async function main(argv: string[]): Promise<number> {
       : `housekeeping: cannot read '${main}' in ${repo}: git said: ${gitSaid(e) || (e as Error).message}`)
     return 2
   }
+  let cannot = '' // a file the clone does not hold, which is no missing file
   const show = (sha: string, path: string): string | null => {
-    try { return git(showArgs(sha, path).slice(1)) } catch { return null }
+    try { return git(showArgs(sha, path).slice(1)) } catch (e) {
+      try { git(blobArgs(sha, path).slice(1)) } catch { return null }
+      cannot ||= unreadable(sha, path, gitSaid(e))
+      return null
+    }
   }
   const filesAt = (sha: string): Record<FileKey, string | null> =>
     ({ backlog: show(sha, settings.files.backlog.path), playbook: show(sha, settings.files.playbook.path) })
@@ -97,8 +103,10 @@ export async function main(argv: string[]): Promise<number> {
   const shallow = git(SHALLOW.slice(1)).trim() === 'true'
   const snapshots: (Snapshot & CommitInfo)[] = shallow ? [] : parseLog(git(logArgs(settings).slice(1)))
     .map(c => ({ ...snapshot(settings, filesAt(c.sha)), ...c })) // the file text is dropped as each commit is done
+  const files = filesAt(head.sha)
+  if (cannot) { console.log(`housekeeping: ${cannot}`); return 2 }
 
-  const result = build({ settings, files: filesAt(head.sha), head, snapshots })
+  const result = build({ settings, files, head, snapshots })
   const findings = [...settingsFindings, ...(shallow ? [SHALLOW_WARNING] : []), ...result.findings]
   const failed = findings.some(f => f.level === 'error')
 

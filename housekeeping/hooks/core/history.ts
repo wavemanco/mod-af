@@ -17,7 +17,15 @@ export const SHALLOW = ['git', 'rev-parse', '--is-shallow-repository']
 export const SHALLOW_WARNING: Finding = { level: 'warning', rule: 'shallow',
   message: 'this clone is shallow: it holds part of the history, so none was read (history, Changed since and First seen need a full clone)' }
 
-export const showArgs =(sha: string, path: string): string[] => ['git', 'show', '--end-of-options', `${sha}:${path}`]
+export const showArgs = (sha: string, path: string): string[] => ['git', 'show', '--end-of-options', `${sha}:${path}`]
+
+// git runs with lazy fetching off: a partial clone is never fetched into (DESIGN 3.4: "never fetches")
+export const NO_FETCH = { GIT_NO_LAZY_FETCH: '1' }
+// After a failed show: exits 0 when the commit's tree names the path, so its blob is one this clone does not hold
+// and the file is not missing (a tied minor of the Phase 2 check); the tree alone answers it, no blob is read.
+export const blobArgs = (sha: string, path: string): string[] => ['git', 'rev-parse', '--verify', '--quiet', '--end-of-options', `${sha}:${path}`]
+export const unreadable = (sha: string, path: string, said: string): string =>
+  `cannot read ${path} at ${sha.slice(0, 7)}, which this clone does not hold: housekeeping never fetches (git said: ${said})`
 
 export function parseLog(stdout: string): CommitInfo[] {
   return stdout.split('\n').filter(l => l.trim()).map(l => {

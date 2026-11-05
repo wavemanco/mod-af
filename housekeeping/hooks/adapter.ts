@@ -3,7 +3,8 @@
 // session's own tools, except the plugin's own page (writePage).
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
-import { headArgs, logArgs, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot } from './core/history.ts'
+import { blobArgs, headArgs, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot,
+  unreadable } from './core/history.ts'
 import { parseSettings } from './core/settings.ts'
 import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
@@ -18,7 +19,7 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
   if (settingsText === null) return { error: 'housekeeping: no .housekeeping.json here (run /housekeeping init)' }
   const { settings, findings } = parseSettings(settingsText)
   if (!settings) return { error: formatFindings(findings) }
-  const git = (argv: string[]) => $.process.run(['git', ...argv], { cwd: root, timeoutMs: TIMEOUT })
+  const git = (argv: string[]) => $.process.run(['git', ...argv], { cwd: root, timeoutMs: TIMEOUT, env: NO_FETCH })
 
   const main = settings.mainBranch
   const last = await git(headArgs(main).slice(1))
@@ -31,14 +32,16 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
       : `housekeeping: cannot read '${main}' in ${root}: git said: ${(last.stderr || v.stderr).split('\n')[0].trim()}` }
   }
 
-  // a null file is a missing one; a cut-short one must not be read as a short one
-  const show = async (sha: string, path: string): Promise<string | null | 'cut'> => {
+  // a null file is a missing one; a cut-short one must not be read as a short one, nor an unreadable one as missing
+  const show = async (sha: string, path: string): Promise<string | null | { error: string }> => {
     const r = await git(showArgs(sha, path).slice(1))
-    return r.isStdoutTruncated ? 'cut' : r.exitCode === 0 ? r.stdout : null
+    if (r.isStdoutTruncated) return { error: `git show was cut short at ${sha.slice(0, 7)}` }
+    if (r.exitCode === 0) return r.stdout
+    return (await git(blobArgs(sha, path).slice(1))).exitCode === 0 ? { error: unreadable(sha, path, r.stderr.split('\n')[0].trim()) } : null
   }
-  const filesAt = async (sha: string): Promise<Record<FileKey, string | null> | 'cut'> => {
+  const filesAt = async (sha: string): Promise<Record<FileKey, string | null> | { error: string }> => {
     const b = await show(sha, settings.files.backlog.path), p = await show(sha, settings.files.playbook.path)
-    return b === 'cut' || p === 'cut' ? 'cut' : { backlog: b, playbook: p }
+    return typeof b === 'object' && b ? b : typeof p === 'object' && p ? p : { backlog: b, playbook: p }
   }
 
   const shallow = (await git(SHALLOW.slice(1))).stdout.trim() === 'true'
@@ -48,11 +51,11 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
   const snapshots: (Snapshot & CommitInfo)[] = []
   for (const c of parseLog(log?.stdout ?? '')) {
     const f = await filesAt(c.sha)
-    if (f === 'cut') return fail(`git show was cut short at ${c.sha.slice(0, 7)}`)
+    if ('error' in f) return fail(f.error)
     snapshots.push({ ...snapshot(settings, f), ...c })
   }
   const files = await filesAt(head.sha)
-  if (files === 'cut') return fail(`git show was cut short at ${head.sha.slice(0, 7)}`)
+  if ('error' in files) return fail(files.error)
 
   const b = await git(['rev-parse', '--abbrev-ref', 'HEAD'])
   const branch = b.exitCode === 0 ? b.stdout.trim() : main

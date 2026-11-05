@@ -25,6 +25,8 @@ type World = {
   noBranch?: boolean
   gitFail?: string // git log and rev-parse --verify exit 128 with this stderr: the repository does not open
   shallow?: boolean // rev-parse --is-shallow-repository says true
+  blobless?: boolean // git show cannot read a blob the commit's tree names
+  envs?: (Record<string, string> | undefined)[] // each git call's env
   mainSha?: string
   remoteSha?: string
   now?: string
@@ -67,7 +69,10 @@ function world(on: On, w: World = {}) {
   })
   on('process.run', (_, e) => {
     w.argv?.push([...e.argv])
+    w.envs?.push(e.init?.env)
     const [, a, b] = e.argv
+    if (w.blobless && a === 'show') return { value: { exitCode: 128, stdout: '', stderr: 'fatal: bad object x\n', isStdoutTruncated: false, isStderrTruncated: false } }
+    if (w.blobless && b === '--verify' && String(e.argv.at(-1)).includes(':')) return ok('5626abf0f72e58d7a153368ba57db4c673c0e171\n')
     if (a === 'ls-files' && w.lsFail) return { value: { exitCode: 128, stdout: '', isStdoutTruncated: false, isStderrTruncated: false,
       stderr: 'fatal: not a git repository (or any of the parent directories): .git\n' } }
     if (a === 'ls-files') return ok(Object.keys(w.tracked ?? {}).map(p => `${p}\0`).join(''), 0, w.lsCut)
@@ -387,6 +392,18 @@ test('in a shallow clone no history is walked, and check warns that the clone ho
   expect(r.exitCode).toBe(0)
   expect(r.text).toMatch(/^warning shallow - /m)
   expect(walks(w)).toBe(0)
+})
+
+// a tied minor: in a blobless clone git show fetched, and a show that failed read as a missing file
+test('git runs with lazy fetching off, and a blob the clone does not hold is reported, not read as a missing file', async ($, on) => {
+  const w: World = { blobless: true, argv: [], envs: [] }
+  world(on, w)
+  await $.session.start(START)
+  w.envs!.length = w.argv!.length = 0
+  const r = await run($, 'check')
+  expect(r.exitCode).toBe(1)
+  expect(r.text).toContain(`cannot read backlog.md at ${SHA.slice(0, 7)}, which this clone does not hold: housekeeping never fetches (git said: fatal: bad object x)`)
+  w.argv!.forEach((a, i) => { if (a[1] === 'log' || a[1] === 'show') expect(w.envs![i]?.GIT_NO_LAZY_FETCH).toBe('1') })
 })
 
 test('a session started in a sub-folder reads the top of the git tree (HK-030)', async ($, on) => {
