@@ -164,6 +164,16 @@ test('a Done table with a mismatched separator is warned about', () => {
   expect(p.findings.filter(f => f.rule === 'row-dropped').map(f => [f.file, f.line])).toEqual([['backlog', 27]])
 })
 
+// finding 6: a fence can open in a section that is not read for rows, such as where-we-are
+test('a fence left open is a warning at its opener, wherever it opens', () => {
+  const fence = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'fence')
+  const above = once(backlog, '## Product work\n', '## Product work\n\n```\n')
+  expect(fence(above).map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 18]])
+  expect(fence(once(backlog, '1. Ship the export', '```\n1. Ship the export')).map(f => f.line)).toEqual([5])
+  expect(fence(backlog)).toEqual([])
+  expect(fence('```\ntext\n```\n' + backlog)).toEqual([])
+})
+
 // HK-020
 test('a date after the head commit does not make where-we-are look fresh', () => {
   const b = once(backlog, '(B-004 is closed).', '(B-004 is closed). Checked 2026-10-01; due 2027-01-01.')

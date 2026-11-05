@@ -30,7 +30,9 @@ export function cellsOf(line: string): string[] {
   return cells
 }
 
-export type Scan = { tables: Table[]; dropped: { line: number; section: string; why: 'separator' | 'closed' | 'stray' }[] }
+// unclosed: the line of a fence's opener when the file ends inside it
+export type Scan = { tables: Table[]; dropped: { line: number; section: string; why: 'separator' | 'closed' | 'stray' }[];
+  unclosed: number | null }
 
 // dropped, once per break: a pipe line over a pipe separator with another cell count, which GFM reads as no
 // table (separator); a line holding `|` that ends a table because it does not start with one (closed); and
@@ -38,11 +40,12 @@ export type Scan = { tables: Table[]; dropped: { line: number; section: string; 
 export function scan(text: string): Scan {
   const lines = normalise(text).split('\n')
   const tables: Table[] = [], dropped: Scan['dropped'] = []
-  let section = '', subsection = '', fenced: string | null = null, open: Table | null = null, run = false
+  let section = '', subsection = '', fenced: string | null = null, open: Table | null = null, run = false, opener = 0
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const was = fenced
     fenced = stepFence(fenced, line)
+    if (was === null && fenced !== null) opener = i + 1
     if (was !== null || fenced !== null) { open = null; run = false; continue }
     const h = HEADING.exec(line)
     if (h) {
@@ -72,6 +75,6 @@ export function scan(text: string): Scan {
     if (piped && !run) dropped.push({ line: i + 1, section, why: 'stray' })
     run = piped
   }
-  return { tables, dropped }
+  return { tables, dropped, unclosed: fenced === null ? null : opener }
 }
 export const scanTables = (text: string): Table[] => scan(text).tables
