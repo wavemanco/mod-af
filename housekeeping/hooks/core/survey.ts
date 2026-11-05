@@ -17,8 +17,9 @@ const NAME = /backlog|todo|roadmap|plan|open|pending|defer|follow.?up|checklist|
 // [ \t] where the plan's pattern says \s: with /m, \s would run on past the line's end
 const ID_HEADING = /^#{2,4}[ \t]+[A-Z][A-Z0-9]*-?\d+\b/gm
 const ID_HEADERS = ['ID', 'Id', '#', 'Key', 'Ref']
-const OPEN_BOX = /^[ \t]*- \[ \]/gm
-const DONE_BOX = /^[ \t]*- \[[xX]\]/gm
+// a list item of any marker: -, *, + or a number
+const OPEN_BOX = /^[ \t]*(?:[-*+]|\d+[.)]) \[ \]/gm
+const DONE_BOX = /^[ \t]*(?:[-*+]|\d+[.)]) \[[xX]\]/gm
 const TODO = /\b(?:TODO|FIXME|XXX)\b/g
 const STATUS = /\b(?:OPEN|DEFERRED|PENDING|BLOCKED|PARKED|TRIGGER|FIRED|CLOSED|DONE)\b/g
 const DATE = /\d{4}-\d{2}-\d{2}/

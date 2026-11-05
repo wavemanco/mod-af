@@ -44,6 +44,12 @@ test('a heading or a box is read on one line: a bare "##" over an ID is no ID he
   expect([c.signals.idHeadings, c.signals.openBoxes]).toEqual([1, 1])
 })
 
+// finding 8: a box after "*", "+" or a number is a box too
+test('a box counts whatever its list marker: -, *, + or a number', () => {
+  const [c] = inventory([{ path: 'todo.md', text: '- [ ] a\n* [ ] b\n+ [ ] c\n1. [ ] d\n  12) [ ] e\n* [x] f\n3. [X] g\n' }]).candidates
+  expect([c.signals.openBoxes, c.signals.doneBoxes]).toEqual([5, 2])
+})
+
 test('a dated note and a file in an archive folder are likely history, whatever they hold', () => {
   const inv = inventory(FILES)
   const hint = (p: string) => inv.candidates.find(c => c.path === p)?.hint
