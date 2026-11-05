@@ -28,7 +28,7 @@ Phase 2 adds `survey` and `plan`, for a repository whose pending work is already
 
 `check` and `map` read the two files as committed on the main branch (`mainBranch` in the settings), so after `init`, commit its files on the branch it names.
 
-`survey` and `plan` hand the agent a procedure (`prompts/survey.md`, `prompts/plan.md`) with the inventory of the repository's tracked files; `plan` adds `check`'s findings when a `.housekeeping.json` exists. The agent does the reading and proposes; you approve. The command's reply is only a count: the agent starts on your next message, for example "go ahead". Under `claude -p` the run ends with that reply, so send the next message with `claude -p --continue "go ahead"` and the same flags. The inventory obeys your Read deny rules: a file they deny is counted, never read or named. The Node command below, run outside Claude Code, has no such rules and reads every tracked file.
+`survey` and `plan` hand the agent a procedure (`prompts/survey.md`, `prompts/plan.md`) with the inventory of the repository's tracked files; `plan` adds `check`'s findings when a `.housekeeping.json` exists. The agent does the reading and proposes; you approve. The command's reply is a count, not the result: the agent starts on your next message, for example "go ahead". Under `claude -p` the run ends with that reply, so send the next message with `claude -p --continue "go ahead"` and the same flags. The inventory obeys your Read deny rules: a file they deny is counted, never read or named. The Node command below, run outside Claude Code, has no such rules and reads every tracked file.
 
 The same computed parts run without Claude Code:
 
