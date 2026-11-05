@@ -146,6 +146,7 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>, u
   const inDone = new Set<string>()
   for (const d of s.done) for (const t of scanTables(text[d.file])) {
     if (!t.section.startsWith(d.sectionPrefix)) continue
+    const itemAt = t.header.indexOf(c.item) < 0 ? d.idColumn : t.header.indexOf(c.item) // the title, else the ID cell
     for (const r of t.rows) {
       const cells = t.header.map((_, i) => r.cells[i] ?? '')
       const ids = idsIn(cells[d.idColumn] ?? '', s)
@@ -158,7 +159,7 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>, u
       const last = ids[ids.length - 1] ?? ''
       const file = KEYS.find(k => { const p = d.fileByIdPrefix?.[k]; return p !== undefined && last.startsWith(p) }) ?? d.file
       const ms = d.milestoneColumn === undefined ? '' : cells[d.milestoneColumn] ?? ''
-      const entry: DoneEntry = { file, line: r.line, cells, ids, item: cells[d.idColumn] ?? '',
+      const entry: DoneEntry = { file, line: r.line, cells, ids, item: cells[itemAt] ?? '',
         landed: cells[d.landedColumn] ?? '', milestone: nothing(ms) ? null : ms }
       out.done.push(entry)
     }

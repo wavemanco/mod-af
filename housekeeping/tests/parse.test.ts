@@ -3,6 +3,7 @@ import { parseSettings } from '../hooks/core/settings.ts'
 import { parseFiles } from '../hooks/core/parse.ts'
 import { backlog, playbook, settings } from './fixtures/small.ts'
 import { once } from './fixtures/page-data.ts'
+import { initFiles } from '../hooks/core/templates.ts'
 
 const s = parseSettings(settings).settings!
 const good = () => parseFiles(s, { backlog, playbook })
@@ -200,6 +201,18 @@ test('an ID both open and in Done, or twice in Done, is a warning', () => {
   expect(done(twice).map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 30]])
   expect(done(twice)[0].message).toContain('B-004')
   expect(done(backlog)).toEqual([])
+})
+
+// finding 27: init's Done table has its ID and its title in two columns
+test("a Done entry's item is the cell under the Item header, else the ID cell", () => {
+  const f = Object.fromEntries(initFiles('Empty', 'main').map(x => [x.path, x.content]))
+  const si = parseSettings(f['.housekeeping.json']).settings!
+  const b = f['docs/backlog.md'] + '| B-3 | Ship the export | none | abc1234 |\n'
+  expect(parseFiles(si, { backlog: b, playbook: f['docs/playbook.md'] }).done.map(d => [d.ids, d.item])).toEqual([[['B-3'], 'Ship the export']])
+  const items = ['Merge the export branch (B-004)', 'Sign the hosting contract (PB-02)']
+  expect(good().done.map(d => d.item)).toEqual(items)
+  const noItem = once(backlog, '| Item | Where it landed | Its row |', '| What | Where it landed | Its row |')
+  expect(parseFiles(s, { backlog: noItem, playbook }).done.map(d => d.item)).toEqual(items)
 })
 
 // HK-020
