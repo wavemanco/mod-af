@@ -18,6 +18,9 @@ const OPTIONS: Record<string, string[]> = { map: ['repo', 'settings', 'out'], ch
   brief: ['repo', 'settings', 'out'], survey: ['repo', 'json', 'tracker', 'not-tracker'] }
 
 export async function main(argv: string[]): Promise<number> {
+  // on Windows, Node finds a git.exe in the folder git runs in before PATH unless this is set in its own environment
+  // (finding 2); the child's env option alone does not do it
+  process.env.NoDefaultCurrentDirectoryInExePath = '1'
   const [cmd, ...rest] = argv
   const opt: Record<string, string> = {}
   const named = { tracker: [] as string[], 'not-tracker': [] as string[] } // repeatable

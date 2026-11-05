@@ -2,12 +2,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { backlog, playbook, settings } from '../tests/fixtures/small.ts'
 
 const CLI = join(import.meta.dirname, '..', 'cli.ts')
+// this file's own git calls never run a git.exe that a fixture holds (finding 2), whatever shell started the run
+process.env.NoDefaultCurrentDirectoryInExePath = '1'
 const git = (dir: string, ...a: string[]) =>
   execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.test', ...a], { cwd: dir, encoding: 'utf8', stdio: 'pipe' })
 
@@ -34,6 +36,22 @@ test('map writes the page and prints the partition line', () => {
   const again = run('map', '--repo', dir) // default out
   assert.equal(again.status, 0)
   assert.ok(existsSync(join(dir, '.housekeeping', 'route-map.html')))
+})
+
+// finding 2: on Windows, with this variable unset, Node ran the git.exe in the folder it ran git in
+test('the command never runs a git.exe that the repository holds', { skip: process.platform !== 'win32' }, () => {
+  const dir = repo()
+  copyFileSync(join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'whoami.exe'), join(dir, 'git.exe')) // a stand-in
+  git(dir, 'add', 'git.exe')
+  git(dir, 'commit', '-q', '-m', 'a program named git')
+  const env = { ...process.env }
+  delete env.NoDefaultCurrentDirectoryInExePath
+  const at = (...a: string[]) => spawnSync('node', [CLI, ...a], { encoding: 'utf8', env })
+  const c = at('check', '--repo', dir)
+  assert.equal(c.status, 0, c.stdout + c.stderr)
+  const s = at('survey', '--json', '--repo', dir)
+  assert.equal(s.status, 0, s.stdout + s.stderr)
+  assert.equal(JSON.parse(s.stdout).files, 3)
 })
 
 test('check exits 0 on a sound repository', () => {
