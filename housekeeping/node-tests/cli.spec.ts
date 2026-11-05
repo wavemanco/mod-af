@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -61,6 +61,7 @@ test('a signed commit with log.showSignature on leaves check, map and brief as t
   execFileSync('ssh-keygen', ['-q', '-t', 'ed25519', '-N', '', '-C', 'test', '-f', key], { stdio: 'ignore' })
   writeFileSync(join(dir, 'backlog.md'), backlog.replace('Tidy the build scripts', 'Tidy the build and test scripts'))
   git(dir, '-c', 'gpg.format=ssh', '-c', `user.signingkey=${key}`, 'commit', '-qam', 'a signed change', '-S')
+  for (const f of [key, `${key}.pub`]) rmSync(f) // a throwaway key, gone once the commit is signed
   const plain = run('map', '--repo', dir, '--out', join(dir, 'plain.html'))
   assert.equal(plain.status, 0, plain.stdout + plain.stderr)
   const env = { ...process.env, GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'log.showSignature', GIT_CONFIG_VALUE_0: 'true' }
