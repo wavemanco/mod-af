@@ -55,6 +55,40 @@ test('a subject like task-add-the-export-endpoint is no hit', () => {
   expect(o.html!.includes('feature/task-add-the-export-endpoint')).toBe(true)
 })
 
+// the page writes <, >, & and non-ASCII as \uXXXX and line breaks as \n: the scan reads the text, not those escapes
+const KEY = 'sk-ant-FAKEFAKEFAKEFAKEFAKEFAKE'
+const decoded = (html: string) => html.replace(/\\u([0-9a-f]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+const PLAN = '1. Ship the export: B-001, then B-002 (B-004 is closed).'
+
+test('a key after markup, a curly quote, an em dash or a tab, or at a where-we-are line start, is refused', () => {
+  for (const before of ['<br>', '<', '>', '&', '“', '—', '\t']) {
+    const o = build(input({ backlog: small.backlog.replace('one client can exhaust it', `see${before}${KEY}`) }))
+    expect([before, o.html === null]).toEqual([before, true])
+    expect([before, o.findings.some(f => f.rule === 'privacy' && f.message.startsWith('B-001:'))]).toEqual([before, true])
+  }
+  const o = build(input({ backlog: small.backlog.replace(PLAN, `${PLAN}\n${KEY} is the token`) }))
+  expect(o.html).toBeNull()
+  expect(o.findings.some(f => f.rule === 'privacy' && f.message.startsWith('backlog line 5:'))).toBe(true)
+})
+
+test('a dotted at-name after markup, a curly quote or CJK text, or at a line start, builds the page', () => {
+  const b = small.backlog.replace('one client can exhaust it', 'ask<br>@jane.doe or “@jane.doe” or 漢字@jane.doe')
+    .replace(PLAN, `${PLAN}\n@jane.doe reviews it`)
+  const o = build(input({ backlog: b }))
+  expect(o.findings.filter(f => f.rule === 'privacy')).toEqual([])
+  expect(o.html).not.toBeNull()
+})
+
+test('a hit in a commit subject is masked from the decoded subject', () => {
+  const o = build(withSubject(`fix “@jane.doe” wording; ask “jane.doe@corp.io”—${KEY}`))
+  expect(o.findings.filter(f => f.rule === 'privacy')).toEqual([])
+  expect(o.html).not.toBeNull()
+  const page = decoded(o.html!)
+  expect(page.includes('jane.doe@corp.io')).toBe(false)
+  expect(page.includes('FAKEFAKE')).toBe(false)
+  expect(page.includes('fix “@jane.doe” wording; ask “ja************io”—sk')).toBe(true)
+})
+
 test('missing playbook blocks the page', () => {
   const o = build(input({ playbook: null }))
   expect(o.html).toBeNull()
