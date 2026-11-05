@@ -73,7 +73,9 @@ The research added what the owner asked most often in the reference repository's
 - **Patterns borrowed from two more:**
   - `detell`: a "last checked" date and a re-check when due;
   - `dynamics`: a plugin that builds a page and touches files only through Claude Code's own Read and
-    Write tools (one exception: the page itself, written directly, 2026-11-03; section 9).
+    Write tools. housekeeping keeps that for its writes, apart from the page itself, written directly
+    (2026-11-03; section 9). Its reads go through git and its own file reads; section 4 says how they meet
+    the person's Read rules.
 - **Tested on the four repositories, all as clones.** What housekeeping learns about a repository goes into
   that repository's settings file, never into the plugin's code. That is how the plugin "adapt[s] the
   script for that specific repo" (the owner, 2026-10-31).
@@ -194,8 +196,8 @@ the short text. It uses only syntax that Node 24 can run directly.
 
 **It has three callers:**
 - the plugin, which reads files and git through Claude Code;
-- a small Node command, `node <plugin>/cli.ts map|check|owed|brief`, for CI, for any agent with Node, and
-  for a person;
+- a small Node command, `node <plugin>/cli.ts map|check|owed|brief|survey`, for CI, for any agent with Node,
+  and for a person;
 - the tests.
 
 So the computed parts are not tied to Claude Code.
@@ -244,7 +246,8 @@ clone holds part of it, so no history is read there and `check` warns (finding 1
     2026-11-04).
 - It never shows commit authors.
 - A privacy hit in a commit subject, which cannot be edited, is masked and does not block the page
-  (decided 2026-11-03; section 9). The short view is masked in the same way.
+  (decided 2026-11-03; section 9). The short view is masked in the same way, each text before it is cut,
+  so a cut cannot leave part of a key or an address unmasked; a private key block is masked whole.
 
 ### 3.5 The page
 
@@ -313,7 +316,7 @@ The short view is a view of the files, never a store of its own.
 
 ### 3.8 Housekeeping an existing repository: `survey`, `plan` and `init`
 
-**`/housekeeping survey`** is a procedure the agent follows, and it writes nothing. It finds:
+**`/housekeeping survey`** is a procedure the agent follows, and it writes nothing. It looks for:
 - every file that holds pending work, looking by name, by content, by structure, and by what the
   repository's own guide files say is canonical;
 - for each file: whether it is canonical, a neighbour or history, how many items it holds, and how their
@@ -325,6 +328,32 @@ The short view is a view of the files, never a store of its own.
 - the repository's own rules that constrain the move. Examples: who may write which paths, a "one backlog,
   never a parallel register" rule, a separate file for open research questions kept apart by rule, fields
   that must never be edited, or a rule that every correction gets its own review.
+
+**What the survey measures, and what it does not** (the owner, 2026-11-04; finding 8 of the Phase 2 check;
+section 9). The inventory scores each tracked file by its name, ID headings, ID tables, open boxes (`-`,
+`*`, `+` or numbered), status words and TODOs, with the weights as they were; a file needs 3 to be a
+candidate. It reads the names that look like trackers or guide files first, so the limits fall on the rest.
+Its text then says what the score did not see:
+- **Not measured,** right after the header line, so the 20,000-character cut cannot hide it: the files not
+  read, counted by reason (over 2 MB, binary or lockfile, unreadable, missing from the working tree, links,
+  folders or submodules, denied by Read rules, past the 3,000-file or 30 MB limit, past the end of a cut-short
+  list), and one fixed line: the score does not read data files (YAML, JSON, CSV, TOML), nor code files apart
+  from their TODO comments.
+- **Suspects:** files below 3 with some sign of pending work, each with its reason: a prose file with a TODO,
+  roadmap or next-steps heading, TODO lines or open boxes; a data file whose name holds a tracker word. At
+  most 15 show in the text, with a count of the rest; `--json` names them all.
+- **Re-scoring.** The agent puts each suspect to the person: study it, it is a tracker, or it is not. For
+  one to study, it reads the file and gives its reading as its own. It then runs the survey again with
+  `--tracker <path>` and `--not-tracker <path>`, each repeatable, on the Node command and on `/housekeeping
+  survey`. A tracker is a candidate with a `named` signal, even when it was not read; it ranks first, is read
+  first, and its references are found as for any top candidate. A not-tracker leaves the candidates and the
+  suspects. A path git does not track, or one named both ways, is an error naming it. The answers stay in
+  the session and go into the plan: nothing is written before the plan is approved.
+- **Wording.** With no candidates, the reply says that no file reached the survey's score of 3 and gives the
+  number of suspects; "nothing to move" is kept for a repository with no tracked files. Before the agent
+  says that no file holds pending work, it reads the guide files whole and puts the suspects to the person.
+  The reply ends by saying that the agent carries out the procedure on the person's next message, since the
+  command starts no turn of its own.
 
 **`/housekeeping plan`** turns the survey into numbered steps from today's state to the pair:
 - which file becomes the backlog, keeping its name and every ID;
@@ -436,6 +465,12 @@ pattern does. Only the automatic parts (hooks, pane and status line) are tied to
 - The plugin never commits on its own and never pushes. It writes only through Claude Code's own tools,
   with the person's permissions, except for its own generated page, `.housekeeping/route-map.html`, which
   it writes directly and never commits.
+- `survey` and `plan` read no tracked file the person's Read rules deny (the owner, 2026-11-04: "Obey the
+  deny rules"; section 9). Each file is put to Claude Code's permission check before it is read, a check
+  that fails counts as a deny, and a denied file is counted in Not measured, never read, named or stat'ed.
+  The Node command, run outside Claude Code, has no such rules and reads every tracked file. `check`, `map`
+  and the short view read the pair through git and the settings file with no such check (a parked minor of
+  the Phase 2 check).
 - No import from GitHub Issues, Projects or other trackers in this version. `survey` reports them, and
   `plan` may link them.
 - No durations, estimates, hill charts or date timelines.
@@ -630,6 +665,15 @@ Stop, report and wait for the owner when:
 | 2026-11-03 | A privacy hit in a commit subject | "Mask it in subjects (Recommended)" | A commit subject cannot be edited, so refusing the page for one blocked it for good; and the check named only "the page" (final check, finding 4) | Refusing the page and naming the commit whose subject holds the hit: it still blocks for good. Leaving the check as it was: it also tripped on ordinary words such as `task-add-...` | A hit in a row still blocks the page and names the row; a hit anywhere else blocks it and gives the masked text. The key pattern now needs a word boundary on its left |
 | 2026-11-03 | The counts at the top of the page | "Yes, a counts line up top (Recommended)" | On the reference repository's page the counts sat below the views, under a Lanes view about 36,000 px tall and a 4,000-character "where we are" (final check, finding 9) | Moving the whole "Can I trust it?" section up: it is long and pushes the lanes down. Leaving the counts below only | The full "Can I trust it?" section stays below and shows how every sum adds up |
 | 2026-11-04 | Theme switch | "Yes, add the switch" | The owner's live check found no way to pick light or dark ("I didn;t see light vs dark background option in either") | "No, follow the system": the page followed the system theme only | The page still follows the system when nothing is stored |
+| 2026-11-04 | How much one fix round covers | "All 32 in one round (Recommended)" | The Phase 2 check confirmed 2 critical and 30 important findings, most with a small fix already tried alone. One round takes them all, with the four minors that tied on their votes, then one check of the fixes run together (plans/2026-11-04-phase-2-fixes.md) | "Secrets and lost work: 17 now": the other 15 would wait for a second round and a second check. "Only the 2 critical": 30 important findings would stay, among them common keys reaching the page and rows lost with no finding | The check of the fixes run together looks for what the round broke; any further round is the owner's (stop rule 3). The 94 parked minors are rows, listed in research/phase-2-check-minors.md |
+| 2026-11-04 | The test repositories' words in the branch's commits | "Reword and rewrite (Recommended)" | Some of the branch's commits held test repository A's install and test commands and other words of A and B, against section 4, and once pushed no later commit could take them out of the history. Before the fix round the branch's 20 commits were rewritten so that those words became descriptions; nothing had been pushed | "Leave them in": the words would reach the remote with the first push and stay in its history | The name and word searches over the branch's files and commit messages run before any push. The commits from before the rewrite are kept only on the owner's machine and are never pushed |
+| 2026-11-04 | The owner's address on the branch's commits | "Use GitHub no-reply (Recommended)" | All 20 of the branch's commits carried the owner's personal address as author and committer, and a push would have put 20 more on the remote. The same rewrite set both to the owner's GitHub no-reply address | "Leave as it is": the personal address on 20 more pushed commits | This repository's local git settings now give the no-reply address. A commit made under other settings carries theirs, so the author and committer fields are checked before a push, counted and never printed |
+| 2026-11-04 | Read deny rules (finding 3) | "Obey the deny rules (Recommended)" | Under a Read deny rule the agent's own Read was refused, yet `survey` and `plan` passed the denied files' guide lines, paths and counts into its context, while this document said files went only through Claude Code's own tools. Now each tracked file is put to Claude Code's permission check first, and a denied one is counted, never read or named (section 4) | "Keep reading, reword design": the denied text would still reach the agent and the session's transcript; only the promise would change | The Node command, outside Claude Code, reads every tracked file. `check`, `map` and the short view still read the pair and the settings with no Read check (a parked minor). One check per file costs time on a large repository: 17 to 45 s on 3,000 files in the check |
+| 2026-11-04 | Key shapes (finding 4) | "Add JWTs, not encoded (Recommended)" | Live payment, GitLab and npm keys, AWS temporary keys, webhook secrets, JWTs and addresses at non-ASCII domains all reached the page. The scan now knows those shapes and letters, and the README and 3.4 name what it covers instead of promising every key | "Add both": percent-encoded addresses too, a rarer form whose decoding would be one more way for text that holds no address to stop the page, as finding 1's false stops did. "Clear cases only": the other shapes without JWTs, so a bearer token of that common shape would still pass | A password, a key of any other shape and a percent-encoded address still pass, as 3.4 and the README say. A new shape is one pattern in privacy.ts, with a test on a made-up value |
+| 2026-11-04 | A guide file's standing approval (finding 9) | "No: approve after seeing steps (Recommended)" | A rule in a guide file to act without asking made `plan` write before any step was shown, in most runs on two models; with two added sentences, 0 of 25 runs wrote. Both procedures now say that a "go" before the numbered steps are shown, or such a rule, is not approval: the agent reports it and waits | "Yes, if it names the plugin": a standing approval that named the commands also wrote in the runs, including a committed rename, and it would let steps be applied that the owner never saw | The procedures' words are the guard, and the person's own permission prompts remain the last one. Opus, and some ordinary wordings of such a rule, were not run against the new sentences |
+| 2026-11-04 | Starting the agent's turn (finding 21) | "Say what's next (Recommended)" | `/housekeeping survey` and `plan` start no model turn, so their count read as the finished result, and under `claude -p` the run ended there. The reply now ends by saying that the agent carries out the procedure on the person's next message, for example "go ahead", and the README says how under `claude -p` | "Start the turn itself": the command would start a model turn of its own (`$.prompt.submit`) each time it runs, where the person's own next message now starts it | A person who reads only the count still sees no procedure carried out; the reply's last line and the README are what tell them |
+| 2026-11-04 | The survey's weights (finding 8) | "Your recommended option + also mention what was NOT measured (and mention which files housekeeping suspects might have trackers or pending items). The plugin can then ask the user if they want housekeeping to study those files or if the user already knows those files are trackers or not. And then a re-scoring can be done based on that. Is that feasible?" | The score missed pending work it does not weigh (a README TODO list, `*` or numbered boxes, data files), and the reply then said that no file held any. Claude answered that it is feasible. The recommended option stands: the weights as they are, the result worded as what was measured, every box marker counted, and the guide files read before saying no file holds pending work. Not measured, the Suspects and re-scoring come with it (3.8) | "Also score data files": a tracker word in a data file's name would bring back editor task files and API specs as candidates, the noise the prose-only rule had removed | A tracker the score misses and that shows no suspect's sign is still missed; the person names it with `--tracker`. Not measured says what the score does not read |
+| 2026-11-04 | Building the suspects design | "Build it in this round (Recommended)" | The wording alone would leave a file the score misses with nothing pointing at it. Not measured, the Suspects, at most 15 in the text, and `--tracker` and `--not-tracker` fit the survey's code and both procedures in this round (3.8) | "Recommended wording now, idea later": the false "nothing to move" would go, but the misses would wait for a later round | It is the round's largest change to the survey; the check of the fixes run together covers it |
 
 ## 10. Calls Claude made, for the owner to check
 
