@@ -111,8 +111,8 @@ async function init($: EngineInterface): Promise<{ text: string; exitCode?: numb
 // there are settings. Neither writes anything.
 async function procedure($: EngineInterface, arg: 'survey' | 'plan'): Promise<{ text: string; context: string[] }> {
   const root = await repoRoot($)
-  const { files, skipped } = await readTracked($, root)
-  const inv = inventory(files, skipped)
+  const { files, skipped, denied } = await readTracked($, root)
+  const inv = inventory(files, skipped, { denied })
   const context = [await $.fs.read(`${$.plugin.root}/prompts/${arg}.md`), formatInventory(inv)]
   if (arg === 'plan' && (await $.fs.exists(`${root}/${SETTINGS}`))) {
     const l = await load($)

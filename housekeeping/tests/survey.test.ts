@@ -239,7 +239,7 @@ test('the readers skip lockfiles, big files, links and binaries, and say why', a
 test('the readers say a tracked file missing from the working tree, or unreadable', async () => {
   const r = await collect(['gone.md', 'locked.md'], p => (p === 'gone.md' ? null : { file: true, size: 1 }), () => null)
   expect(r).toEqual({ files: [], skipped: [{ path: 'gone.md', why: 'missing from the working tree' },
-    { path: 'locked.md', why: 'unreadable' }] })
+    { path: 'locked.md', why: 'unreadable' }], denied: 0 })
 })
 
 test('the readers stop at 3,000 files and say so', async () => {

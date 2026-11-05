@@ -1,5 +1,6 @@
-// The plugin's reads and writes: git through $.process.run, files through the session's own tools, except the
-// plugin's own page (writePage).
+// The plugin's reads and writes: git through $.process.run; the settings and the survey's files through $.fs, the
+// survey's only where the person's Read rules allow them ($.tool.check, readTracked); every write through the
+// session's own tools, except the plugin's own page (writePage).
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
 import { headArgs, logArgs, parseLog, showArgs, snapshot } from './core/history.ts'
@@ -110,15 +111,17 @@ export async function writePage($: Dollar, root: string, path: string, html: str
 }
 
 // The survey's reader: the tracked files, under collect's rules. GIT_OPTIONAL_LOCKS=0: the survey writes nothing,
-// not even git's index refresh.
-export async function readTracked($: Dollar, root: string): Promise<{ files: SurveyFile[]; skipped: Skipped[] }> {
+// not even git's index refresh. Each file is first put to the person's Read rules, which the survey obeys (the
+// owner, 2026-11-04: "Obey the deny rules"); a check that fails counts as a deny.
+export async function readTracked($: Dollar, root: string): Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number }> {
   const r = await $.process.run(['git', 'ls-files', '-z'], { cwd: root, timeoutMs: TIMEOUT, env: { GIT_OPTIONAL_LOCKS: '0' } })
-  if (r.exitCode !== 0) return { files: [], skipped: [{ path: root, why: `git ls-files failed: ${r.stderr.split('\n')[0].trim()}` }] }
+  if (r.exitCode !== 0) return { files: [], skipped: [{ path: root, why: `git ls-files failed: ${r.stderr.split('\n')[0].trim()}` }], denied: 0 }
   const paths = r.stdout.split('\0')
   paths.pop() // the empty tail after the last NUL, or the entry the cut left half written
   const got = await collect(paths,
     p => $.fs.stat(`${root}/${p}`).then(s => ({ file: s.kind === 'file' && !s.isLink, size: s.size }), () => null),
-    p => $.fs.read(`${root}/${p}`).catch(() => null))
+    p => $.fs.read(`${root}/${p}`).catch(() => null),
+    { allow: p => $.tool.check({ tool: 'Read', input: { file_path: `${root}/${p}` } }).then(v => v.decision !== 'deny', () => false) })
   if (r.isStdoutTruncated) got.skipped.push({ path: root, why: CUT_LIST })
   return got
 }

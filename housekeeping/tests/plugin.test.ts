@@ -33,6 +33,8 @@ type World = {
   failRead?: boolean
   pub?: object
   tracked?: Record<string, string> // the survey's files, by path under /w
+  denied?: string[] // tracked paths the person's Read rules deny
+  reads?: string[] // every path fs.read was asked for
   backlog?: string // main's backlog.md, small.ts's by default
 }
 
@@ -54,6 +56,7 @@ function world(on: On, w: World = {}) {
   on('clock.now', () => ({ value: Date.parse(w.now ?? '2026-09-12T10:00:00Z') }))
   on('fs.exists', (_, e) => (w.paths?.push(posix(e.path)), { value: w.hasSettings !== false && e.path.endsWith('.housekeeping.json') }))
   on('fs.read', (_, e) => {
+    w.reads?.push(posix(e.path))
     if (w.failRead) throw new Error('EIO')
     const prompt = /\/prompts\/(survey|plan)\.md$/.exec(posix(e.path))
     return { value: prompt ? PROMPTS[prompt[1]] : w.tracked?.[under(e.path)] ?? small.settings }
@@ -94,6 +97,9 @@ function world(on: On, w: World = {}) {
     ;(w.written ??= {})[posix(e.path)] = e.text
     return { value: undefined }
   })
+  // the person's Read rules, as the engine's permission decision gives them
+  on('tool.check', { tool: 'Read' }, (_, e) =>
+    ({ decision: w.denied?.includes(under(String((e.input as { file_path?: string }).file_path))) ? 'deny' : 'allow' }))
   on('tool.call', { tool: 'Read' }, (_, e) => { calls.push({ tool: 'Read', file_path: e.file_path }); return { result: 'x' } as never })
   on('tool.call', { tool: 'Write' }, (_, e) => { calls.push({ tool: 'Write', file_path: e.file_path }); return { result: 'ok' } as never })
   on('tool.call', { tool: 'Artifact' }, (_, e) => {
@@ -463,6 +469,26 @@ test('/housekeeping plan adds the check findings when a .housekeeping.json exist
   expect(r.context[2]).toContain('recommendation done-milestone')
   w.hasSettings = false
   expect((await run($, 'plan')).context.length).toBe(2)
+})
+
+// finding 3: the survey read past the person's Read deny rules, and its context carried the denied files' lines
+test('the survey reads no file the Read rules deny, names none, and counts them in Not measured', async ($, on) => {
+  const w: World = { reads: [], denied: ['secret/plan.md', 'README.md'], tracked: { ...TRACKED,
+    'secret/plan.md': '## S-1 hidden one\n## S-2 hidden two\n', 'README.md': 'The backlog is secret/plan.md; the word is swordfish.\n' } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'survey')
+  expect(r.text).toContain('2 files read, 1 candidates')
+  const inv = r.context.at(-1)
+  expect(inv).toContain('\nFiles not read: 2 denied by Read rules.\n')
+  for (const word of ['secret', 'hidden', 'swordfish', 'README']) expect(inv).not.toContain(word)
+  expect(w.reads!.filter(p => /secret|README/.test(p))).toEqual([])
+  // every tracker denied: what was measured, never "nothing to move"
+  w.denied = Object.keys(w.tracked!)
+  const all = await run($, 'survey')
+  expect(all.text).toContain("0 files read, 0 candidates: no file reached the survey's score of 3")
+  expect(all.text).not.toContain('nothing to move')
+  expect(all.context.at(-1)).toContain('\nFiles not read: 4 denied by Read rules.\n')
 })
 
 // finding 8: "nothing to move" is for a repository with no tracked files; otherwise the reply says what was measured

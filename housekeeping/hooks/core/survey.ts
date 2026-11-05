@@ -237,10 +237,12 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
 export const MAX_FILE = 2 * 1024 * 1024, MAX_FILES = 3000, MAX_TOTAL = 30 * 1024 * 1024
 type Stat = { file: boolean; size: number } | null
 
+// allow: false for a file the person's Read rules deny, which is counted and never named, read or stat'ed
 export async function collect(paths: string[], stat: (path: string) => Stat | Promise<Stat>,
-  read: (path: string) => string | null | Promise<string | null>): Promise<{ files: SurveyFile[]; skipped: Skipped[] }> {
+  read: (path: string) => string | null | Promise<string | null>,
+  { allow }: { allow?: (path: string) => boolean | Promise<boolean> } = {}): Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number }> {
   const files: SurveyFile[] = [], skipped: Skipped[] = []
-  let total = 0
+  let total = 0, denied = 0
   // names that look like trackers or guides first, so the limits fall on the rest
   const looks = (p: string) => NAME.test(baseOf(p)) || GUIDE.test(baseOf(p))
   paths = [...paths.filter(looks), ...paths.filter(p => !looks(p))]
@@ -249,6 +251,7 @@ export async function collect(paths: string[], stat: (path: string) => Stat | Pr
     const skip = (why: string) => skipped.push({ path, why })
     const stop = (why: string) => skipped.push({ path, why: `${why}: this file and the ${paths.length - i - 1} after it were not read`, unread: paths.length - i })
     if (files.length >= MAX_FILES) { stop(AT_FILES); break }
+    if (allow && !(await allow(path))) { denied++; continue }
     if (LOCKFILE.test(path)) { skip(LOCK); continue }
     const s = await stat(path)
     if (!s) { skip(MISSING); continue }
@@ -261,5 +264,5 @@ export async function collect(paths: string[], stat: (path: string) => Stat | Pr
     else if (text.includes('\0')) skip(BINARY)
     else files.push({ path, text })
   }
-  return { files, skipped }
+  return { files, skipped, denied }
 }
