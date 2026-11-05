@@ -1,4 +1,4 @@
-import type { CommitInfo, FileKey, HistoryEntry, Settings, Snapshot } from './types.ts'
+import type { CommitInfo, FileKey, Finding, HistoryEntry, Settings, Snapshot } from './types.ts'
 import { parseFiles } from './parse.ts'
 
 // --end-of-options before each revision, so none is ever read as an option; --no-show-signature, so a
@@ -12,7 +12,12 @@ export const resolveArgs = (main: string): string[] => ['git', 'rev-parse', '--v
 export const logArgs = (s: Settings): string[] =>
   ['git', 'log', '--first-parent', '--reverse', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', s.mainBranch, '--', `:(literal)${s.files.backlog.path}`, `:(literal)${s.files.playbook.path}`]
 
-export const showArgs = (sha: string, path: string): string[] => ['git', 'show', '--end-of-options', `${sha}:${path}`]
+// git takes a shallow clone's boundary for a root that touched every file, so no history is read there (finding 13)
+export const SHALLOW = ['git', 'rev-parse', '--is-shallow-repository']
+export const SHALLOW_WARNING: Finding = { level: 'warning', rule: 'shallow',
+  message: 'this clone is shallow: it holds part of the history, so none was read (history, Changed since and First seen need a full clone)' }
+
+export const showArgs =(sha: string, path: string): string[] => ['git', 'show', '--end-of-options', `${sha}:${path}`]
 
 export function parseLog(stdout: string): CommitInfo[] {
   return stdout.split('\n').filter(l => l.trim()).map(l => {

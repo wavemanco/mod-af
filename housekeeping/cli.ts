@@ -7,7 +7,7 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { build } from './hooks/core/index.ts'
 import { brief } from './hooks/core/brief.ts'
 import { formatFindings } from './hooks/core/findings.ts'
-import { headArgs, logArgs, parseLog, resolveArgs, showArgs, snapshot } from './hooks/core/history.ts'
+import { headArgs, logArgs, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot } from './hooks/core/history.ts'
 import { parseSettings } from './hooks/core/settings.ts'
 import { checkNamed, collect, formatInventory, inventory } from './hooks/core/survey.ts'
 import type { CommitInfo, FileKey, Snapshot } from './hooks/core/types.ts'
@@ -94,11 +94,12 @@ export async function main(argv: string[]): Promise<number> {
   const filesAt = (sha: string): Record<FileKey, string | null> =>
     ({ backlog: show(sha, settings.files.backlog.path), playbook: show(sha, settings.files.playbook.path) })
 
-  const snapshots: (Snapshot & CommitInfo)[] = parseLog(git(logArgs(settings).slice(1)))
+  const shallow = git(SHALLOW.slice(1)).trim() === 'true'
+  const snapshots: (Snapshot & CommitInfo)[] = shallow ? [] : parseLog(git(logArgs(settings).slice(1)))
     .map(c => ({ ...snapshot(settings, filesAt(c.sha)), ...c })) // the file text is dropped as each commit is done
 
   const result = build({ settings, files: filesAt(head.sha), head, snapshots })
-  const findings = [...settingsFindings, ...result.findings]
+  const findings = [...settingsFindings, ...(shallow ? [SHALLOW_WARNING] : []), ...result.findings]
   const failed = findings.some(f => f.level === 'error')
 
   if (cmd === 'check') {

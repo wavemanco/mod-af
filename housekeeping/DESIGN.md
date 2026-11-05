@@ -224,7 +224,8 @@ So the computed parts are not tied to Claude Code.
 
 So the reference repository's files, unchanged, pass `check` with recommendations.
 
-**Deterministic:** the same commit gives the same page on any machine.
+**Deterministic:** the same commit, given the whole history, gives the same page on any machine. A shallow
+clone holds part of it, so no history is read there and `check` warns (finding 13 of the Phase 2 check).
 - The page reads no clock, no network, no CI and no chat.
 - It stamps the commit and the commit's date.
 - It reads the local main branch's files (`git show <main>:<file>`) and never fetches. If a remote copy of
@@ -263,7 +264,7 @@ check keeps it under 1 MB. The reference repository's page is 808 KB today, much
 | | **Your queue** | What needs the owner's decision or act. "When" is answered as before which milestone, on which path, and what it holds up, since triggers are steps, not dates. Shows the default until decided, where there is one. |
 | When doors open | **Doors** | Doors just opened come first, then rows waiting on other rows, then triggers read by hand. Duties are listed apart, with the due ones first. |
 | | **Checklists** | Open lines per checklist, with the rows they settle. |
-| Can I trust it | **Header** | The commit and date the page was built from, and nothing from the remote: whether local main is behind a known remote copy shows on the short view and in the command's output only, so one commit gives the same page on any machine (Phase 2 ruling, Claude's, for the owner to check). Every count is computed. |
+| Can I trust it | **Header** | The commit and date the page was built from, and nothing from the remote: whether local main is behind a known remote copy shows on the short view and in the command's output only, so one commit, given the whole history, gives the same page on any machine (Phase 2 ruling, Claude's, for the owner to check). Every count is computed. |
 | | **Warnings**, shown only when there is one | The warnings and recommendations from 3.4. |
 
 The page has a Light / Dark / System switch in its header, System by default, and remembers the choice per viewer in the browser (decided 2026-11-04).

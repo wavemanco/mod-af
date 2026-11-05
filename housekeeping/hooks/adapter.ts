@@ -3,7 +3,7 @@
 // session's own tools, except the plugin's own page (writePage).
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
-import { headArgs, logArgs, parseLog, resolveArgs, showArgs, snapshot } from './core/history.ts'
+import { headArgs, logArgs, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot } from './core/history.ts'
 import { parseSettings } from './core/settings.ts'
 import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
@@ -41,10 +41,12 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
     return b === 'cut' || p === 'cut' ? 'cut' : { backlog: b, playbook: p }
   }
 
-  const log = await git(logArgs(settings).slice(1))
-  if (log.isStdoutTruncated) return fail('git log was cut short')
+  const shallow = (await git(SHALLOW.slice(1))).stdout.trim() === 'true'
+  if (shallow) findings.push(SHALLOW_WARNING)
+  const log = shallow ? null : await git(logArgs(settings).slice(1))
+  if (log?.isStdoutTruncated) return fail('git log was cut short')
   const snapshots: (Snapshot & CommitInfo)[] = []
-  for (const c of parseLog(log.stdout)) {
+  for (const c of parseLog(log?.stdout ?? '')) {
     const f = await filesAt(c.sha)
     if (f === 'cut') return fail(`git show was cut short at ${c.sha.slice(0, 7)}`)
     snapshots.push({ ...snapshot(settings, f), ...c })

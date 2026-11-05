@@ -5,6 +5,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { backlog, playbook, settings } from '../tests/fixtures/small.ts'
 
 const CLI = join(import.meta.dirname, '..', 'cli.ts')
@@ -68,6 +69,31 @@ test('a signed commit with log.showSignature on leaves check, map and brief as t
   const m = at('map', '--repo', dir, '--out', join(dir, 'signed.html'))
   assert.equal(m.status, 0, m.stdout + m.stderr)
   assert.equal(readFileSync(join(dir, 'signed.html'), 'utf8'), readFileSync(join(dir, 'plain.html'), 'utf8'))
+})
+
+// finding 13: git takes a shallow clone's boundary as a root that touched every file, so the history was false
+test('in a shallow clone no history is read, and check says the clone holds part of it', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-')), at = (day: string) => ({ cwd: dir, stdio: 'ignore' as const,
+    env: { ...process.env, GIT_COMMITTER_DATE: `${day}T00:00:00Z`, GIT_AUTHOR_DATE: `${day}T00:00:00Z` } })
+  const id = ['-c', 'user.name=t', '-c', 'user.email=t@example.test']
+  execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: dir })
+  writeFileSync(join(dir, 'backlog.md'), backlog.replace('1. Ship the export', '1. 2026-09-01 Ship the export'))
+  writeFileSync(join(dir, 'playbook.md'), playbook)
+  writeFileSync(join(dir, '.housekeeping.json'), settings)
+  execFileSync('git', ['add', '.'], { cwd: dir })
+  execFileSync('git', [...id, 'commit', '-q', '-m', 'the records'], at('2026-09-01'))
+  writeFileSync(join(dir, 'code.txt'), 'code only\n')
+  execFileSync('git', ['add', '.'], { cwd: dir })
+  execFileSync('git', [...id, 'commit', '-q', '-m', 'code only'], at('2026-09-05'))
+  assert.doesNotMatch(run('check', '--repo', dir).stdout, /where-we-are|shallow/)
+  const clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  execFileSync('git', ['clone', '-q', '--depth', '1', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
+  const c = run('check', '--repo', clone)
+  assert.equal(c.status, 0, c.stdout + c.stderr)
+  assert.doesNotMatch(c.stdout, /where-we-are/) // the false "older than the last change on 2026-09-05"
+  assert.match(c.stdout, /^warning shallow - /m)
+  assert.equal(run('map', '--repo', clone, '--out', join(clone, 'm.html')).status, 0)
+  assert.match(readFileSync(join(clone, 'm.html'), 'utf8'), /"history":\[\]/)
 })
 
 test('check exits 0 on a sound repository', () => {

@@ -24,6 +24,7 @@ type World = {
   argv?: string[][]
   noBranch?: boolean
   gitFail?: string // git log and rev-parse --verify exit 128 with this stderr: the repository does not open
+  shallow?: boolean // rev-parse --is-shallow-repository says true
   mainSha?: string
   remoteSha?: string
   now?: string
@@ -78,6 +79,7 @@ function world(on: On, w: World = {}) {
       return ok(text ?? '', text === undefined ? 128 : 0)
     }
     if (a === 'rev-parse' && b === '--abbrev-ref') return ok('main\n')
+    if (a === 'rev-parse' && b === '--is-shallow-repository') return ok(w.shallow ? 'true\n' : 'false\n')
     if (a === 'rev-parse' && b === '--show-toplevel') return w.top ? ok(w.top + '\n') : ok('', 128)
     if (a === 'rev-parse' && b === '--verify') return w.remoteSha ? ok(w.remoteSha + '\n') : ok('', 1)
     // with more arguments: the common dir, then main's commit, then the branch
@@ -373,6 +375,18 @@ test('a new day with main unchanged does not walk the history again (HK-035)', a
   w.now = '2026-09-13T10:00:00Z'
   await $.prompt.context({ blocks: [] })
   expect(walks(w)).toBe(1)
+})
+
+// finding 13: a shallow clone's boundary reads as a root that touched every file
+test('in a shallow clone no history is walked, and check warns that the clone holds part of it', async ($, on) => {
+  const w: World = { argv: [], shallow: true }
+  world(on, w)
+  await $.session.start(START)
+  w.argv!.length = 0
+  const r = await run($, 'check')
+  expect(r.exitCode).toBe(0)
+  expect(r.text).toMatch(/^warning shallow - /m)
+  expect(walks(w)).toBe(0)
 })
 
 test('a session started in a sub-folder reads the top of the git tree (HK-030)', async ($, on) => {
