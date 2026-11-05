@@ -454,7 +454,8 @@ test('/housekeeping survey hands over the procedure, then the inventory, and wri
   world(on, w)
   await $.session.start(START)
   const r = await run($, 'survey')
-  expect(r.text).toBe('housekeeping survey: 2 files read, 1 candidates')
+  // finding 21: the reply read as the finished result; it says the agent goes on at the next message
+  expect(r.text).toBe('housekeeping survey: 2 files read, 1 candidates\nThe agent carries out the survey procedure on your next message, for example "go ahead".')
   expect(r.context[0]).toBe(PROMPTS.survey)
   expect(r.context[1]).toMatch(/## Candidates.*\n +8\.0 +maybe +docs\/todo\.md: name, 2 ID headings/)
   expect(r.context.length).toBe(2)
@@ -467,7 +468,7 @@ test('/housekeeping plan adds the check findings when a .housekeeping.json exist
   world(on, w)
   await $.session.start(START)
   const r = await run($, 'plan')
-  expect(r.text).toBe('housekeeping plan: 2 files read, 1 candidates')
+  expect(r.text).toBe('housekeeping plan: 2 files read, 1 candidates\nThe agent carries out the plan procedure on your next message, for example "go ahead".')
   expect(r.context[0]).toBe(PROMPTS.plan)
   expect(r.context[1]).toContain('docs/todo.md')
   expect(r.context[2]).toContain('recommendation done-milestone')
