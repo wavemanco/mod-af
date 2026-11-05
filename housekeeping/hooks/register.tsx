@@ -44,7 +44,8 @@ async function load($: EngineInterface): Promise<Loaded> {
 function statusLine(out: BuildOutput): string {
   const lane = out.data.lanes[0]
   const next = lane?.stations.find(s => s.milestone === lane.next)
-  const where = !lane ? 'no route' : next ? `${next.milestone}, ${next.stops.length} stops` : 'all reached'
+  // a lane with no stations has none to reach, as the short view says (finding 26)
+  const where = !lane ? 'no route' : next ? `${next.milestone}, ${next.stops.length} stops` : lane.stations.length ? 'all reached' : 'no milestone yet'
   return `${out.data.counts.yes} land now · ${out.data.counts.needYou} need you · next: ${where}`
 }
 

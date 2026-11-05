@@ -44,6 +44,7 @@ type World = {
   lsCut?: boolean // git ls-files output is cut short
   reads?: string[] // every path fs.read was asked for
   backlog?: string // main's backlog.md, small.ts's by default
+  settings?: string // .housekeeping.json, small.ts's by default
 }
 
 // the engine may hand a hook a Windows-style path
@@ -67,7 +68,7 @@ function world(on: On, w: World = {}) {
     w.reads?.push(posix(e.path))
     if (w.failRead) throw new Error('EIO')
     const prompt = /\/prompts\/(survey|plan)\.md$/.exec(posix(e.path))
-    return { value: prompt ? PROMPTS[prompt[1]] : w.tracked?.[under(e.path)] ?? small.settings }
+    return { value: prompt ? PROMPTS[prompt[1]] : w.tracked?.[under(e.path)] ?? w.settings ?? small.settings }
   })
   on('process.run', (_, e) => {
     w.argv?.push([...e.argv])
@@ -503,6 +504,17 @@ test('no argument opens the pane and sets the status line', async ($, on) => {
   const md = await ui.find({ type: 'Markdown' })
   expect(md?.props.text).toContain('# Small: where we are')
   await ui.unmount()
+})
+
+// finding 26: a lane with no stations fell to "all reached", beside a short view saying "no milestone yet"
+test('with a path that has no milestone, the status line says no milestone yet', async ($, on) => {
+  const settings = small.settings.replace('"milestones":[{"name":"beta"},{"name":"launch"}]', '"milestones":[]')
+  expect(settings).not.toBe(small.settings)
+  const w: World = { status: [], settings }
+  world(on, w)
+  await $.session.start(START)
+  await run($, '')
+  expect(w.status!.at(-1)).toMatch(/ · next: no milestone yet$/)
 })
 
 // a made-up repository: one list with ID headings and a box, and a code file
