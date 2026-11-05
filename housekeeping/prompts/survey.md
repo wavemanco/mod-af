@@ -1,6 +1,6 @@
 # housekeeping survey: the procedure
 
-In Claude Code, `/housekeeping survey` hands this to the agent with the repository's inventory. Elsewhere, paste it into any chat with the output of `node <path to housekeeping>/cli.ts survey --repo <dir>` (add `--json` for every entry).
+In Claude Code, `/housekeeping survey` hands this to the agent with the folder housekeeping is installed in and the repository's inventory. Elsewhere, paste it into any chat with the output of `node <path to housekeeping>/cli.ts survey --repo <dir>` (add `--json` for every entry).
 
 ---
 
