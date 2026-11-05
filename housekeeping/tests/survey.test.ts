@@ -133,8 +133,50 @@ test('name and status words count in prose files only: in code they are identifi
 
 test('an empty file set gives no candidates, and the text says there is nothing to move', () => {
   const inv = inventory([])
-  expect(inv).toEqual({ files: 0, candidates: [], references: [], guides: [], skipped: [] })
-  expect(formatInventory(inv)).toContain('nothing to move')
+  expect(inv).toEqual({ files: 0, candidates: [], suspects: [], references: [], guides: [], skipped: [], denied: 0 })
+  expect(formatInventory(inv)).toContain('\n\nNo tracked files: nothing to move. /housekeeping init sets up the pair.\n')
+})
+
+// finding 8: "no file holds signs of pending work" was said of work the score does not read
+const NOT_READ = [{ path: 'big.md', why: 'over 2 MB' }, { path: 'img.png', why: 'binary (a NUL character)' },
+  { path: 'pnpm-lock.yaml', why: 'a lockfile' }, { path: 'x.md', why: 'unreadable' }, { path: 'gone.md', why: 'missing from the working tree' },
+  { path: 'f3000.txt', why: 'stopped at 3,000 files: this file and the 4 after it were not read', unread: 5 }]
+
+test('Not measured comes right after the header: the files not read, by reason, and what the score does not read', () => {
+  for (const inv of [inventory(FILES, NOT_READ), inventory([{ path: 'src/a.ts', text: 'x' }], NOT_READ)]) {
+    const lines = formatInventory(inv, 600).split('\n')
+    expect(lines.slice(lines.indexOf('## Not measured'), lines.indexOf('## Not measured') + 3)).toEqual(['## Not measured',
+      'Files not read: 1 over 2 MB, 2 binary or lockfile, 1 unreadable, 1 missing from the working tree, 5 past the 3,000-file limit.',
+      'The score does not read data files (YAML, JSON, CSV, TOML), nor code files apart from their TODO comments.'])
+    expect(lines.indexOf('## Not measured')).toBeLessThanOrEqual(4)
+  }
+  expect(formatInventory(inventory(FILES))).toContain('\n## Not measured\nFiles not read: none.\n')
+})
+
+test('with no candidates the text says no file reached the score of 3, and lists the suspects with their reasons', () => {
+  const inv = inventory([{ path: 'README.md', text: '# App\n\n## Roadmap\n\nmore later\n' },
+    { path: 'NOTES.md', text: 'TODO: fix the export\nTODO: docs\n' }, { path: 'docs/a.md', text: '- [ ] one\n* [ ] two\n' },
+    { path: 'backlog.yaml', text: 'items:\n  - x\n' }, { path: 'tasks.csv', text: 'id,what\n1,x\n' }, { path: 'config.yaml', text: 'a: 1\n' },
+    { path: 'docs/b.md', text: 'nothing here\n' }, { path: 'src/a.ts', text: '// TODO x\n' }, { path: 'bin/run', text: '#!/bin/sh\n# TODO\n' }])
+  expect(inv.candidates).toEqual([])
+  expect(inv.suspects).toEqual([{ path: 'NOTES.md', why: '2 TODOs' },
+    { path: 'README.md', why: 'a TODO, roadmap or next-steps heading' }, { path: 'backlog.yaml', why: 'a data file named like a tracker' },
+    { path: 'docs/a.md', why: '2 open boxes' }, { path: 'tasks.csv', why: 'a data file named like a tracker' }])
+  const text = formatInventory(inv)
+  expect(text).toContain("\n\nNo file reached the survey's score of 3. Not measured, below, says what the survey did not read, " +
+    'and Suspects the files with some sign of pending work.\n\n## Not measured\n')
+  expect(text).toContain('\n## Suspects (below the score of 3, with some sign of pending work)\nNOTES.md: 2 TODOs\nREADME.md: a TODO, roadmap')
+  expect(text).not.toContain('nothing to move')
+})
+
+test('the text shows at most 15 suspects and counts the rest; the inventory keeps them all', () => {
+  const inv = inventory([{ path: 'BACKLOG.md', text: BACKLOG },
+    ...Array.from({ length: 20 }, (_, i) => ({ path: `docs/n${String(i).padStart(2, '0')}.md`, text: '- [ ] x\n' }))])
+  expect(inv.suspects.length).toBe(20)
+  const text = formatInventory(inv)
+  expect(text.endsWith('\ndocs/n14.md: 1 open boxes\nand 5 more (the --json output names them)')).toBe(true)
+  expect(text).not.toContain('docs/n15.md')
+  expect(text.indexOf('## Candidates')).toBeLessThan(text.indexOf('## Suspects'))
 })
 
 test('formatInventory names the top candidate and stays within maxChars', () => {
@@ -203,7 +245,7 @@ test('the readers say a tracked file missing from the working tree, or unreadabl
 test('the readers stop at 3,000 files and say so', async () => {
   const r = await collect(...reader(Object.fromEntries(Array.from({ length: 3005 }, (_, i) => [`f${String(i).padStart(4, '0')}.txt`, 'x']))))
   expect(r.files.length).toBe(3000)
-  expect(r.skipped).toEqual([{ path: 'f3000.txt', why: 'stopped at 3,000 files: this file and the 4 after it were not read' }])
+  expect(r.skipped).toEqual([{ path: 'f3000.txt', why: 'stopped at 3,000 files: this file and the 4 after it were not read', unread: 5 }])
 })
 
 // finding 30: read in path order, the limits fell on a tracker in docs/ behind apps/
@@ -212,12 +254,12 @@ test('the readers read the names that look like trackers or guides first, so the
   const r = await collect(...reader({ ...Object.fromEntries(Array.from({ length: 70 }, (_, i) => [`apps/f${String(i).padStart(2, '0')}.txt`, big])),
     'docs/backlog.md': '## B-1 x\n', 'docs/README.md': 'the backlog\n' }))
   expect(r.files.slice(0, 2).map(f => f.path)).toEqual(['docs/backlog.md', 'docs/README.md'])
-  expect(r.skipped).toEqual([{ path: 'apps/f62.txt', why: 'stopped at 30 MB in all: this file and the 7 after it were not read' }])
+  expect(r.skipped).toEqual([{ path: 'apps/f62.txt', why: 'stopped at 30 MB in all: this file and the 7 after it were not read', unread: 8 }])
 })
 
 test('the readers stop at 30 MB in all and say so', async () => {
   const big = 'x'.repeat(500_000)
   const r = await collect(...reader(Object.fromEntries(Array.from({ length: 70 }, (_, i) => [`f${String(i).padStart(2, '0')}.txt`, big]))))
   expect(r.files.length).toBe(62) // 62 * 500,000 bytes is under 30 MiB; the 63rd is over
-  expect(r.skipped).toEqual([{ path: 'f62.txt', why: 'stopped at 30 MB in all: this file and the 7 after it were not read' }])
+  expect(r.skipped).toEqual([{ path: 'f62.txt', why: 'stopped at 30 MB in all: this file and the 7 after it were not read', unread: 8 }])
 })

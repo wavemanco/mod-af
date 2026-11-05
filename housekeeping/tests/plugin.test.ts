@@ -465,11 +465,19 @@ test('/housekeeping plan adds the check findings when a .housekeeping.json exist
   expect((await run($, 'plan')).context.length).toBe(2)
 })
 
-test('in a repository with no candidates, the survey says there is nothing to move', async ($, on) => {
-  world(on, { tracked: { 'src/a.ts': TRACKED['src/a.ts'] } })
+// finding 8: "nothing to move" is for a repository with no tracked files; otherwise the reply says what was measured
+test('with no candidates the survey says no file reached its score of 3, and counts the suspects', async ($, on) => {
+  world(on, { tracked: { 'src/a.ts': TRACKED['src/a.ts'], 'NOTES.md': 'TODO: one\n' } })
   await $.session.start(START)
   const r = await run($, 'survey')
-  expect(r.text).toContain('0 candidates')
-  expect(r.text).toContain('nothing to move')
-  expect(r.text).toContain('/housekeeping init')
+  expect(r.text).toContain("2 files read, 0 candidates: no file reached the survey's score of 3 (1 suspects)")
+  expect(r.text).not.toContain('nothing to move')
+  expect(r.context.at(-1)).toContain('\n## Suspects (below the score of 3, with some sign of pending work)\nNOTES.md: 1 TODOs')
+})
+
+test('in a repository with no tracked files, the survey says there is nothing to move', async ($, on) => {
+  world(on, { tracked: {} })
+  await $.session.start(START)
+  const r = await run($, 'survey')
+  expect(r.text).toContain('0 files read, 0 candidates: no tracked files, nothing to move; /housekeeping init sets up the pair')
 })

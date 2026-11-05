@@ -11,9 +11,13 @@ export type Candidate = { path: string; signals: Signals; score: number;
 // ambiguous: some of the mentions are a bare name that more than one of the top files has; possible: every mention
 // is a bare word for a name with no extension
 export type Reference = { target: string; from: string; count: number; machine: boolean; ambiguous?: true; possible?: true }
-export type Skipped = { path: string; why: string }
-export type Inventory = { files: number; candidates: Candidate[]; references: Reference[];
-  guides: { path: string; line: number; text: string }[]; skipped: Skipped[] }
+// unread: on a stop, the files it left unread, this one included
+export type Skipped = { path: string; why: string; unread?: number }
+// a file below the score that shows some sign of pending work, and that sign
+export type Suspect = { path: string; why: string }
+// denied: the files the person's Read rules kept the survey from, counted and never named
+export type Inventory = { files: number; candidates: Candidate[]; suspects: Suspect[]; references: Reference[];
+  guides: { path: string; line: number; text: string }[]; skipped: Skipped[]; denied: number }
 
 const NAME = /backlog|todo|roadmap|plan|open|pending|defer|follow.?up|checklist|docket|tracker|playbook|issues|tasks|progress|launch/i
 // [ \t] where the plan's pattern says \s: with /m, \s would run on past the line's end
@@ -33,7 +37,14 @@ const MARKDOWN = /\.(?:md|markdown|mdx)$/i
 const PROSE = /(?:\.(?:md|markdown|mdx|txt|rst|org|adoc)|^[^.]+)$/i
 const GUIDE_CUT = 200
 const LOCKFILE = /(?:^|\/)(?:[^/]*\.lock|pnpm-lock\.yaml|package-lock\.json)$/
-const TOP = 15, REFS = 5
+const DATA = /\.(?:ya?ml|json|csv|toml)$/i
+const PENDING_HEADING = /^#{1,6}[ \t]+(?:to[ -]?dos?|roadmap|next[ -]steps?)\b/im
+const TOP = 15, REFS = 5, SUSPECTS = 15
+// why the readers skipped a file
+const LOCK = 'a lockfile', BINARY = 'binary (a NUL character)', BIG = 'over 2 MB', UNREADABLE = 'unreadable'
+const MISSING = 'missing from the working tree', NOT_FILE = 'not a regular file (a link, a folder or a submodule)'
+const AT_FILES = 'stopped at 3,000 files', AT_TOTAL = 'stopped at 30 MB in all'
+export const CUT_LIST = 'the list of tracked files was cut short; the files after it were not read'
 
 const baseOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
 const count = (re: RegExp, text: string): number => text.match(re)?.length ?? 0
@@ -67,12 +78,23 @@ function signalsOf({ path, text }: SurveyFile): Signals {
 const scoreOf = (s: Signals): number =>
   Math.round(10 * (3 * +s.name + 2 * s.idHeadings + 2 * s.idTables + s.openBoxes + s.statusWords / 5 + s.todos / 10)) / 10
 
-export function inventory(files: SurveyFile[], skipped: Skipped[] = []): Inventory {
+// The suspects' signs, which the score leaves out (the owner, 2026-11-04): in prose, a TODO, roadmap or next-steps
+// heading, TODOs or open boxes; a data file whose name holds a tracker word. '' for none.
+function suspectOf({ path, text }: SurveyFile, s: Signals): string {
+  const base = baseOf(path)
+  if (DATA.test(base)) return NAME.test(base) ? 'a data file named like a tracker' : ''
+  if (!isProse(base, text)) return ''
+  const todos = count(TODO, text)
+  return [PENDING_HEADING.test(text) && 'a TODO, roadmap or next-steps heading', todos && `${todos} TODOs`,
+    s.openBoxes && `${s.openBoxes} open boxes`].filter(Boolean).join(', ')
+}
+
+export function inventory(files: SurveyFile[], skipped: Skipped[] = [], { denied = 0 } = {}): Inventory {
   const sorted = [...files].sort((a, b) => byPath(a.path, b.path))
-  const candidates: Candidate[] = []
+  const candidates: Candidate[] = [], suspects: Suspect[] = []
   for (const f of sorted) {
     const signals = signalsOf(f), score = scoreOf(signals)
-    if (score < 3) continue
+    if (score < 3) { const why = suspectOf(f, signals); if (why) suspects.push({ path: f.path, why }); continue }
     const history = signals.dated || f.path.split('/').slice(0, -1).some(d => HISTORY_DIR.test(d))
     candidates.push({ path: f.path, signals, score, hint: history ? 'likely-history' : score >= 10 ? 'likely-tracker' : 'maybe' })
   }
@@ -120,7 +142,7 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = []): Invento
       if (GUIDE_LINE.test(l)) guides.push({ path: f.path, line: i + 1, text: maskPrivacy(l.trim()) })
     })
   }
-  return { files: files.length, candidates, references, guides, skipped }
+  return { files: files.length, candidates, suspects, references, guides, skipped, denied }
 }
 
 const LABELS: [keyof Signals, string][] = [['idHeadings', 'ID headings'], ['idTables', 'ID tables'],
@@ -134,14 +156,43 @@ function said(s: Signals): string {
   return out.join(', ')
 }
 
+// Not measured's reasons, in its order; a stop is a limit that ended the reading
+const DENIED = 'denied by Read rules', CUT = 'past the end of a cut-short list of tracked files'
+const REASONS: [string, (s: Skipped) => boolean, boolean][] = [
+  ['over 2 MB', s => s.why === BIG, false], ['binary or lockfile', s => s.why === LOCK || s.why === BINARY, false],
+  ['unreadable', s => s.why === UNREADABLE, false], [MISSING, s => s.why === MISSING, false],
+  ['links, folders or submodules', s => s.why === NOT_FILE, false], [DENIED, () => false, false],
+  ['past the 3,000-file limit', s => s.why.startsWith(AT_FILES), true], ['past the 30 MB limit', s => s.why.startsWith(AT_TOTAL), true],
+  [CUT, s => s.why === CUT_LIST, true]]
+
+/** The files not read, counted by reason ("5 past the 3,000-file limit"); with stops, only the limits that ended the reading. */
+export function notRead(inv: Pick<Inventory, 'skipped' | 'denied'>, stops = false): string[] {
+  const out: string[] = []
+  for (const [label, of, stop] of REASONS) {
+    if (stops && !stop) continue
+    const n = label === DENIED ? inv.denied : inv.skipped.filter(of).reduce((n, s) => n + (s.unread ?? 1), 0)
+    if (n) out.push(label === CUT ? label : `${n} ${label}`)
+  }
+  return out
+}
+
 export function formatInventory(inv: Inventory, maxChars = 20_000): string {
   const lines = [`housekeeping survey: ${inv.files} files read, ${inv.candidates.length} candidates, ${inv.skipped.length} skipped`]
-  if (!inv.candidates.length) {
-    lines.push('', 'No file holds signs of pending work: nothing to move. /housekeeping init sets up the pair.')
-  } else {
+  // "nothing to move" only where nothing is tracked; elsewhere what was measured, and Not measured right after the
+  // header, so the cut cannot hide it
+  if (!inv.files && !inv.skipped.length && !inv.denied) lines.push('', 'No tracked files: nothing to move. /housekeeping init sets up the pair.')
+  else if (!inv.candidates.length) lines.push('', "No file reached the survey's score of 3. Not measured, below, says what the survey " +
+    'did not read, and Suspects the files with some sign of pending work.')
+  lines.push('', '## Not measured', `Files not read: ${notRead(inv).join(', ') || 'none'}.`,
+    'The score does not read data files (YAML, JSON, CSV, TOML), nor code files apart from their TODO comments.')
+  if (inv.candidates.length) {
     lines.push('', '## Candidates (score, hint, path: signals)')
     for (const c of inv.candidates) lines.push(`${c.score.toFixed(1).padStart(6)}  ${c.hint.padEnd(14)}  ${c.path}: ${said(c.signals)}`)
   }
+  lines.push('', '## Suspects (below the score of 3, with some sign of pending work)')
+  for (const s of inv.suspects.slice(0, SUSPECTS)) lines.push(`${s.path}: ${s.why}`)
+  if (!inv.suspects.length) lines.push('none')
+  else if (inv.suspects.length > SUSPECTS) lines.push(`and ${inv.suspects.length - SUSPECTS} more (the --json output names them)`)
   // before the references and guides, the long sections, so a cut hides them first; lockfiles and binaries are counted
   const noise = (s: Skipped) => s.why === LOCK || s.why === BINARY
   if (inv.skipped.length) {
@@ -184,7 +235,6 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
 // counted as skipped, short of Review Focus 3, because the plugin's $.fs.read returns decoded text; upgrade when
 // a reader can see the bytes. Binaries and UTF-16 are still caught by the NUL rule.
 export const MAX_FILE = 2 * 1024 * 1024, MAX_FILES = 3000, MAX_TOTAL = 30 * 1024 * 1024
-const LOCK = 'a lockfile', BINARY = 'binary (a NUL character)'
 type Stat = { file: boolean; size: number } | null
 
 export async function collect(paths: string[], stat: (path: string) => Stat | Promise<Stat>,
@@ -197,17 +247,17 @@ export async function collect(paths: string[], stat: (path: string) => Stat | Pr
   for (let i = 0; i < paths.length; i++) {
     const path = paths[i]
     const skip = (why: string) => skipped.push({ path, why })
-    const stop = (why: string) => skip(`${why}: this file and the ${paths.length - i - 1} after it were not read`)
-    if (files.length >= MAX_FILES) { stop('stopped at 3,000 files'); break }
+    const stop = (why: string) => skipped.push({ path, why: `${why}: this file and the ${paths.length - i - 1} after it were not read`, unread: paths.length - i })
+    if (files.length >= MAX_FILES) { stop(AT_FILES); break }
     if (LOCKFILE.test(path)) { skip(LOCK); continue }
     const s = await stat(path)
-    if (!s) { skip('missing from the working tree'); continue }
-    if (!s.file) { skip('not a regular file (a link, a folder or a submodule)'); continue }
-    if (s.size > MAX_FILE) { skip('over 2 MB'); continue }
-    if (total + s.size > MAX_TOTAL) { stop('stopped at 30 MB in all'); break }
+    if (!s) { skip(MISSING); continue }
+    if (!s.file) { skip(NOT_FILE); continue }
+    if (s.size > MAX_FILE) { skip(BIG); continue }
+    if (total + s.size > MAX_TOTAL) { stop(AT_TOTAL); break }
     const text = await read(path)
     total += s.size
-    if (text === null) skip('unreadable')
+    if (text === null) skip(UNREADABLE)
     else if (text.includes('\0')) skip(BINARY)
     else files.push({ path, text })
   }

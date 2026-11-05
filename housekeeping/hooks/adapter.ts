@@ -4,7 +4,7 @@ import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
 import { headArgs, logArgs, parseLog, showArgs, snapshot } from './core/history.ts'
 import { parseSettings } from './core/settings.ts'
-import { collect, type Skipped, type SurveyFile } from './core/survey.ts'
+import { collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
 
 type Dollar = EngineInterface
@@ -119,6 +119,6 @@ export async function readTracked($: Dollar, root: string): Promise<{ files: Sur
   const got = await collect(paths,
     p => $.fs.stat(`${root}/${p}`).then(s => ({ file: s.kind === 'file' && !s.isLink, size: s.size }), () => null),
     p => $.fs.read(`${root}/${p}`).catch(() => null))
-  if (r.isStdoutTruncated) got.skipped.push({ path: root, why: 'the list of tracked files was cut short; the files after it were not read' })
+  if (r.isStdoutTruncated) got.skipped.push({ path: root, why: CUT_LIST })
   return got
 }

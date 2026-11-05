@@ -118,7 +118,10 @@ async function procedure($: EngineInterface, arg: 'survey' | 'plan'): Promise<{ 
     const l = await load($)
     context.push(`The current /housekeeping check findings:\n${'error' in l ? l.error : l.text || 'none'}`)
   }
-  const none = inv.candidates.length ? '' : ': nothing to move; /housekeeping init sets up the pair'
+  // "nothing to move" only where nothing is tracked; elsewhere what was measured (finding 8)
+  const tracked = inv.files || inv.skipped.length || inv.denied
+  const none = inv.candidates.length ? '' : tracked ? `: no file reached the survey's score of 3 (${inv.suspects.length} suspects)`
+    : ': no tracked files, nothing to move; /housekeeping init sets up the pair'
   return { text: `housekeeping ${arg}: ${inv.files} files read, ${inv.candidates.length} candidates${none}`, context }
 }
 
