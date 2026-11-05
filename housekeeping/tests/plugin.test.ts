@@ -519,7 +519,7 @@ test('where the pane has no room to dock, the short view also comes back as text
     const r = await $.command.run({ command: 'housekeeping', args: '', ...RUN, presentation } as never) as { text: string }
     expect(r.text.startsWith('# Small: where we are')).toBe(true)
   }
-  expect(w.status!.length).toBe(2)
+  expect(w.status!.at(-1)).toContain('land now')
 })
 
 // finding 18: the open pane kept the first run's rows and counts
