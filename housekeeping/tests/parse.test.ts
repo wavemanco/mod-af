@@ -174,6 +174,22 @@ test('a fence left open is a warning at its opener, wherever it opens', () => {
   expect(fence('```\ntext\n```\n' + backlog)).toEqual([])
 })
 
+// the tied minor on rows in a named section
+test('checklist and where-we-are headings match whole; a row table in skipSections is said once', () => {
+  const table = (...ids: string[]) => '| ID | Item |\n|---|---|\n' + ids.map(id => `| ${id} | a row |\n`).join('')
+  const s2 = { ...s, files: { ...s.files, backlog: { ...s.files.backlog, skipSections: ['Done since', 'Archive'] } } }
+  const b = backlog + `\n## Launch checklist, later\n\n${table('B-007')}\n## Plan to all clear, older\n\n${table('B-008')}` +
+    `\n## Archive of 2025\n\n${table('B-009', 'B-010')}\n## Archive notes\n\n| Name | Note |\n|---|---|\n| x | y |\n`
+  const p = parseFiles(s2, { backlog: b, playbook })
+  expect(p.rows.map(r => r.id)).toEqual(['B-001', 'B-002', 'B-003', 'B-005', 'B-007', 'B-008', 'PB-01', 'PB-03'])
+  expect(p.checklists.length).toBe(3)
+  expect(p.whereWeAre!.line).toBe(5)
+  const skipped = p.findings.filter(f => f.rule === 'row-skipped')
+  expect(skipped.map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', b.split('\n').indexOf('## Archive of 2025') + 3]])
+  expect(skipped[0].message).toContain('"Archive of 2025"')
+  expect(good().findings).toEqual([])
+})
+
 // HK-020
 test('a date after the head commit does not make where-we-are look fresh', () => {
   const b = once(backlog, '(B-004 is closed).', '(B-004 is closed). Checked 2026-10-01; due 2027-01-01.')

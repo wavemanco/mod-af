@@ -23,13 +23,16 @@ function landNow(raw: string): LandNow {
 }
 
 // The ## sections that hold no pending rows: set aside in the settings, Done, checklists, not-doing, where-we-are.
-function skipFor(s: Settings, f: FileKey): string[] {
-  return [...s.files[f].skipSections, ...s.done.filter(d => d.file === f).map(d => d.sectionPrefix),
-    ...s.checklists.filter(k => k.file === f).map(k => k.heading),
-    ...(s.notDoing?.file === f ? [s.notDoing.heading] : []), ...(s.whereWeAre?.file === f ? [s.whereWeAre.heading] : [])]
+// skipSections, Done and not-doing match as prefixes; a checklist's and where-we-are's heading matches whole.
+// own: false leaves out skipSections, giving the sections that another reader reads.
+function skipFor(s: Settings, f: FileKey, own = true): (section: string) => boolean {
+  const prefixes = [...(own ? s.files[f].skipSections : []), ...s.done.filter(d => d.file === f).map(d => d.sectionPrefix),
+    ...(s.notDoing?.file === f ? [s.notDoing.heading] : [])]
+  const whole = [...s.checklists.filter(k => k.file === f).map(k => k.heading), ...(s.whereWeAre?.file === f ? [s.whereWeAre.heading] : [])]
+  return section => prefixes.some(p => section.startsWith(p)) || whole.includes(section)
 }
 
-// The lines of the `##` sections whose title starts with `heading`, fences skipped.
+// The lines of the `##` section whose title is `heading`, fences skipped.
 // A `###` heading comes back as { sub: title } so callers can group and break paragraphs.
 type SecLine = { line: number; text: string; group: string; sub: boolean }
 function sectionLines(text: string, heading: string): SecLine[] {
@@ -40,7 +43,7 @@ function sectionLines(text: string, heading: string): SecLine[] {
     fenced = stepFence(fenced, t)
     if (was !== null || fenced !== null) return
     const h = HEADING.exec(t)
-    if (h && h[1].length <= 2) { inSec = h[1] === '##' && h[2].startsWith(heading); group = ''; return }
+    if (h && h[1].length <= 2) { inSec = h[1] === '##' && h[2] === heading; group = ''; return }
     if (!inSec) return
     if (h && h[1] === '###') group = h[2]
     out.push({ line: i + 1, text: t, group, sub: !!h })
@@ -66,8 +69,7 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>, u
   const seen = new Set<string>()
 
   for (const f of KEYS) {
-    const skip = skipFor(s, f)
-    const skipped = (section: string) => skip.some(p => section.startsWith(p))
+    const skipped = skipFor(s, f), readElsewhere = skipFor(s, f, false)
     const isDone = (section: string) => s.done.some(d => d.file === f && section.startsWith(d.sectionPrefix))
     const heads: string[][] = []
     const { tables, dropped, unclosed } = scan(text[f])
@@ -77,8 +79,13 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>, u
     for (const d of dropped) if (!skipped(d.section) || isDone(d.section)) // a Done table's rows are read
       out.findings.push({ level: 'warning', rule: 'row-dropped', file: f, line: d.line, message: DROPPED[d.why] })
     for (const t of tables) {
-      if (skipped(t.section)) continue
       const col = (name: string | undefined) => (name === undefined ? -1 : t.header.indexOf(name))
+      if (skipped(t.section)) {
+        if (!readElsewhere(t.section) && col(c.id) >= 0 && col(c.item) >= 0)
+          out.findings.push({ level: 'warning', rule: 'row-skipped', file: f, line: t.line,
+            message: `the table here has ${c.id} and ${c.item} columns, but skipSections sets "${t.section}" aside, so its rows are not read` })
+        continue
+      }
       heads.push(t.header)
       out.tables.push({ file: f, line: t.line, header: t.header })
       if (col(c.id) < 0 || col(c.item) < 0) {
@@ -122,7 +129,7 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>, u
 
   // List items in pending sections belong in a table.
   for (const f of KEYS) {
-    const skip = skipFor(s, f)
+    const skipped = skipFor(s, f)
     let section: string | null = null, fenced: string | null = null
     text[f].split('\n').forEach((l, i) => {
       const was = fenced
@@ -130,7 +137,7 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>, u
       if (was !== null || fenced !== null) return
       const h = HEADING.exec(l)
       if (h && h[1].length <= 2) { section = h[1] === '##' ? h[2] : null; return }
-      if (section !== null && !skip.some(p => section!.startsWith(p)) && /^(?:[-*+]|\d+\.)\s/.test(l))
+      if (section !== null && !skipped(section) && /^(?:[-*+]|\d+\.)\s/.test(l))
         out.findings.push({ level: 'warning', rule: 'not-in-table', file: f, line: i + 1,
           message: `a list item under "${section}" is in no table` })
     })
