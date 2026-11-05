@@ -7,6 +7,7 @@ import { findingsFor } from '../hooks/core/findings.ts'
 import { parseFiles } from '../hooks/core/parse.ts'
 import { computeFacts } from '../hooks/core/facts.ts'
 import { computeLanes } from '../hooks/core/lanes.ts'
+import { snapshot } from '../hooks/core/history.ts'
 import type { BuildInput } from '../hooks/core/types.ts'
 
 const START = { cwd: '/w', surface: 'terminal', isInteractive: true } as const
@@ -46,6 +47,18 @@ test('an empty repository has no warnings and no no-paths recommendation', () =>
   const fs = findingsFor(settings, parsed, facts, lanes, [])
   expect(fs.filter(f => f.level === 'warning')).toEqual([])
   expect(fs.some(f => f.rule === 'no-paths')).toBe(false)
+})
+
+// finding 24: init's own paragraph has no date
+test("init's where-we-are is stale once rows are filed and it is left as it is", () => {
+  const { f, settings, input } = made()
+  const row = '| B-1 | Ship it | none | none | agent | yes | now | Now. | — | — | 2026-11-03 |\n'
+  const filed = { ...input.files, backlog: f['docs/backlog.md'].replace('|---|\n\n## Done', `|---|\n${row}\n## Done`) }
+  const commit = (n: number, files: BuildInput['files']) =>
+    ({ ...snapshot(settings, files), sha: `${n}`.repeat(40), date: `2026-11-0${n}`, subject: `c${n}` })
+  const out = build({ ...input, files: filed, snapshots: [commit(1, input.files), commit(2, filed)] })
+  expect(out.parsed.rows.map(r => r.id)).toEqual(['B-1'])
+  expect(out.findings.filter(x => x.rule === 'where-we-are').map(x => [x.level, x.file])).toEqual([['warning', 'backlog']])
 })
 
 test('the backlog keeps its how-this-file-is-kept section short', () => {

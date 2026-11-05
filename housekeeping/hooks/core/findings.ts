@@ -83,9 +83,13 @@ export function findingsFor(s: Settings, p: Parsed, f: Facts, _lanes: Lane[], hi
     const at = { file: w.file, line: w.line }
     const gone = idsIn(w.text, s).filter(id => !exists(id))
     if (gone.length) warn('where-we-are', at, `names ${gone.join(', ')}, which exists nowhere`)
-    const last = history.filter(h => h.opened.length + h.closed.length + h.moved.length + h.gone.length > 0)
-      .map(h => h.date.slice(0, 10)).sort().pop()
+    const moves = (h: HistoryEntry) => h.opened.length + h.closed.length + h.moved.length + h.gone.length > 0
+    const last = history.filter(moves).map(h => h.date.slice(0, 10)).sort().pop()
+    const k = history.findLastIndex(moves) // history is oldest first
     if (w.date && last && w.date < last) warn('where-we-are', at, `dated ${w.date}, older than the last change on ${last}`)
+    // undated: stale when no commit from the newest one that changed rows, that one included, rewrote it
+    else if (!w.date && k >= 0 && !history.slice(k).some(h => h.whereWeAre))
+      warn('where-we-are', at, `has no date, and has not changed since the rows changed on ${history[k].date.slice(0, 10)}: rewrite it, with the day`)
   } else rec('where-we-are-missing', 'no where-we-are section')
 
   if (s.done.some(d => d.milestoneColumn === undefined)) rec('done-milestone', 'a Done table has no milestone column')

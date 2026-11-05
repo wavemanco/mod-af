@@ -143,6 +143,19 @@ test('where-we-are is stale against the last history entry with a delta', () => 
   expect(rules(run(m, [e('2026-09-01', ['B-001'])]))).toEqual([])
 })
 
+// finding 24: the small fixture's where-we-are has no date
+test('an undated where-we-are is stale when it has not changed since the rows last changed', () => {
+  const e = (date: string, opened: string[], whereWeAre: boolean): HistoryEntry =>
+    ({ sha: 'a', date, subject: 's', opened, closed: [], moved: [], gone: [], whereWeAre })
+  const stale = run({}, [e('2026-09-01', [], true), e('2026-09-02', ['B-001'], false)]).filter(f => f.rule === 'where-we-are')
+  expect(stale.map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 5]])
+  expect(stale[0].message).toContain('no date')
+  expect(stale[0].message).toContain('2026-09-02')
+  expect(rules(run({}, [e('2026-09-01', [], true), e('2026-09-02', ['B-001'], true)]))).toEqual([])
+  expect(rules(run({}, [e('2026-09-02', ['B-001'], false), e('2026-09-03', [], true)]))).toEqual([])
+  expect(rules(run({}, [e('2026-09-01', [], true)]))).toEqual([])
+})
+
 test('recommendations for missing options', () => {
   const s = parseSettings(small.settings).settings!
   const bare = { ...s, paths: [], whereWeAre: undefined, columns: { ...s.columns, details: undefined, filed: undefined } }
