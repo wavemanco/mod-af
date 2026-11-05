@@ -34,6 +34,8 @@ type World = {
   pub?: object
   tracked?: Record<string, string> // the survey's files, by path under /w
   denied?: string[] // tracked paths the person's Read rules deny
+  lsFail?: boolean // git ls-files exits 128
+  lsCut?: boolean // git ls-files output is cut short
   reads?: string[] // every path fs.read was asked for
   backlog?: string // main's backlog.md, small.ts's by default
 }
@@ -64,7 +66,9 @@ function world(on: On, w: World = {}) {
   on('process.run', (_, e) => {
     w.argv?.push([...e.argv])
     const [, a, b] = e.argv
-    if (a === 'ls-files') return ok(Object.keys(w.tracked ?? {}).map(p => `${p}\0`).join(''))
+    if (a === 'ls-files' && w.lsFail) return { value: { exitCode: 128, stdout: '', isStdoutTruncated: false, isStderrTruncated: false,
+      stderr: 'fatal: not a git repository (or any of the parent directories): .git\n' } }
+    if (a === 'ls-files') return ok(Object.keys(w.tracked ?? {}).map(p => `${p}\0`).join(''), 0, w.lsCut)
     if (a === 'log') return w.noBranch ? ok('', 128) : ok(`${SHA}\t2026-09-12\thead\n`)
     if (a === 'show') {
       const text = files[String(e.argv.at(-1)).split(':')[1]]
@@ -489,6 +493,22 @@ test('the survey reads no file the Read rules deny, names none, and counts them 
   expect(all.text).toContain("0 files read, 0 candidates: no file reached the survey's score of 3")
   expect(all.text).not.toContain('nothing to move')
   expect(all.context.at(-1)).toContain('\nFiles not read: 4 denied by Read rules.\n')
+})
+
+// finding 7: a failed listing or a limit read as "nothing to move", and the reply gave no sign of the stop
+test('a failed git listing replies exit 1 with what git said, and a limit that stopped the reading is named in the reply', async ($, on) => {
+  const w: World = { lsFail: true, tracked: { ...TRACKED } }
+  world(on, w)
+  await $.session.start(START)
+  for (const arg of ['survey', 'plan']) {
+    const r = await run($, arg)
+    expect(r.exitCode).toBe(1)
+    expect(r.text).toBe('housekeeping: cannot list the tracked files in /w: git said: fatal: not a git repository (or any of the parent directories): .git')
+  }
+  Object.assign(w, { lsFail: false, lsCut: true })
+  const cut = await run($, 'survey')
+  expect(cut.exitCode ?? 0).toBe(0)
+  expect(cut.text).toContain('; a limit stopped the reading: past the end of a cut-short list of tracked files')
 })
 
 // finding 8: "nothing to move" is for a repository with no tracked files; otherwise the reply says what was measured

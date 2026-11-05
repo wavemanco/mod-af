@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { collect, formatInventory, inventory } from '../hooks/core/survey.ts'
+import { collect, formatInventory, inventory, notRead } from '../hooks/core/survey.ts'
 
 // A made-up repository: a backlog, a guide that names it, a dated pass note, an archived copy and a test that reads it.
 const BACKLOG = [
@@ -151,6 +151,8 @@ test('Not measured comes right after the header: the files not read, by reason, 
     expect(lines.indexOf('## Not measured')).toBeLessThanOrEqual(4)
   }
   expect(formatInventory(inventory(FILES))).toContain('\n## Not measured\nFiles not read: none.\n')
+  // finding 7: the reply names the limits that stopped the reading
+  expect(notRead(inventory(FILES, NOT_READ), true)).toEqual(['5 past the 3,000-file limit'])
 })
 
 test('with no candidates the text says no file reached the score of 3, and lists the suspects with their reasons', () => {

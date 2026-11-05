@@ -113,9 +113,10 @@ export async function writePage($: Dollar, root: string, path: string, html: str
 // The survey's reader: the tracked files, under collect's rules. GIT_OPTIONAL_LOCKS=0: the survey writes nothing,
 // not even git's index refresh. Each file is first put to the person's Read rules, which the survey obeys (the
 // owner, 2026-11-04: "Obey the deny rules"); a check that fails counts as a deny.
-export async function readTracked($: Dollar, root: string): Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number }> {
+export async function readTracked($: Dollar, root: string): Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number } | { error: string }> {
   const r = await $.process.run(['git', 'ls-files', '-z'], { cwd: root, timeoutMs: TIMEOUT, env: { GIT_OPTIONAL_LOCKS: '0' } })
-  if (r.exitCode !== 0) return { files: [], skipped: [{ path: root, why: `git ls-files failed: ${r.stderr.split('\n')[0].trim()}` }], denied: 0 }
+  // as the Node command says it; a survey that could not list is no survey (finding 7)
+  if (r.exitCode !== 0) return { error: `housekeeping: cannot list the tracked files in ${root}: git said: ${r.stderr.split('\n')[0].trim()}` }
   const paths = r.stdout.split('\0')
   paths.pop() // the empty tail after the last NUL, or the entry the cut left half written
   const got = await collect(paths,

@@ -4,7 +4,7 @@ import { brief } from './core/brief.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
 import { parseSettings } from './core/settings.ts'
-import { formatInventory, inventory } from './core/survey.ts'
+import { formatInventory, inventory, notRead } from './core/survey.ts'
 import { initFiles } from './core/templates.ts'
 import type { BuildOutput } from './core/types.ts'
 
@@ -109,10 +109,11 @@ async function init($: EngineInterface): Promise<{ text: string; exitCode?: numb
 
 // survey and plan: the procedure, then the inventory, for the agent to follow; plan adds check's findings when
 // there are settings. Neither writes anything.
-async function procedure($: EngineInterface, arg: 'survey' | 'plan'): Promise<{ text: string; context: string[] }> {
+async function procedure($: EngineInterface, arg: 'survey' | 'plan'): Promise<{ text: string; exitCode?: number; context?: string[] }> {
   const root = await repoRoot($)
-  const { files, skipped, denied } = await readTracked($, root)
-  const inv = inventory(files, skipped, { denied })
+  const t = await readTracked($, root)
+  if ('error' in t) return { text: t.error, exitCode: 1 }
+  const inv = inventory(t.files, t.skipped, { denied: t.denied })
   const context = [await $.fs.read(`${$.plugin.root}/prompts/${arg}.md`), formatInventory(inv)]
   if (arg === 'plan' && (await $.fs.exists(`${root}/${SETTINGS}`))) {
     const l = await load($)
@@ -122,7 +123,9 @@ async function procedure($: EngineInterface, arg: 'survey' | 'plan'): Promise<{ 
   const tracked = inv.files || inv.skipped.length || inv.denied
   const none = inv.candidates.length ? '' : tracked ? `: no file reached the survey's score of 3 (${inv.suspects.length} suspects)`
     : ': no tracked files, nothing to move; /housekeeping init sets up the pair'
-  return { text: `housekeeping ${arg}: ${inv.files} files read, ${inv.candidates.length} candidates${none}`, context }
+  const stops = notRead(inv, true)
+  const stopped = stops.length ? `; a limit stopped the reading: ${stops.join(', ')}` : ''
+  return { text: `housekeeping ${arg}: ${inv.files} files read, ${inv.candidates.length} candidates${none}${stopped}`, context }
 }
 
 async function command($: EngineInterface, arg: string, show: (brief: string) => void): Promise<{ text: string; exitCode?: number; context?: string[] }> {
