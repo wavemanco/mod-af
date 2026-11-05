@@ -3,6 +3,11 @@ import { HEADING, normalise, scan, scanTables, stepFence } from './markdown.ts'
 
 const DATE = /\d{4}-\d{2}-\d{2}/
 const KEYS: FileKey[] = ['backlog', 'playbook']
+const DROPPED = {
+  separator: 'the table here is dropped: its separator line has another number of cells than its header',
+  closed: 'this line ends the table above, because it does not start with "|", so it and the "|" lines right after it are not read',
+  stray: 'a line starting with "|" is in no table, so it and the "|" lines right after it are not read: a blank line ends a table, and a table starts with a header line over a separator line',
+}
 
 export function idsIn(text: string, s: Settings): string[] {
   if (!s.ids.length) return []
@@ -63,11 +68,11 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>, u
   for (const f of KEYS) {
     const skip = skipFor(s, f)
     const skipped = (section: string) => skip.some(p => section.startsWith(p))
+    const isDone = (section: string) => s.done.some(d => d.file === f && section.startsWith(d.sectionPrefix))
     const heads: string[][] = []
     const { tables, dropped } = scan(text[f])
-    for (const d of dropped) if (!skipped(d.section))
-      out.findings.push({ level: 'warning', rule: 'row-dropped', file: f, line: d.line,
-        message: 'the table here is dropped: its separator line has another number of cells than its header' })
+    for (const d of dropped) if (!skipped(d.section) || isDone(d.section)) // a Done table's rows are read
+      out.findings.push({ level: 'warning', rule: 'row-dropped', file: f, line: d.line, message: DROPPED[d.why] })
     for (const t of tables) {
       if (skipped(t.section)) continue
       const col = (name: string | undefined) => (name === undefined ? -1 : t.header.indexOf(name))

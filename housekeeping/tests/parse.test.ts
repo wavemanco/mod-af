@@ -137,6 +137,33 @@ test('a dropped table, a dropped row and a mistyped header are warned about', ()
   expect(dropped(backlog)).toEqual([])
 })
 
+// finding 5: one warning per break, each with its own message
+test('a pipe line in no table, and a pipe line that ends a table, are dropped and said', () => {
+  const dropped = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'row-dropped')
+  const at = (b: string) => dropped(b).map(f => [f.level, f.file, f.line])
+  const gap = once(backlog, '| B-003 |', '\n| B-003 |') // a blank line after B-002: B-003 and B-005 fall out
+  expect(parseFiles(s, { backlog: gap, playbook }).rows.map(r => r.id)).toEqual(['B-001', 'B-002', 'PB-01', 'PB-03'])
+  expect(at(gap)).toEqual([['warning', 'backlog', 23]])
+  const below = once(backlog, '\n## Done since', '\n| B-006 | filed below the table |\n\n## Done since')
+  expect(at(below)).toEqual([['warning', 'backlog', 25]])
+  const lost = once(backlog, '| B-003 |', 'B-003 |') // a row that lost its leading pipe ends the table
+  expect(at(lost)).toEqual([['warning', 'backlog', 22]])
+  const dashes = once(backlog, '|' + '---|'.repeat(15), '|' + '—|'.repeat(15))
+  expect(at(dashes)).toEqual([['warning', 'backlog', 18]])
+  const msg = (b: string) => dropped(b)[0].message
+  expect(new Set([msg(gap), msg(lost), msg(once(backlog, '|' + '---|'.repeat(15), '|' + '---|'.repeat(14)))]).size).toBe(3)
+  expect(msg(lost)).toContain('ends the table above')
+  expect(msg(gap)).toContain('in no table')
+})
+
+// finding 17: Done sections are set aside as pending rows, but their rows are read, so a lost Done table is said
+test('a Done table with a mismatched separator is warned about', () => {
+  const b = once(backlog, '| Item | Where it landed | Its row |\n|---|---|---|', '| Item | Where it landed | Its row | Note |\n|---|---|---|')
+  const p = parseFiles(s, { backlog: b, playbook })
+  expect(p.done).toEqual([])
+  expect(p.findings.filter(f => f.rule === 'row-dropped').map(f => [f.file, f.line])).toEqual([['backlog', 27]])
+})
+
 // HK-020
 test('a date after the head commit does not make where-we-are look fresh', () => {
   const b = once(backlog, '(B-004 is closed).', '(B-004 is closed). Checked 2026-10-01; due 2027-01-01.')

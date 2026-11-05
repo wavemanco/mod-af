@@ -30,27 +30,31 @@ export function cellsOf(line: string): string[] {
   return cells
 }
 
-export type Scan = { tables: Table[]; dropped: { line: number; section: string }[] }
+export type Scan = { tables: Table[]; dropped: { line: number; section: string; why: 'separator' | 'closed' | 'stray' }[] }
 
-// dropped: a pipe line over a pipe separator with another cell count, which GFM reads as no table.
+// dropped, once per break: a pipe line over a pipe separator with another cell count, which GFM reads as no
+// table (separator); a line holding `|` that ends a table because it does not start with one (closed); and
+// a line starting with `|` in no table (stray). The `|` lines right after a break are part of it.
 export function scan(text: string): Scan {
   const lines = normalise(text).split('\n')
   const tables: Table[] = [], dropped: Scan['dropped'] = []
-  let section = '', subsection = '', fenced: string | null = null, open: Table | null = null
+  let section = '', subsection = '', fenced: string | null = null, open: Table | null = null, run = false
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const was = fenced
     fenced = stepFence(fenced, line)
-    if (was !== null || fenced !== null) { open = null; continue }
+    if (was !== null || fenced !== null) { open = null; run = false; continue }
     const h = HEADING.exec(line)
     if (h) {
-      open = null
+      open = null; run = false
       if (h[1] === '##') { section = h[2]; subsection = '' } else if (h[1] === '###') subsection = h[2]
       continue
     }
     if (open) {
-      if (!line.trimStart().startsWith('|')) open = null
-      else if (!SEPARATOR.test(line)) open.rows.push({ line: i + 1, cells: cellsOf(line) }) // a stray separator is no row
+      if (!line.trimStart().startsWith('|')) {
+        open = null
+        if (line.includes('|')) { dropped.push({ line: i + 1, section, why: 'closed' }); run = true }
+      } else if (!SEPARATOR.test(line)) open.rows.push({ line: i + 1, cells: cellsOf(line) }) // a stray separator is no row
       continue
     }
     const next = lines[i + 1] ?? ''
@@ -59,8 +63,14 @@ export function scan(text: string): Scan {
         open = { section, subsection, line: i + 1, header: cellsOf(line), rows: [] }
         tables.push(open)
         i++
-      } else if (next.includes('|')) dropped.push({ line: i + 1, section })
+        run = false
+        continue
+      }
+      if (next.includes('|')) { dropped.push({ line: i + 1, section, why: 'separator' }); run = true; continue }
     }
+    const piped = line.trimStart().startsWith('|')
+    if (piped && !run) dropped.push({ line: i + 1, section, why: 'stray' })
+    run = piped
   }
   return { tables, dropped }
 }
