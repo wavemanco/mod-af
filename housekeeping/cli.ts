@@ -3,7 +3,7 @@
 //        node cli.ts survey [--repo <dir>] [--json] [--tracker <path>]... [--not-tracker <path>]...
 import { execFileSync } from 'node:child_process'
 import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { build } from './hooks/core/index.ts'
 import { brief } from './hooks/core/brief.ts'
 import { formatFindings } from './hooks/core/findings.ts'
@@ -32,7 +32,7 @@ export async function main(argv: string[]): Promise<number> {
     console.error(USAGE)
     return 2
   }
-  const repo = resolve(opt.repo ?? '.')
+  let repo = resolve(opt.repo ?? '.')
   // GIT_OPTIONAL_LOCKS=0 keeps a read from taking the index lock in a checkout someone else is using
   const git = (args: string[]) => execFileSync('git', args, { cwd: repo, maxBuffer: 64 * 1024 * 1024, encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } })
@@ -40,7 +40,13 @@ export async function main(argv: string[]): Promise<number> {
 
   if (cmd === 'survey') {
     let listed: string
-    try { listed = git(['ls-files', '-z']) } catch (e) {
+    try {
+      // the whole repository from its top, whichever folder of it was named (finding 29); stderr keeps --json whole
+      const top = resolve(git(['rev-parse', '--show-toplevel']).trim())
+      if (relative(top, repo)) console.error(`housekeeping: ${repo} is inside the repository at ${top}: the survey reads all of it`)
+      repo = top
+      listed = git(['ls-files', '-z'])
+    } catch (e) {
       console.log(`housekeeping: cannot list the tracked files in ${repo}: git said: ${gitSaid(e) || (e as Error).message}`)
       return 2
     }

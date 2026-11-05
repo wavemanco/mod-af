@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { backlog, playbook, settings } from '../tests/fixtures/small.ts'
@@ -122,6 +122,24 @@ test('survey takes --tracker and --not-tracker, repeatable; a path git does not 
   assert.equal(bad.status, 2)
   assert.match(bad.stdout, /not a tracked file: nope\.md/)
   assert.equal(run('check', '--repo', dir, '--tracker', 'tasks.yaml').status, 2) // survey's option only
+})
+
+// finding 29: from a subfolder the survey read only that subtree, and could say there was nothing to move
+test('survey --repo <subfolder> surveys the whole repository from its top, and says so', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-')), pkg = join(dir, 'pkg')
+  git(dir, 'init', '-q', '-b', 'main')
+  writeFileSync(join(dir, 'TODO.md'), '## T-1 one\n## T-2 two\n')
+  mkdirSync(pkg)
+  writeFileSync(join(pkg, 'a.ts'), 'export const a = 1\n')
+  git(dir, 'add', '.')
+  git(dir, 'commit', '-q', '-m', 'first')
+  const r = run('survey', '--json', '--repo', pkg)
+  assert.equal(r.status, 0, r.stderr + r.stdout)
+  const inv = JSON.parse(r.stdout)
+  assert.equal(inv.files, 2)
+  assert.equal(inv.candidates[0].path, 'TODO.md')
+  assert.match(r.stderr, /pkg is inside the repository at .+: the survey reads all of it/)
+  assert.equal(run('survey', '--repo', dir).stderr, '')
 })
 
 test('survey outside a git repository says what git said, exit 2', () => {
