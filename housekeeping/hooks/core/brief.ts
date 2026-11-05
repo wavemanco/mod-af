@@ -13,10 +13,19 @@ function addInterval(iso: string, n: number, unit: string): string {
   return d.toISOString().slice(0, 10)
 }
 
+// A YYYY-MM-DD that is a day of the calendar: the round trip catches 2026-13-01 and a rolled-over 2026-02-30.
+export function realDay(day: string): boolean {
+  const d = new Date(day + 'T00:00:00Z')
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) && !isNaN(+d) && d.toISOString().slice(0, 10) === day
+}
+
+const LAST_DONE = /Last done:(?:\*\*)?\s*(\d{4}-\d{2}-\d{2})/g
+export const lastDones = (details: string): string[] => [...details.matchAll(LAST_DONE)].map(m => m[1])
+
 function dutyDue(trigger: string, lastDone: string | null, today: string): boolean {
   if (EVERY_SESSION.test(trigger)) return true
   const m = EVERY.exec(trigger)
-  if (!m || !lastDone) return false
+  if (!m || !lastDone || !realDay(lastDone)) return false
   return addInterval(lastDone, m[1] ? Number(m[1]) : 1, m[2].toLowerCase()) <= today
 }
 

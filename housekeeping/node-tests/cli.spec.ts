@@ -110,6 +110,20 @@ test('survey outside a git repository says what git said, exit 2', () => {
   assert.match(r.stdout, /not a git repository/)
 })
 
+// finding 15: check said nothing and brief died with a stack trace
+test('an impossible Last done date is a check warning, and brief still prints', () => {
+  const dir = repo()
+  writeFileSync(join(dir, 'backlog.md'), backlog.replace('| Whenever an agent picks it up. | — | **Why:** slow builds. |',
+    '| Every 30 days. | — | **Why:** slow builds. Last done: 2026-13-01 |'))
+  git(dir, 'commit', '-qam', 'a typo in a date')
+  const c = run('check', '--repo', dir)
+  assert.equal(c.status, 0, c.stderr + c.stdout)
+  assert.match(c.stdout, /^warning last-done backlog:23 B-005: Last done "2026-13-01" is not a real YYYY-MM-DD date$/m)
+  const b = run('brief', '--repo', dir)
+  assert.equal(b.status, 0, b.stderr)
+  assert.match(b.stdout, /^Duties due: $/m)
+})
+
 test('brief counts duties due by today, not by the head commit date', () => {
   const dir = repo()
   const b = backlog.replace('| Whenever an agent picks it up. | — | **Why:** slow builds. |',

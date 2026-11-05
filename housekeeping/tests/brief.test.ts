@@ -24,6 +24,15 @@ test('a duty is due by its last-done date and interval', () => {
   expect(brief(d, {})).not.toContain('Duties due:')
 })
 
+// finding 15
+test('an impossible Last done date makes no duty due, and nothing throws', () => {
+  for (const day of ['2026-13-01', '2026-10-40', '2026-02-30']) {
+    const d = smallData(once(small.backlog, '| Whenever an agent picks it up. | — | **Why:** slow builds. |',
+      `| Every 30 days. | — | **Why:** slow builds. Last done: ${day} |`))
+    expect([day, brief(d, { today: '2027-01-01' }).includes('Duties due: \n')]).toEqual([day, true])
+  }
+})
+
 test('a hit in the short view is masked, not blocked', () => {
   const t = brief({ ...SMALL, project: 'ask jane.doe@gmail.com' }, {})
   expect(t.includes('jane.doe@gmail.com')).toBe(false)

@@ -33,6 +33,7 @@ type World = {
   failRead?: boolean
   pub?: object
   tracked?: Record<string, string> // the survey's files, by path under /w
+  backlog?: string // main's backlog.md, small.ts's by default
 }
 
 // the engine may hand a hook a Windows-style path
@@ -43,7 +44,7 @@ const under = (p: string) => posix(p).replace(/^\/w\//, '')
 
 // The engine stand-ins: git answers from small.ts's files, tools are logged, the store is a map.
 function world(on: On, w: World = {}) {
-  const files: Record<string, string> = { 'backlog.md': small.backlog, 'playbook.md': small.playbook }
+  const files: Record<string, string> = { 'backlog.md': w.backlog ?? small.backlog, 'playbook.md': small.playbook }
   const stored = (w.stored ??= {})
   const calls = (w.calls ??= [])
   on('command.register', (_, e) => ({ value: { command: e.name } }))
@@ -111,6 +112,19 @@ test('/housekeeping check on the good fixture exits 0', async ($, on) => {
   const r = await run($, 'check')
   expect(r.exitCode).toBe(0)
   expect(r.text).toContain('recommendation done-milestone')
+})
+
+// finding 15: the short view's due check threw on it, so check, map, plan and the short view all failed
+test('an impossible Last done date is a check warning naming the row, and the short view still opens', async ($, on) => {
+  const w: World = { status: [], backlog: small.backlog.replace('| Whenever an agent picks it up. | — | **Why:** slow builds. |',
+    '| Every 30 days. | — | **Why:** slow builds. Last done: 2026-13-01 |') }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'check')
+  expect(r.exitCode).toBe(0)
+  expect(r.text).toContain('warning last-done backlog:23 B-005: Last done "2026-13-01" is not a real YYYY-MM-DD date')
+  expect((await run($, '')).text).toBe('housekeeping: short view open')
+  expect(w.status!.at(-1)).toContain('land now')
 })
 
 test('/housekeeping map writes the page, publishes it, and says the partition and URL', async ($, on) => {

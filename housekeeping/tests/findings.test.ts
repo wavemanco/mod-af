@@ -20,6 +20,9 @@ const run = (m: Mut = {}, history: HistoryEntry[] = []): Finding[] => {
   return findingsFor(s, p, computeFacts(s, p), computeLanes(s, p, computeFacts(s, p)), history)
 }
 const rules = (fs: Finding[]) => [...new Set(fs.filter(f => f.level !== 'recommendation').map(f => f.rule))]
+// B-005 as a standing duty last done on `day`
+const DUTY = '| Whenever an agent picks it up. | — | **Why:** slow builds. |'
+const duty = (day: string) => `| Every 30 days. | — | **Why:** slow builds. Last done: ${day} |`
 
 test('the good fixture has no errors or warnings', () => {
   const fs = run()
@@ -56,9 +59,19 @@ const cases: [string, Mut, string][] = [
   ['checklist-ids (nowhere)', { b: ['*Settles:* PB-01.', '*Settles:* PB-01, B-008.'] }, 'checklist-ids'],
   ['checklist-ids (none)', { b: ['*Settles:* PB-01.', '*Settles:* the testers row.'] }, 'checklist-ids'],
   ['where-we-are (nowhere)', { b: ['B-001, then B-002', 'B-001, then B-002 and B-009'] }, 'where-we-are'],
+  ['last-done (no such month)', { b: [DUTY, duty('2026-13-01')] }, 'last-done'],
+  ['last-done (no such day)', { b: [DUTY, duty('2026-10-40')] }, 'last-done'],
+  ['last-done (rolls over)', { b: [DUTY, duty('2026-02-30')] }, 'last-done'],
 ]
 for (const [name, m, rule] of cases) test(`mutation: ${name} gives exactly ${rule}`, () => {
   expect(rules(run(m))).toEqual([rule])
+})
+
+// finding 15
+test('a real Last done date passes; an impossible one names its row', () => {
+  expect(rules(run({ b: [DUTY, duty('2026-10-01')] }))).toEqual([])
+  const fs = run({ b: [DUTY, duty('2026-13-01')] }).filter(f => f.rule === 'last-done')
+  expect(fs.map(f => [f.level, f.file, f.line, f.message])).toEqual([['warning', 'backlog', 23, 'B-005: Last done "2026-13-01" is not a real YYYY-MM-DD date']])
 })
 
 test('a 30-word Trigger passes; 31 fails', () => {

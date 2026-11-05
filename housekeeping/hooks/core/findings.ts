@@ -1,5 +1,6 @@
 import type { Facts, Finding, HistoryEntry, Lane, Level, Parsed, Row, Settings } from './types.ts'
 import { idsIn } from './parse.ts'
+import { lastDones, realDay } from './brief.ts'
 
 const ORDER: Level[] = ['error', 'warning', 'recommendation']
 
@@ -13,6 +14,7 @@ export function findingsFor(s: Settings, p: Parsed, f: Facts, _lanes: Lane[], hi
   const idForm = s.ids.map(src => new RegExp(`^(?:${src})$`))
   const c = s.columns
   const pathMilestones = new Set(s.paths.flatMap(x => x.milestones.map(m => m.name)))
+  const duties = new Set(f.duties)
 
   for (const r of p.rows) {
     const w = (rule: string, m: string) => warn(rule, r, `${r.id}: ${m}`)
@@ -34,12 +36,10 @@ export function findingsFor(s: Settings, p: Parsed, f: Facts, _lanes: Lane[], hi
     const tt = c.triggerType ? r.extra[c.triggerType] ?? '' : ''
     if (has(c.triggerType) && s.values.triggerType && !s.values.triggerType.includes(tt))
       w('value', `Trigger type "${tt}" is not in the list`)
-    if (has(c.filed)) {
-      const day = r.filed.replace(/^before /, '') // "before <date>" is a legal Filed: the day is known to be no later
-      const d = new Date(day + 'T00:00:00Z')
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || isNaN(+d) || d.toISOString().slice(0, 10) !== day)
-        w('filed', `Filed "${r.filed}" is not a real YYYY-MM-DD date`)
-    }
+    // "before <date>" is a legal Filed: the day is known to be no later
+    if (has(c.filed) && !realDay(r.filed.replace(/^before /, ''))) w('filed', `Filed "${r.filed}" is not a real YYYY-MM-DD date`)
+    if (duties.has(r.id))
+      for (const d of lastDones(r.details)) if (!realDay(d)) w('last-done', `Last done "${d}" is not a real YYYY-MM-DD date`)
     const words = r.trigger.split(/\s+/).filter(Boolean).length
     if (words === 0) w('trigger', 'Trigger is empty')
     else if (words > 30) w('trigger', `Trigger has ${words} words, 30 at most`)
