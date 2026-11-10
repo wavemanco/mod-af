@@ -1,0 +1,586 @@
+{
+ "checks": {
+  "J01": {
+   "findings": 29,
+   "true": 9,
+   "false_alarms": 20,
+   "false_alarm_share": 0.69,
+   "by_text": {
+    "f1": [
+     3,
+     1
+    ],
+    "f2": [
+     8,
+     3
+    ],
+    "f3": [
+     8,
+     3
+    ],
+    "f4": [
+     7,
+     2
+    ],
+    "f5": [
+     3,
+     0
+    ]
+   },
+   "false_alarms_by_kind": {
+    "known": 12,
+    "name": 8
+   },
+   "decision": "drop"
+  },
+  "J04": {
+   "findings": 2,
+   "true": 1,
+   "false_alarms": 1,
+   "false_alarm_share": 0.5,
+   "by_text": {
+    "f1": [
+     0,
+     0
+    ],
+    "f2": [
+     0,
+     0
+    ],
+    "f3": [
+     1,
+     1
+    ],
+    "f4": [
+     1,
+     0
+    ],
+    "f5": [
+     0,
+     0
+    ]
+   },
+   "false_alarms_by_kind": {
+    "name": 1
+   },
+   "decision": "not enough findings"
+  },
+  "J07": {
+   "findings": 6,
+   "true": 5,
+   "false_alarms": 1,
+   "false_alarm_share": 0.167,
+   "by_text": {
+    "f1": [
+     3,
+     3
+    ],
+    "f2": [
+     0,
+     0
+    ],
+    "f3": [
+     3,
+     2
+    ],
+    "f4": [
+     0,
+     0
+    ],
+    "f5": [
+     0,
+     0
+    ]
+   },
+   "changes_meaning": 0,
+   "decision": "keep"
+  }
+ },
+ "unknown_terms": {
+  "listed_by_reader": 192,
+  "flagged_by_J01_or_J04": 30,
+  "by_text": {
+   "f1": [
+    32,
+    5
+   ],
+   "f2": [
+    51,
+    7
+   ],
+   "f3": [
+    49,
+    10
+   ],
+   "f4": [
+    26,
+    7
+   ],
+   "f5": [
+    34,
+    1
+   ]
+  },
+  "missed": {
+   "f1": [
+    "covered employer",
+    "hours of service",
+    "commencement",
+    "airline flight crew employees",
+    "consecutive",
+    "break in service",
+    "occasioned by",
+    "fulfillment",
+    "Uniformed Services Employment and Reemployment Rights Act (USERRA)",
+    "38 U.S.C. 4301, et seq.",
+    "covered service obligation",
+    "necessitated by",
+    "entitlement",
+    "collective bargaining agreement",
+    "maintained on the payroll",
+    "intermittent",
+    "deemed",
+    "uniformly",
+    "Fair Labor Standards Act (FLSA)",
+    "compensable hours of work",
+    "within the meaning of the FLSA",
+    "compensation agreements",
+    "accounting",
+    "eligibility notice",
+    "ascertain",
+    "reduced leave schedule",
+    "subsequent"
+   ],
+   "f2": [
+    "Chief Justice",
+    "delivered the opinion of the Court",
+    "constituted a taking",
+    "taking of property",
+    "just compensation",
+    "Fifth Amendment",
+    "real property",
+    "accrues",
+    "obtains a judgment against the property",
+    "limited title",
+    "redeem",
+    "beneficial owner",
+    "absolute title vests",
+    "extinguished",
+    "subds.",
+    "proceeds",
+    "surplus",
+    "App.",
+    "putative class action",
+    "asserting",
+    "As relevant",
+    "Takings Clause",
+    "Excessive Fines Clause",
+    "Eighth Amendment",
+    "District Court",
+    "dismissed the suit for failure to state a claim",
+    "Eighth Circuit",
+    "affirmed",
+    "F. 4th",
+    "property interest",
+    "tax-foreclosure sale",
+    "Id.",
+    "remedy",
+    "certiorari",
+    "U. S.",
+    "Armstrong",
+    "public fisc",
+    "render unto Caesar what is Caesar's",
+    "plausibly alleged",
+    "relief",
+    "Tr. of Oral Arg.",
+    "Court of Appeals",
+    "reversed",
+    "It is so ordered"
+   ],
+   "f3": [
+    "A3-3131",
+    "post-hospital extended care services",
+    "\u00a720.2",
+    "section 226(c)(1)(B)",
+    "implementing regulations",
+    "chronic renal disease provisions",
+    "observation",
+    "in lieu of",
+    "outpatient services",
+    "31 Fed. Reg. 10116, 10118-19",
+    "extended care services",
+    "emergency hospital",
+    "principal diagnosis",
+    "precipitated",
+    "A/B MACs (A)",
+    "A/B MAC",
+    "claims review process",
+    "fully develop the case",
+    "attending physician",
+    "Pub. 100-04",
+    "Medicare Claims Processing Manual, Chapter 30, \u00a7130.2.A",
+    "limitation on liability",
+    "conclusively establishes",
+    "less intensive",
+    "level of care",
+    "certify",
+    "Pub. 100-01",
+    "alternate placement",
+    "transfer agreement",
+    "Medicare-participating hospital",
+    "conditions of participation",
+    "emergency services hospital",
+    "nonparticipating psychiatric hospital",
+    "Religious Nonmedical Health Care Institutions",
+    "Pub. 100-02",
+    "hospice benefit",
+    "participate in the program",
+    "non-covered care",
+    "\u00a7\u00a730ff."
+   ],
+   "f4": [
+    "Farm to Market Road (FM)",
+    "unincorporated community",
+    "edge line",
+    "encroaching",
+    "lane departure prevention (LDP)",
+    "ESC",
+    "deviation from the steered path",
+    "traction",
+    "differential braking",
+    "engine throttle adjustments",
+    "commercial motor vehicles",
+    "performance standards",
+    "Navistar 2023",
+    "probable cause",
+    "special topics of advocacy",
+    "driver qualification records",
+    "occupant protection",
+    "steering inputs",
+    "lap belt-equipped"
+   ],
+   "f5": [
+    "Omnibus Budget Reconciliation Act",
+    "OBRA",
+    "42 U.S.C. 9902(2)",
+    "Consumer Price Index for All Urban Consumers",
+    "CPI-U",
+    "criterion",
+    "eligibility determinations",
+    "poverty thresholds",
+    "applicable percentage change",
+    "standardized",
+    "interval",
+    "inflation factor",
+    "derived",
+    "Supplemental Poverty Measure",
+    "SPM",
+    "48 Contiguous States",
+    "Office of Economic Opportunity",
+    "administrative practice",
+    "statistical purposes",
+    "outlying jurisdictions",
+    "contiguous-states-and-DC guidelines",
+    "legislative language",
+    "Federal Register",
+    "under the authority of",
+    "percentage multiple",
+    "authorizing legislation",
+    "program regulations",
+    "non-Federally-funded activities",
+    "aged and non-aged units",
+    "units",
+    "entity",
+    "net or gross income",
+    "counted or excluded income"
+   ]
+  }
+ },
+ "cost_usd": 0.4055,
+ "tokens": {
+  "input_tokens": 20,
+  "cache_creation_input_tokens": 42180,
+  "cache_read_input_tokens": 42290,
+  "output_tokens": 2978
+ },
+ "rows": [
+  {
+   "text": "f1",
+   "code": "J01",
+   "term": "worksite",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f1",
+   "code": "J07",
+   "term": "prior to",
+   "suggestion": [
+    "before"
+   ],
+   "true": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f1",
+   "code": "J01",
+   "term": "CFR",
+   "true": true,
+   "kind": null
+  },
+  {
+   "text": "f1",
+   "code": "J01",
+   "term": "FMLA",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f1",
+   "code": "J07",
+   "term": "ascertain",
+   "suggestion": [
+    "find out"
+   ],
+   "true": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f1",
+   "code": "J07",
+   "term": "for a period of",
+   "suggestion": [
+    "for"
+   ],
+   "true": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f2",
+   "code": "J01",
+   "term": "et",
+   "true": true,
+   "kind": null
+  },
+  {
+   "text": "f2",
+   "code": "J01",
+   "term": "GERALDINE",
+   "true": false,
+   "kind": "name"
+  },
+  {
+   "text": "f2",
+   "code": "J01",
+   "term": "PETITIONER",
+   "true": true,
+   "kind": null
+  },
+  {
+   "text": "f2",
+   "code": "J01",
+   "term": "HENNEPIN",
+   "true": false,
+   "kind": "name"
+  },
+  {
+   "text": "f2",
+   "code": "J01",
+   "term": "Minn",
+   "true": false,
+   "kind": "name"
+  },
+  {
+   "text": "f2",
+   "code": "J01",
+   "term": "delinquent",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f2",
+   "code": "J01",
+   "term": "forfeiture",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f2",
+   "code": "J01",
+   "term": "Supp",
+   "true": true,
+   "kind": null
+  },
+  {
+   "text": "f3",
+   "code": "J01",
+   "term": "Rev",
+   "true": true,
+   "kind": null
+  },
+  {
+   "text": "f3",
+   "code": "J04",
+   "term": "Rev",
+   "true": true,
+   "kind": null
+  },
+  {
+   "text": "f3",
+   "code": "J01",
+   "term": "inpatient",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f3",
+   "code": "J01",
+   "term": "SNF",
+   "true": true,
+   "kind": null
+  },
+  {
+   "text": "f3",
+   "code": "J07",
+   "term": "In order to",
+   "suggestion": [
+    "to"
+   ],
+   "true": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f3",
+   "code": "J01",
+   "term": "accordance",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f3",
+   "code": "J01",
+   "term": "CFR",
+   "true": true,
+   "kind": null
+  },
+  {
+   "text": "f3",
+   "code": "J07",
+   "term": "prior to",
+   "suggestion": [
+    "before"
+   ],
+   "true": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f3",
+   "code": "J07",
+   "term": "commences",
+   "suggestion": [
+    "start",
+    "begin"
+   ],
+   "true": false,
+   "changes_meaning": false
+  },
+  {
+   "text": "f3",
+   "code": "J01",
+   "term": "beneficiary",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f3",
+   "code": "J01",
+   "term": "thereof",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f3",
+   "code": "J01",
+   "term": "RNHCIs",
+   "true": false,
+   "kind": "name"
+  },
+  {
+   "text": "f4",
+   "code": "J04",
+   "term": "Monaville",
+   "true": false,
+   "kind": "name"
+  },
+  {
+   "text": "f4",
+   "code": "J01",
+   "term": "IC",
+   "true": true,
+   "kind": null
+  },
+  {
+   "text": "f4",
+   "code": "J01",
+   "term": "aide",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f4",
+   "code": "J01",
+   "term": "vent",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f4",
+   "code": "J01",
+   "term": "yaw",
+   "true": true,
+   "kind": null
+  },
+  {
+   "text": "f4",
+   "code": "J01",
+   "term": "NTSB",
+   "true": false,
+   "kind": "name"
+  },
+  {
+   "text": "f4",
+   "code": "J01",
+   "term": "NHTSA",
+   "true": false,
+   "kind": "name"
+  },
+  {
+   "text": "f4",
+   "code": "J01",
+   "term": "onboard",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f5",
+   "code": "J01",
+   "term": "HHS",
+   "true": false,
+   "kind": "name"
+  },
+  {
+   "text": "f5",
+   "code": "J01",
+   "term": "SUPPLEMENTARY",
+   "true": false,
+   "kind": "known"
+  },
+  {
+   "text": "f5",
+   "code": "J01",
+   "term": "OMB",
+   "true": false,
+   "kind": "name"
+  }
+ ]
+}
