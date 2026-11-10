@@ -12,9 +12,9 @@ changed are at the end.
 ## Where this comes from
 
 jargone was compared with a one-line instruction, under a rule fixed before any results
-([`research/comparison-plan.md`](./research/comparison-plan.md)). The figures below are from the
+([`comparison-plan.md`](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-31-instruction-comparison/comparison-plan.md), on the lab branch). The figures below are from the
 everyday run's report, which also holds the first run's
-([`research/comparison-everyday-results.md`](./research/comparison-everyday-results.md)). In the
+([`comparison-everyday-results.md`](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-31-instruction-comparison/comparison-everyday-results.md)). In the
 plan's rule, the model measures are one part and the maintainer's ratings another; when the two
 disagree, the ratings decide.
 
@@ -79,7 +79,29 @@ better?", so it does not show which text the maintainer would rather receive.
 12. **Research data lives on the lab branch** `claude/jargone-lab`, which is public with the
     maintainer's agreement. The root `CLAUDE.md` on `main` sets this for every plugin, along with
     saving work to GitHub as you go. The blind-pairs page stays where it is, on claude.ai, by the
-    maintainer's choice; it is not copied to the branch.
+    maintainer's choice; it is not copied to the branch. jargone's earlier research files (the
+    readability scoring, the 0.1 trial and the comparison) moved there on 2026-11-10.
+13. **Keeping the writing voice, at first:** if the person chooses their writing voice, jargone reads
+    a sample of their writing once and proposes three to five short voice notes for the card (for
+    example "first person" or "British spelling"). The person accepts or edits them. When it
+    rewrites, it changes as little as it can. Anything more ambitious waits until someone asks.
+14. **Claude Code and chat keep separate cards.** The maintainer: "this also keeps cards true to
+    use", since each is used for its own purposes. Sharing or reconciling them waits until a person
+    asks for it: "if they do, that has to be a user-generated need instead of us trying to pre-empt
+    it." Deferred: [`BACKLOG.md`](./BACKLOG.md), JAR-002.
+15. **The two commands are `/jargone:settings` and `/jargone:check <file>`.**
+16. **The `/jargone` document rewrite is demoted.** The full method stops being the default. The
+    default becomes a one-shot rewrite for the audience card, followed by the nothing-lost check (J05)
+    and the accuracy check. Review rounds run only if the person asks. The reasons:
+    - **Cost:** on the everyday documents the full method cost $4.14 against $0.29 for a one-shot
+      rewrite, about 14 times as much.
+    - **Unknown terms:** in both runs it fell short of the rule against a one-shot rewrite, with
+      11.1% and 28.7% fewer unknown terms where a third was needed.
+    - **Accuracy:** mixed. It had 0 errors against 1 on the everyday documents, but 28 against 13 in
+      the first run.
+    - **What it keeps:** J05, its one clear strength.
+
+    Whether a fuller version can be made worth it in some cases is open.
 
 ## Proposed, not yet confirmed
 
@@ -145,8 +167,7 @@ style readings. Each becomes a proposed card change, never a silent one (decided
 **In Claude chat:**
 - **There are no plugins.** A Skill runs the short start and suggests card text for the person to
   paste into their profile or project instructions.
-- **That makes two copies,** one on the person's computer and one in chat, which can drift. Which
-  one is the master is open.
+- **The chat card is its own** (decided item 14).
 
 **The short start: three questions.** Questions 1 and 2 are Claude's leaning, which the maintainer's
 reply appears to adopt (decided item 7). Question 3 is decided item 9. The wording, choices and
@@ -188,11 +209,10 @@ caveats of all three are proposed.
   tools on `main` put a permission question with `$.ui.ask` (`dynamics/hooks/register.ts`,
   `mayRun`). No command has been shown to do it.
 
-**The commands:**
-- `/jargone:settings`, as above.
-- `/jargone:check <file>`: 0.1's `/jargone-check`, renamed.
+**The commands** (decided item 15), and what becomes of 0.1's:
+- `/jargone:check <file>` is 0.1's `/jargone-check`, renamed.
 - Session mode's on and off switch (`/jargone-voice` in 0.1) becomes a line in settings.
-- 0.1's `/jargone` skill, which rewrites a document for a named reader, is an open question below.
+- 0.1's `/jargone` stays a skill, slimmed (decided item 16).
 
 **The default when a question is skipped:** keep the term and explain it the first time. This
 follows the maintainer's guess about most people. The maintainer's own pick on the seam pair was the
@@ -205,8 +225,8 @@ assume.
   19.4% fewer unknown terms than the standing instruction alone, short of a third (a figure worked
   out after the results).
 
-**Documents for other people:** adapting there may mean keeping the author's voice while the text is
-simplified, plus remembering what the author says about their audience.
+**Documents for other people:** besides the voice notes (decided item 13), jargone remembers what
+the author says about each audience, on that audience's card.
 
 **The blind test, within decided item 6:** after a few weeks, pairs of a calibrated reply and an
 instruction-only reply to the same question, with "Which would you rather receive?" and "no
@@ -215,19 +235,14 @@ the test, as the comparison's rule was.
 
 ## Open questions
 
-- If a person wants their writing voice kept, how does keeping it work?
-- Which copy of the card is the master: the one in Claude Code or the one in chat?
-- What is the pass mark for the blind test, and how long is "a few weeks"?
-- Is the command set right?
-- Does 0.1's `/jargone` document rewrite stay? It fell short of the rule against a one-shot rewrite
-  in both runs: 11.1% and 28.7% fewer unknown terms, where a third was needed. The first run also
-  had more accuracy errors (28 against 13).
+- What are the pass marks, and how long is "a few weeks"? The maintainer suggests one pass mark for
+  "better for you" and another for "better for audience X".
+- Can a fuller `/jargone` be made worth it in some cases?
+- What happens when a person pastes text or attaches a file and types `/jargone`?
 - Is the like-for-like reading of the everyday documents the right one? The report leaves it for
   the maintainer to confirm.
 - Does 0.1's warn-only note after each reply stay? It runs code checks (J01, J03 and J07), not a
   model, and the trial found most of J01's and J07's findings were false alarms.
-- Should `jargone/research/` move to the lab branch, as the root `CLAUDE.md` now says research data
-  should? It was written before the lab branch existed.
 - What carries over from 0.2? On this branch at commit 2251361: the checker (with J03, long
   sentences, and J05, nothing lost) and the curated word lists; 0.2's wiring is marked there as not
   done. A later version of the wiring, which ran a model check after each reply, was finished on the

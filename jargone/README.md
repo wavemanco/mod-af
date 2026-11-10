@@ -124,7 +124,7 @@ reading of them. We have not tested jargone with it, or with any other tool.
 Readability scores count syllables and sentence length. They cannot see a term nobody defined, a
 confusing order, or one word used in two senses. We scored the `dynamics` plugin's README before and
 after its plain-language rewrite, using a rough script. The confusing version scored 70.1 for reading ease, and the clear
-one 70.3 ([`research/readability-output.txt`](./research/readability-output.txt)). So jargone reports
+one 70.3 ([`readability-output.txt`](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-30-readability/readability-output.txt), on the lab branch). So jargone reports
 the scores, and the cold reader decides.
 
 ## Install

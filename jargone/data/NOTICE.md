@@ -73,7 +73,7 @@ made straight. A line naming several words ("assist, assistance") became one ent
 few lines needed a change or were left out; the build record at the end lists each one and why.
 
 **How the list was cut.** Version 0.1.0 shipped every merged entry. Its trial
-([`../research/trial.md`](../research/trial.md)) found the suggestions right in 5 of 18 cases on
+([`trial.md`](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-31-trial/trial.md), on the lab branch) found the suggestions right in 5 of 18 cases on
 documents and in none of 88 on replies, and 47 of those 88 swaps would have changed the meaning if
 acted on. Swaps that cut words ("it is" → "(omit)") broke sentences; swaps that depend on the part
 of speech fired on the wrong one, because J07 compares words after removing a plural or verb ending

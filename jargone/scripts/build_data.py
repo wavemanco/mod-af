@@ -472,7 +472,7 @@ def merge(lists: list[tuple[str, list]]) -> list[dict]:
 # ---------------------------------------------------------------------------------------------
 # J07's allowlist: the only replacement-list entries that ship.
 #
-# Version 0.1.0 shipped every merged entry (336). Its trial (research/trial.md) found J07 right in 5
+# Version 0.1.0 shipped every merged entry (336). Its trial (lab branch claude/jargone-lab: 2026-10-31-trial/trial.md) found J07 right in 5
 # of 18 findings on documents and in none of 88 on replies; 47 of those 88 swaps would have changed
 # the meaning if acted on. So J07 is now a hint, and it offers only the swaps below: a short list,
 # each entry reviewed by hand, each with the reason it is kept.
@@ -557,7 +557,7 @@ KEEP = {
     "general consensus": keep(["consensus"], "a doublet; a consensus is already general"),
 }
 
-# Entries the 0.1.0 trial found would harm the text if acted on, or found unusable (research/trial.md
+# Entries the 0.1.0 trial found would harm the text if acted on, or found unusable (lab branch claude/jargone-lab: 2026-10-31-trial/trial.md
 # has the totals; the detailed records quote private material and are kept outside this repository,
 # so the examples in brackets are ours, not the trial's). The build stops if one of them is put on
 # KEEP. Each key is the entry's `from`; the reason names the forms J07 matched where they differ.

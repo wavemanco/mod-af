@@ -79,7 +79,7 @@ describe('REPLACEMENTS', () => {
   })
 
   test("the list is jargone's reviewed allowlist (KEEP in scripts/build_data.py), not the merged sources", () => {
-    // The 0.1.0 trial found the 336 merged entries wrong far more often than right (research/trial.md),
+    // The 0.1.0 trial found the 336 merged entries wrong far more often than right (lab branch claude/jargone-lab: 2026-10-31-trial/trial.md),
     // so only the reviewed entries ship. Changing this list means changing KEEP and saying why there.
     expect(reps.map(r => r.from).sort()).toEqual([
       'a large number of', 'a small number of', 'ascertain', 'at the present time', 'at this moment in time',

@@ -39,7 +39,7 @@ All were applied, and the round-1 items left partly done were finished, with two
   licence, which records the maintainer's decision.
 
 The review history moved here from the spec. The readability numbers in the
-spec's section 8 were re-run by the reviewer and match `research/readability-output.txt`.
+spec's section 8 were re-run by the reviewer and match [`readability-output.txt`](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-30-readability/readability-output.txt) (now on the lab branch).
 
 ## Round 3 (2026-10-30): only the round-2 fixes
 
@@ -119,7 +119,7 @@ independent review.
 
 ## Review of the build, and the trial (2026-10-31)
 
-**The trial** is summarised in [`research/trial.md`](./research/trial.md). In short: J01's and J07's
+**The trial** is summarised in [`trial.md`](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-31-trial/trial.md) (on the lab branch). In short: J01's and J07's
 word lists were wrong far more often than right (82% false alarms on documents, 93% on replies), J01
 missed most of the terms a reader would not know, and false alarms pushed the writer into worse
 text. The model cold reader found every key point; J03 and J05 earned their place.

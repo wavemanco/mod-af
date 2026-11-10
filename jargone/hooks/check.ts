@@ -10,7 +10,7 @@
 // Severity, and what "passes" means. J02 and J05 find errors, J03 finds warnings, and J01, J04 and J07
 // find hints. A check passes when it has no errors (`passes`): that is the one definition. A hint is a
 // candidate for the writer to judge, never an error and never a reason a check fails, because a word
-// list cannot tell whether a reader knows a word (the 0.1 trial, research/trial.md): a model briefed as
+// list cannot tell whether a reader knows a word (the 0.1 trial, on the lab branch claude/jargone-lab: 2026-10-31-trial/trial.md): a model briefed as
 // the reader decides that.
 //
 // What counts as prose. Checks J01–J04 and J07 read prose only. Left out, with line numbers kept:
@@ -1276,7 +1276,7 @@ function wordsIn(text: string, line = 0): Word[] {
 }
 
 /**
- * Syllables in a word: the same rough rule as research/readability.py. Letters a–z only, one final
+ * Syllables in a word: the same rough rule as the readability script (lab branch claude/jargone-lab: 2026-10-30-readability/readability.py). Letters a–z only, one final
  * "e" dropped, then each run of vowels (a, e, i, o, u, y) counts as one, with at least 1.
  */
 function syllables(word: string): number {

@@ -1,5 +1,12 @@
 # jargone — specification (version 0.1.0 built; trial not yet run)
 
+> **Next version (decided 2026-11-10).** jargone's next version calibrates to its reader; the design
+> is in [`CALIBRATION.md`](./CALIBRATION.md). One decision changes what this specification describes:
+> the full `/jargone` method stops being the default. `/jargone` becomes a one-shot rewrite for the
+> audience, followed by the nothing-lost check (J05) and the accuracy check, with review rounds only
+> on request (decided item 16 there gives the reasons and figures). This specification still
+> describes version 0.1.0 and is rewritten when the next version is built.
+
 `jargone` rewrites a document so that a named reader can understand it. It removes or defines
 jargon, puts the purpose first, and moves reference detail to a linked file. It then checks two
 things: that nothing was lost or made false, and that a cold reader (a model run acting as the named
@@ -200,7 +207,7 @@ standard.
 ## 8. Why not readability formulas
 
 We scored this repository's `dynamics` README before and after its plain-language rewrite with a
-rough script (`research/readability.py`; output in `research/readability-output.txt`). The confusing
+rough script ([`readability.py`](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-30-readability/readability.py); output in [`readability-output.txt`](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-30-readability/readability-output.txt), both on the lab branch). The confusing
 original scored 70.1 on Flesch reading ease and the clear rewrite 70.3. The repository's one-line
 description of `dynamics` scored worse after its rewrite (75.4 to 68.6), because plain words such as
 "accumulates" have more syllables. Other counting rules give other numbers for the same files, but
@@ -252,7 +259,7 @@ Diátaxis sources.
 3. Write the method (`prompt.md`): key points, rewrite, check, review, report.
 4. Build session mode (section 13): the standing instruction, the check on each reply, and the
    conflict notice.
-5. Run a trial and record it in `research/trial.md`:
+5. Run a trial and record it in `research/trial.md` (now [`trial.md`](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-31-trial/trial.md) on the lab branch):
    - **Documents:** three real documents for three different readers, at least one of them not
      technical; for example a design document for a product manager, a research summary for a
      general reader, and a README for a new contributor.
