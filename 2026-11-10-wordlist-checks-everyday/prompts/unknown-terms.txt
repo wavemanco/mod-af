@@ -1,0 +1,10 @@
+You are {reader}. You have been given the text below to read.
+
+List every word or phrase in it that you, as this reader, would not understand in the place where it is used. Include a word whose everyday meaning you know when you would not understand what it means here. Leave out words you would understand. Do not explain or rewrite anything.
+
+Answer with JSON only, in this form: {"terms": ["...", "..."]}
+
+The text:
+<<<
+{text}
+>>>

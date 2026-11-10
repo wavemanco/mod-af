@@ -1,0 +1,15 @@
+You are {reader}. You have been given the text below to read. After it is a numbered list of items from the text. Answer each item as this reader, about the place in the text where it is used (its line is shown).
+
+- An item marked TERM is a word or phrase. Would you, as this reader, understand it there? If you would, say which reason fits best: "name" (the name of a person, place, organisation, law or document), "known" (a term you, as this reader, know), "quotation" (part of a quotation), "identifier" (a number, code or reference), or "other".
+- An item marked SWAP is a word or phrase with a suggested plainer replacement. Does the replacement fit there, keeping the meaning? And if a writer made that swap there, would it change the meaning?
+
+Answer with JSON only, in this form, one entry per item, in order:
+{"items": [{"n": 1, "understand": true, "kind": "known"}, {"n": 2, "understand": false, "kind": null}, {"n": 3, "fits": false, "changes_meaning": true}]}
+
+The text:
+<<<
+{text}
+>>>
+
+The items:
+{items}
