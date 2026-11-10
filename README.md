@@ -1,8 +1,8 @@
-# jargone research data
+# jargone lab
 
-This branch holds the data behind jargone's research: trials, comparisons and calibration tests. It
-is public. It is never merged into `main`; jargone's code lives on its own branches, and this branch
-shares no history with them.
+This branch is jargone's lab: the data behind its research, such as trials, comparisons and
+calibration tests. It is public. It is never merged into `main`; jargone's code lives on its own
+branches, and this branch shares no history with them.
 
 ## Why it exists
 
