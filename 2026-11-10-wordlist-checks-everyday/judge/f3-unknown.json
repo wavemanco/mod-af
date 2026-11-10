@@ -1,0 +1,99 @@
+{
+ "reader": "the adult daughter of a Medicare patient",
+ "prompt": "You are the adult daughter of a Medicare patient. You have been given the text below to read.\n\nList every word or phrase in it that you, as this reader, would not understand in the place where it is used. Include a word whose everyday meaning you know when you would not understand what it means here. Leave out words you would understand. Do not explain or rewrite anything.\n\nAnswer with JSON only, in this form: {\"terms\": [\"...\", \"...\"]}\n\nThe text:\n<<<\n# 20 - Prior Hospitalization and Transfer Requirements\n\n(Rev. 1, 10-01-03)\n\nA3-3131, SNF-212\n\nIn order to qualify for post-hospital extended care services, the individual must have been an inpatient of a hospital for a medically necessary stay of at least three consecutive calendar days. In addition, effective December 5, 1980, the individual must have been transferred to a participating SNF within 30 days after discharge from the hospital, unless the exception in \u00a720.2 applies.\n\n## 20.1 - Three-Day Prior Hospitalization\n\n(Rev. 10880, Issued: 08-06-21, Effective: 11-08-21, Implementation: 11-08-21)\n\nIn accordance with section 226(c)(1)(B) of the Social Security Act and the implementing regulations at 42 CFR 409.30(a)(2), the hospital discharge must have occurred on or after the first day of the month in which the individual attained age 65 or, effective July 1, 1973, became entitled to health insurance benefits under the disability or chronic renal disease provisions of the law. The 3 consecutive calendar day stay requirement can be met by stays totaling 3 consecutive days in one or more hospitals. In determining whether the requirement has been met, the day of admission, but not the day of discharge, is counted as a hospital inpatient day.\n\nTime spent in observation or in the emergency room prior to (or in lieu of) an inpatient admission to the hospital does not count toward the 3-day qualifying inpatient hospital stay, as a person who appears at a hospital\u2019s emergency room seeking examination or treatment or is placed on observation has not been admitted to the hospital as an inpatient; instead, the person receives outpatient services. For purposes of the SNF benefit\u2019s qualifying hospital stay requirement, inpatient status commences with the calendar day of hospital admission. See 31 Fed. Reg. 10116, 10118-19 (July 27, 1966).\n\nTo be covered, the extended care services must have been for the treatment of a condition for which the beneficiary was receiving inpatient hospital services (including services of an emergency hospital) or a condition which arose while in the SNF for treatment of a condition for which the beneficiary was previously hospitalized. In this context, the applicable hospital condition need not have been the principal diagnosis that actually precipitated the beneficiary\u2019s admission to the hospital, but could be any one of the conditions present during the qualifying hospital stay.\n\nIn addition, the qualifying hospital stay must have been medically necessary. Medical necessity will generally be presumed to exist. When the facts that come to the A/B MACs (A) attention during the course of its normal claims review process indicate that the hospitalization may not have been medically necessary, it will fully develop the case, checking with the attending physician and the hospital, as appropriate. The A/B MAC will rule the stay unnecessary only when hospitalization for 3 days represents a substantial departure from normal medical practice. However, in accordance with Pub. 100-04, Medicare Claims Processing Manual, Chapter 30, \u00a7130.2.A, when a beneficiary qualifies for limitation on liability in connection with the hospital stay (or a portion thereof), this conclusively establishes that the hospital stay (or portion thereof) was not medically necessary.\n\nEven if a beneficiary\u2019s care during a qualifying hospital stay becomes less intensive during the latter part of the stay, the date of hospital \u201cdischarge\u201d in this context is still considered to be the day that the beneficiary physically leaves the hospital, and the level of care being furnished at that particular point is not a determining factor as long as some portion of the stay included at least 3 consecutive days of medically necessary inpatient hospital services. In addition, when a hospital inpatient\u2019s care needs drop from acute- to SNF-level but no SNF bed is available, the regulations at 42 CFR 424.13(c) permit a physician to certify that the beneficiary\u2019s continued inpatient stay in the hospital is, in fact, medically necessary under this particular set of circumstances (see also Pub. 100-01, Medicare General Information, Eligibility, and Entitlement Manual, Chapter 4, \u00a710.6). Accordingly, such additional, \u201calternate placement\u201d days spent in the hospital can be included in the 3-day count toward meeting the SNF benefit\u2019s qualifying hospital stay requirement.\n\nThe 3-day hospital stay need not be in a hospital with which the SNF has a transfer agreement (see Pub. 100-01, Medicare General Information, Eligibility, and Entitlement Manual, Chapter 5, \u00a730.2 for a discussion of the SNF\u2019s required transfer agreement with a hospital). However, the hospital must be either a Medicare-participating hospital or an institution that meets at least the conditions of participation for an emergency services hospital (see Pub. 100-01, Medicare General Information, Eligibility, and Entitlement Manual, Chapter 5, \u00a720.2, for the definition of an emergency services hospital). A nonparticipating psychiatric hospital need not meet the special requirements applicable to psychiatric hospitals (see Pub. 100-01, Medicare General Information, Eligibility, and Entitlement Manual, Chapter 5, \u00a720.3). Stays in Religious Nonmedical Health Care Institutions (see Pub. 100-01, Medicare General Information, Eligibility, and Entitlement Manual, Chapter 5, \u00a740, for definition of RNHCIs) are excluded for the purpose of satisfying the 3-day period of hospitalization. See Pub. 100-02, Medicare Benefit Policy Manual, Chapter 9, \u00a740.1.5, regarding a qualifying stay that consists of \u201cgeneral inpatient care\u201d furnished in a hospital under the hospice benefit.\n\nNOTE: While a 3-day stay in a psychiatric hospital satisfies the prior hospital stay requirement, institutions that primarily provide psychiatric treatment cannot participate in the program as SNFs. Therefore, a patient with only a psychiatric condition who is transferred from a psychiatric hospital to a participating SNF is likely to receive only non-covered care. In the SNF setting, the term \u201cnon-covered care\u201d refers to any level of care less intensive than the SNF level of care that is covered under the program. (See \u00a7\u00a730ff.).\n\n>>>\n",
+ "tries": [
+  {
+   "result": "{\"terms\": [\"A3-3131\", \"SNF-212\", \"post-hospital extended care services\", \"SNF\", \"participating SNF\", \"\u00a720.2\", \"section 226(c)(1)(B)\", \"implementing regulations\", \"42 CFR 409.30(a)(2)\", \"chronic renal disease provisions\", \"observation\", \"in lieu of\", \"outpatient services\", \"inpatient status\", \"31 Fed. Reg. 10116, 10118-19\", \"extended care services\", \"beneficiary\", \"emergency hospital\", \"principal diagnosis\", \"precipitated\", \"A/B MACs (A)\", \"A/B MAC\", \"claims review process\", \"fully develop the case\", \"attending physician\", \"Pub. 100-04\", \"Medicare Claims Processing Manual, Chapter 30, \u00a7130.2.A\", \"limitation on liability\", \"conclusively establishes\", \"less intensive\", \"level of care\", \"acute- to SNF-level\", \"42 CFR 424.13(c)\", \"certify\", \"Pub. 100-01\", \"alternate placement\", \"transfer agreement\", \"Medicare-participating hospital\", \"conditions of participation\", \"emergency services hospital\", \"nonparticipating psychiatric hospital\", \"Religious Nonmedical Health Care Institutions\", \"RNHCIs\", \"Pub. 100-02\", \"general inpatient care\", \"hospice benefit\", \"participate in the program\", \"non-covered care\", \"\u00a7\u00a730ff.\"]}",
+   "total_cost_usd": 0.039073800000000006,
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 3615,
+    "cache_read_input_tokens": 4229,
+    "output_tokens": 465,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 3615,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 465,
+      "cache_read_input_tokens": 4229,
+      "cache_creation_input_tokens": 3615,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 3615
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "duration_ms": 8122,
+   "is_error": false
+  }
+ ],
+ "parsed": {
+  "terms": [
+   "A3-3131",
+   "SNF-212",
+   "post-hospital extended care services",
+   "SNF",
+   "participating SNF",
+   "\u00a720.2",
+   "section 226(c)(1)(B)",
+   "implementing regulations",
+   "42 CFR 409.30(a)(2)",
+   "chronic renal disease provisions",
+   "observation",
+   "in lieu of",
+   "outpatient services",
+   "inpatient status",
+   "31 Fed. Reg. 10116, 10118-19",
+   "extended care services",
+   "beneficiary",
+   "emergency hospital",
+   "principal diagnosis",
+   "precipitated",
+   "A/B MACs (A)",
+   "A/B MAC",
+   "claims review process",
+   "fully develop the case",
+   "attending physician",
+   "Pub. 100-04",
+   "Medicare Claims Processing Manual, Chapter 30, \u00a7130.2.A",
+   "limitation on liability",
+   "conclusively establishes",
+   "less intensive",
+   "level of care",
+   "acute- to SNF-level",
+   "42 CFR 424.13(c)",
+   "certify",
+   "Pub. 100-01",
+   "alternate placement",
+   "transfer agreement",
+   "Medicare-participating hospital",
+   "conditions of participation",
+   "emergency services hospital",
+   "nonparticipating psychiatric hospital",
+   "Religious Nonmedical Health Care Institutions",
+   "RNHCIs",
+   "Pub. 100-02",
+   "general inpatient care",
+   "hospice benefit",
+   "participate in the program",
+   "non-covered care",
+   "\u00a7\u00a730ff."
+  ]
+ }
+}

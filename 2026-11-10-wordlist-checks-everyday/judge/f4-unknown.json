@@ -1,0 +1,76 @@
+{
+ "reader": "a parent whose child rides a school bus",
+ "prompt": "You are a parent whose child rides a school bus. You have been given the text below to read.\n\nList every word or phrase in it that you, as this reader, would not understand in the place where it is used. Include a word whose everyday meaning you know when you would not understand what it means here. Leave out words you would understand. Do not explain or rewrite anything.\n\nAnswer with JSON only, in this form: {\"terms\": [\"...\", \"...\"]}\n\nThe text:\n<<<\n# School Bus Run-Off-Road and Rollover Crash\n\nMonaville, Texas\n\nDecember 17, 2021\n\nOn Friday, December 17, 2021, about 12:10 p.m., a 2018 IC 43-passenger, lap belt-equipped school bus, operated by Hempstead Independent School District (ISD), was traveling south on Farm to Market Road (FM) 1887 in the unincorporated community of Monaville, Waller County, Texas. The posted speed limit was 55 mph, the weather was clear, and the roadway was dry. After crossing over a bridge near the intersection of Holik Road and FM 1887, the bus departed the southbound lane to the right. The driver initiated a series of steering maneuvers to the left, back to the right, and again to the left, and then lost control of the bus. The bus departed the road and rolled over in one complete rotation. The bus was occupied by a 59-year-old driver, a 59-year-old aide, and four student passengers. As a result of the crash, the aide was ejected and fatally injured. The driver and three student passengers sustained minor injuries. One student passenger, who was restrained in a child safety seat, was uninjured.\n\n[...]\n\n## 2.2 Driver Assistance Systems\n\nGiven the lack of control followed by incorrect steering inputs, the driver in this crash would likely have benefited from available driver assistance technologies. Lane departure warning (LDW) systems use cameras to detect lane markings and present a visual and audible warning when a driver is about to cross a lane marking. Had the bus been equipped with an LDW system, the driver may have been alerted when encroaching on the center line or edge line, and she may have returned her attention to the driving task instead of the vent window. In addition to providing a warning, lane departure prevention (LDP) provides steering inputs to keep a vehicle in its lane of travel. Had the school bus included an LDP system, the initial road departure may have been avoided altogether.\n\nESC is another vehicle-based technology that could have assisted the bus driver after the lane departure occurred. ESC systems work to automatically intervene in situations in which a deviation from the steered path due to loss of traction is detected. ESC uses differential braking at individual wheels and/or engine throttle adjustments to control the vehicle yaw rate. Had the bus been equipped with ESC, it may have reduced the increasing yaw resulting from the severity of the driver\u2019s inputs, potentially preventing the loss of control and subsequent rollover.\n\nThe NTSB has previously recommended that NHTSA require LDP systems to be equipped on all commercial motor vehicles weighing more than 10,000 pounds. The NTSB has also recommended that NHTSA develop ESC performance standards for these vehicles. IC school buses manufactured since late 2018 now come with ESC as a standard feature. Although not standard, driver assistance features such as LDW are available as options on new IC buses (Navistar 2023).\n\n[...]\n\n## 3. Conclusions\n\n## 3.1 Probable Cause\n\nThe National Transportation Safety Board determines that the probable cause of the Monaville, Texas, crash was the bus driver's failure to keep the vehicle in its travel lane due to being distracted by the vehicle's vent window. Contributing to the severity of the injuries was the lack of seat belt use by several school bus passengers.\n\n## 3.2 Lessons Learned: Seat Belt Use and Driver Assistance Systems on School Buses\n\nSchool buses are among the safest ways to travel, and school bus safety remains among the NTSB\u2019s special topics of advocacy (NTSB 2023). Ensuring that all passengers are properly wearing available seat belts further improves the safety of school buses. At the time of the crash, the Hempstead ISD had not implemented a mandatory seat belt policy as required by the state of Texas. Hempstead ISD has now updated its policy to require seat belt use for students and staff. Hempstead ISD has also hired additional staff to oversee necessary maintenance and driver qualification records. The NTSB has previously recommended that associations involved in student transport inform their members that onboard video systems should be used to help ensure that safe transportation behaviors\u2014including sitting properly and wearing seat belts\u2014are followed on school buses. Had the school district implemented a required seat belt policy and conducted periodic reviews of the onboard video, riders would have been more likely to be seated in position and wearing seat belts. Had the available lap belts been worn by all passengers, injuries would have been reduced and the ejection prevented in this crash.\n\nIn addition to occupant protection, driver assistance systems would likely have benefited the driver in this crash. Driver assistance features, such as LDW, may have alerted the driver and brought her attention back to the forward roadway instead of the bus vent window. LDP systems may have prevented the road departure altogether by providing steering correction before the bus departed the travel lane. ESC may have assisted the driver in maintaining control of the bus after the initial road departure. The NTSB has previously recommended that NHTSA require LDP systems to be equipped on all commercial motor vehicles above 10,000 pounds. The NTSB has also recommended that NHTSA develop ESC performance standards for vehicles above 10,000 pounds. The IC Bus manufacturing company now includes ESC as a standard feature, and LDP is available as an option for buses manufactured from late 2018 to present.\n\n>>>\n",
+ "tries": [
+  {
+   "result": "{\"terms\": [\"IC\", \"Farm to Market Road (FM)\", \"unincorporated community\", \"edge line\", \"encroaching\", \"vent window\", \"lane departure prevention (LDP)\", \"ESC\", \"deviation from the steered path\", \"traction\", \"differential braking\", \"engine throttle adjustments\", \"yaw rate\", \"yaw\", \"NTSB\", \"NHTSA\", \"commercial motor vehicles\", \"performance standards\", \"Navistar 2023\", \"NTSB 2023\", \"probable cause\", \"special topics of advocacy\", \"driver qualification records\", \"occupant protection\", \"steering inputs\", \"lap belt-equipped\"]}",
+   "total_cost_usd": 0.0313178,
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 3283,
+    "cache_read_input_tokens": 4229,
+    "output_tokens": 210,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 3283,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 210,
+      "cache_read_input_tokens": 4229,
+      "cache_creation_input_tokens": 3283,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 3283
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "duration_ms": 6291,
+   "is_error": false
+  }
+ ],
+ "parsed": {
+  "terms": [
+   "IC",
+   "Farm to Market Road (FM)",
+   "unincorporated community",
+   "edge line",
+   "encroaching",
+   "vent window",
+   "lane departure prevention (LDP)",
+   "ESC",
+   "deviation from the steered path",
+   "traction",
+   "differential braking",
+   "engine throttle adjustments",
+   "yaw rate",
+   "yaw",
+   "NTSB",
+   "NHTSA",
+   "commercial motor vehicles",
+   "performance standards",
+   "Navistar 2023",
+   "NTSB 2023",
+   "probable cause",
+   "special topics of advocacy",
+   "driver qualification records",
+   "occupant protection",
+   "steering inputs",
+   "lap belt-equipped"
+  ]
+ }
+}

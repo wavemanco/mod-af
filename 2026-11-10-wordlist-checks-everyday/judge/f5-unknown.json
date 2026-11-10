@@ -1,0 +1,84 @@
+{
+ "reader": "a parent applying for a local aid program that uses the guidelines",
+ "prompt": "You are a parent applying for a local aid program that uses the guidelines. You have been given the text below to read.\n\nList every word or phrase in it that you, as this reader, would not understand in the place where it is used. Include a word whose everyday meaning you know when you would not understand what it means here. Leave out words you would understand. Do not explain or rewrite anything.\n\nAnswer with JSON only, in this form: {\"terms\": [\"...\", \"...\"]}\n\nThe text:\n<<<\nAnnual Update of the HHS Poverty Guidelines\n\nAGENCY: Department of Health and Human Services.\n\nACTION: Notice.\n\n-----------------------------------------------------------------------\n\nSUMMARY: This notice provides an update of the Department of Health and \nHuman Services (HHS) poverty guidelines to account for last calendar \nyear's increase in prices as measured by the Consumer Price Index.\n\nDATES: Effective Date: January 13, 2026 unless an office administering \na program using the guidelines specifies a different effective date for \nthat particular program.\n\n[...]\n\nSUPPLEMENTARY INFORMATION:\n\nBackground\n\n    Section 673(2) of the Omnibus Budget Reconciliation Act (OBRA) of \n1981 (42 U.S.C. 9902(2)) requires the Secretary of the Department of \nHealth and Human Services to update the poverty guidelines at least \nannually, adjusting them on the basis of the Consumer Price Index for \nAll Urban Consumers (CPI-U). The poverty guidelines are used by \nMedicaid and a number of other Federal programs as a criterion for some \nor all eligibility determinations. The poverty guidelines issued here \nare a simplified version of the poverty thresholds that the Census \nBureau uses to prepare its estimates of the number of individuals and \nfamilies in poverty.\n    As required by law, this update is accomplished by increasing the \nlatest published Census Bureau poverty thresholds by the applicable \npercentage change in the Consumer Price Index for All Urban Consumers \n(CPI-U). The guidelines in this 2026 notice reflect the 2.63 percent \nprice increase between calendar years 2024 and 2025. After updating for \ninflation, the guidelines are rounded and standardized to establish the \nsame interval between each family size. In rare circumstances, rounding \nand standardizing in the formula result in small decreases in the \npoverty guidelines for some household sizes even when the inflation \nfactor is not negative. In cases where the year-to-year change in \ninflation is not negative and rounding and standardizing in the formula \nresult in reductions to the guidelines from the previous year for some \nhousehold sizes, the guidelines for\n\n[[Page 1798]]\n\nthe affected household sizes are fixed at the prior year's guidelines. \nAs in prior years, these 2026 guidelines are roughly equal to the \npoverty thresholds for calendar year 2025, which the Census Bureau \nexpects to publish in final form in September 2026.\n    The poverty guidelines continue to be derived from the Census \nBureau's current official poverty thresholds; they are not derived from \nthe Census Bureau's Supplemental Poverty Measure (SPM).\n    The following guideline figures represent annual income.\n\n2026 Poverty Guidelines for the 48 Contiguous States and the District of\n                                Columbia\n------------------------------------------------------------------------\n                                                                Poverty\n                 Persons in family/household                   guideline\n------------------------------------------------------------------------\n1...........................................................     $15,960\n2...........................................................      21,640\n3...........................................................      27,320\n4...........................................................      33,000\n5...........................................................      38,680\n6...........................................................      44,360\n7...........................................................      50,040\n8...........................................................      55,720\n------------------------------------------------------------------------\n\n    For families/households with more than 8 persons, add $5,680 for \neach additional person.\n\n                   2026 Poverty Guidelines for Alaska\n------------------------------------------------------------------------\n                                                                Poverty\n                 Persons in family/household                   guideline\n------------------------------------------------------------------------\n1...........................................................     $19,950\n2...........................................................      27,050\n3...........................................................      34,150\n4...........................................................      41,250\n5...........................................................      48,350\n6...........................................................      55,450\n7...........................................................      62,550\n8...........................................................      69,650\n------------------------------------------------------------------------\n\n    For families/households with more than 8 persons, add $7,100 for \neach additional person.\n\n                   2026 Poverty Guidelines for Hawaii\n------------------------------------------------------------------------\n                                                                Poverty\n                 Persons in family/household                   guideline\n------------------------------------------------------------------------\n1...........................................................     $18,360\n2...........................................................      24,890\n3...........................................................      31,420\n4...........................................................      37,950\n5...........................................................      44,480\n6...........................................................      51,010\n7...........................................................      57,540\n8...........................................................      64,070\n------------------------------------------------------------------------\n\n    For families/households with more than 8 persons, add $6,530 for \neach additional person.\n    Separate poverty guideline figures for Alaska and Hawaii reflect \nOffice of Economic Opportunity administrative practice beginning in the \n1966-1970 period. (Note that the Census Bureau poverty thresholds--the \nversion of the poverty measure used for statistical purposes--have \nnever had separate figures for Alaska and Hawaii.) The poverty \nguidelines are not defined for Puerto Rico or other outlying \njurisdictions. In cases in which a Federal program using the poverty \nguidelines serves any of those jurisdictions, the Federal office that \nadministers the program is generally responsible for deciding whether \nto use the contiguous-states-and-DC guidelines for those jurisdictions \nor to follow some other procedure.\n    Due to confusing legislative language dating back to 1972, the \npoverty guidelines sometimes have been mistakenly referred to as the \n``OMB'' (Office of Management and Budget) poverty guidelines or poverty \nline. In fact, OMB has never issued the guidelines; the guidelines are \nissued each year by the Department of Health and Human Services. The \npoverty guidelines may be formally referenced as ``the poverty \nguidelines updated periodically in the Federal Register by the U.S. \nDepartment of Health and Human Services under the authority of 42 \nU.S.C. 9902(2).''\n    Some federal programs use a percentage multiple of the guidelines \n(for example, 125 percent or 185 percent of the guidelines), as noted \nin relevant authorizing legislation or program regulations. Non-Federal \norganizations that use the poverty guidelines under their own authority \nin non-Federally-funded activities also may choose to use a percentage \nmultiple of the guidelines.\n    The poverty guidelines do not make a distinction between farm and \nnon-farm families, or between aged and non-aged units. (Only the Census \nBureau poverty thresholds have separate figures for aged and non-aged \none-person and two-person units.)\n    This notice does not provide definitions of such terms as \n``income'' or ``family'' as there is considerable variation of these \nterms among programs that use the poverty guidelines. The legislation \nor regulations governing each program define these terms and determine \nhow the program applies the poverty guidelines. In cases where \nlegislation or regulations do not establish these definitions, the \nentity that administers or funds the program is responsible to define \nsuch terms as ``income'' and ``family.'' Therefore, questions such as \nnet or gross income, counted or excluded income, or household size \nshould be directed to the entity that administers or funds the program.\n\n    Date: January 13, 2026.\nRobert F. Kennedy, Jr.,\nSecretary, Department of Health and Human Services.\n\n>>>\n",
+ "tries": [
+  {
+   "result": "{\"terms\": [\"Omnibus Budget Reconciliation Act\", \"OBRA\", \"42 U.S.C. 9902(2)\", \"Consumer Price Index for All Urban Consumers\", \"CPI-U\", \"criterion\", \"eligibility determinations\", \"poverty thresholds\", \"applicable percentage change\", \"standardized\", \"interval\", \"inflation factor\", \"derived\", \"Supplemental Poverty Measure\", \"SPM\", \"48 Contiguous States\", \"Office of Economic Opportunity\", \"administrative practice\", \"statistical purposes\", \"outlying jurisdictions\", \"contiguous-states-and-DC guidelines\", \"legislative language\", \"OMB\", \"Federal Register\", \"under the authority of\", \"percentage multiple\", \"authorizing legislation\", \"program regulations\", \"non-Federally-funded activities\", \"aged and non-aged units\", \"units\", \"entity\", \"net or gross income\", \"counted or excluded income\"]}",
+   "total_cost_usd": 0.038781800000000005,
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 3976,
+    "cache_read_input_tokens": 4229,
+    "output_tokens": 306,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 3976,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 306,
+      "cache_read_input_tokens": 4229,
+      "cache_creation_input_tokens": 3976,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 3976
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "duration_ms": 6374,
+   "is_error": false
+  }
+ ],
+ "parsed": {
+  "terms": [
+   "Omnibus Budget Reconciliation Act",
+   "OBRA",
+   "42 U.S.C. 9902(2)",
+   "Consumer Price Index for All Urban Consumers",
+   "CPI-U",
+   "criterion",
+   "eligibility determinations",
+   "poverty thresholds",
+   "applicable percentage change",
+   "standardized",
+   "interval",
+   "inflation factor",
+   "derived",
+   "Supplemental Poverty Measure",
+   "SPM",
+   "48 Contiguous States",
+   "Office of Economic Opportunity",
+   "administrative practice",
+   "statistical purposes",
+   "outlying jurisdictions",
+   "contiguous-states-and-DC guidelines",
+   "legislative language",
+   "OMB",
+   "Federal Register",
+   "under the authority of",
+   "percentage multiple",
+   "authorizing legislation",
+   "program regulations",
+   "non-Federally-funded activities",
+   "aged and non-aged units",
+   "units",
+   "entity",
+   "net or gross income",
+   "counted or excluded income"
+  ]
+ }
+}
