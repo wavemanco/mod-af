@@ -27,7 +27,9 @@ disagree, the ratings decide.
 - **Everyday documents,** compared on the three documents every condition rewrote: `/jargone` had
   28.7% fewer unknown terms (pooled) than the one-shot rewrite under jargone's standing instruction.
   The rule needed a third fewer, so it failed on the model measures. Against the one-shot that also
-  added Karpathy's line, `/jargone` had more unknown terms (5.1 against 4.0 per 1,000 words).
+  added Karpathy's line, `/jargone` had more unknown terms (5.1 against 4.0 per 1,000 words). This
+  uses the like-for-like reading, which the report leaves for the maintainer to confirm. Read over
+  each condition's own rewrites instead, every part of the rule holds.
 - **The maintainer's ratings were never completed.** Three picks were saved on the blind-pairs page:
   pair 1, B; pair 12, A; pair 13, B. All three are reply pairs. The keys to all 20 pairs were lost
   with the working machine on 2026-11-10. The five document pairs could still be matched from clues
@@ -41,7 +43,8 @@ The maintainer's example from pair 1: text A kept the term "seam" and explained 
 the idea without the word. The maintainer: "A user who wants to understand the concept and know the
 term too might choose A while someone just focused on getting the work done by understanding it in
 the moment would choose B. My guess is that most folks would be on the A side of things." The
-maintainer's own saved pick on that pair is B.
+maintainer's own saved pick on that pair is B. That pick answered "Which did you understand
+better?", so it does not show which text the maintainer would rather receive.
 
 ## Decided
 
@@ -62,7 +65,10 @@ maintainer's own saved pick on that pair is B.
    questions drop over a few weeks. The bar: better pitched for the person than the instruction
    alone. (The maintainer endorsed this passage: "this and also the way you tweaked the current
    question".)
-7. **A short start, then questions as they come up.**
+7. **A short start, then questions as they come up.** These are the maintainer's words. They answered
+   Claude's leaning: a short start with the who-it-is-for question and the length question, and the
+   rest as they come up. Claude reads the reply as adopting that leaning; the maintainer did not
+   name the questions.
 8. **Changes to the card are proposed to the person,** never made silently, and not so often that
    they irritate.
 9. **The short start asks each person how often they may be asked.** The person can change that
@@ -142,11 +148,13 @@ style readings. Each becomes a proposed card change, never a silent one (decided
 - **That makes two copies,** one on the person's computer and one in chat, which can drift. Which
   one is the master is open.
 
-**The short start: three questions.** That the short start holds these three is decided: the
-maintainer adopted Claude's leaning for a short start with the first two (decided item 7), and put
-the third in it (decided item 9). Their exact wording, choices and caveats are proposed.
-1. **What it adapts to,** in the form: replies to me, documents I write for others, or both. If
-   documents: who are the usual readers, and should it keep my voice?
+**The short start: three questions.** Questions 1 and 2 are Claude's leaning, which the maintainer's
+reply appears to adopt (decided item 7). Question 3 is decided item 9. The wording, choices and
+caveats of all three are proposed.
+1. **What it adapts to,** with decided item 3's choices: how things are explained to me, my writing
+   voice, or both. If my writing voice: who are my usual readers? (Claude's earlier form of this
+   question offered "replies to me, documents I write for others, or both". Replies match "how
+   things are explained to me"; documents for others match "my writing voice".)
 2. **Shorter or complete,** with its caveat.
 3. **How often it may ask:**
    - **Choices:** at most once a session, at most once a week, only when asked, or never.
@@ -171,12 +179,14 @@ the third in it (decided item 9). Their exact wording, choices and caveats are p
 - **On its own,** it shows the card: the person's choices first, then what has been learned.
 - **`/jargone:settings <line>`** (for example `asks`) asks that one question again, with its choices
   and caveat, rather than taking a typed value.
-- **`/jargone:settings reset`** clears the choices and runs the short start again. It keeps every
-  knowledge line, topics and words alike, since learned words fold into topics (decided item 11).
-- **It is answered by code, not the model,** so it is instant and costs nothing. A command answered
-  by code can already show choices: `dynamics`' `/dynamics-check` on `main` asks the person with
-  `$.ui.ask(question, options)`. To check before building: that the command gets the `jargone:`
-  name form.
+- **`/jargone:settings reset`** clears the choices and runs the short start again. It keeps the
+  learned words and the "know well" topics they fold into (decided item 11). Keeping the "new to
+  me" lines too is Claude's extension.
+- **It is answered by code, not the model,** so it is instant and costs nothing. To check before
+  building: that a command answered by code can show the person choices, and that the command gets
+  the `jargone:` name form. Plugin code can ask the person from a tool: `dynamics`' check and render
+  tools on `main` put a permission question with `$.ui.ask` (`dynamics/hooks/register.ts`,
+  `mayRun`). No command has been shown to do it.
 
 **The commands:**
 - `/jargone:settings`, as above.
@@ -186,9 +196,10 @@ the third in it (decided item 9). Their exact wording, choices and caveats are p
 
 **The default when a question is skipped:** keep the term and explain it the first time. This
 follows the maintainer's guess about most people. The maintainer's own pick on the seam pair was the
-other text, which is a reason to ask rather than assume.
+other text. That pick answered a different question, but it is still a reason to ask rather than
+assume.
 
-**No rewrite after each reply:**
+**No rewrite and no model check after each reply:**
 - In the everyday run, the check and rewrite made 49.0% of session mode's cost.
 - In use, the person reads both the first reply and the rewrite. Counted that way, session mode had
   19.4% fewer unknown terms than the standing instruction alone, short of a third (a figure worked
@@ -208,22 +219,27 @@ the test, as the comparison's rule was.
 - Which copy of the card is the master: the one in Claude Code or the one in chat?
 - What is the pass mark for the blind test, and how long is "a few weeks"?
 - Is the command set right?
-- Does 0.1's `/jargone` document rewrite stay? It did not beat a one-shot rewrite on the model
-  measures in either run.
+- Does 0.1's `/jargone` document rewrite stay? It fell short of the rule against a one-shot rewrite
+  in both runs: 11.1% and 28.7% fewer unknown terms, where a third was needed. The first run also
+  had more accuracy errors (28 against 13).
+- Is the like-for-like reading of the everyday documents the right one? The report leaves it for
+  the maintainer to confirm.
+- Does 0.1's warn-only note after each reply stay? It runs code checks (J01, J03 and J07), not a
+  model, and the trial found most of J01's and J07's findings were false alarms.
 - Should `jargone/research/` move to the lab branch, as the root `CLAUDE.md` now says research data
   should? It was written before the lab branch existed.
 - What carries over from 0.2? On this branch at commit 2251361: the checker (with J03, long
   sentences, and J05, nothing lost) and the curated word lists; 0.2's wiring is marked there as not
-  done. A later version of the wiring, which ran the check after each reply, was finished on the
-  working machine but never committed, and was lost with it on 2026-11-10. The proposal above drops
-  the check after each reply.
+  done. A later version of the wiring, which ran a model check after each reply, was finished on the
+  working machine but never committed, and was lost with it on 2026-11-10 (as Claude reported to the
+  maintainer in the session that day). The proposal above drops the model check and the rewrite
+  after each reply.
 
 ## Review of this note
 
 Two independent reviewers checked the first version (commit 3146e05). One compared it with the
 maintainer's own words in the discussion; the other checked every figure and claim against the
-repository. They found 23 problems: 2 high, 16 medium, 5 low. All were fixed in this version. The
-main ones:
+repository. Round 1 found 23 problems: 2 high, 16 medium, 5 low. The main ones:
 - **It said no ratings were collected.** Three picks had been saved on the blind-pairs page after
   the last time Claude read it.
 - **It filed Claude's words as the maintainer's decisions.** Decided item 3 used Claude's later
@@ -238,3 +254,24 @@ main ones:
 - **Figures lacked their comparison:** what the documents figure was measured against, and that
   every verdict was on the model measures only.
 - **It contradicted the lab branch's README** on whether a person's card may go in a repository.
+
+Round 2 checked only the fixes (commit 60e9233). Of the 23, 20 were fixed and 3 partly. It found 12
+new problems: 1 high, 4 medium, 7 low, mostly caused by the fixes themselves. All were addressed in
+this version. The main ones:
+- **A fix put a false claim in place of a stale one.** The first version cited the superseded
+  stockflow as proof that a command answered by code can show choices. The fix cited `dynamics`'
+  `/dynamics-check` instead and dropped the check before building. But that command never asks the
+  person: the ask is wired into it and never called. Only `dynamics`' tools ask. This is the
+  corpus's signature mistake: a stand-in (the ask is wired into the command) read in place of the
+  thing itself (the ask is called).
+- **A fix overreached on what was decided.** It called the short start's three questions decided,
+  citing an item that does not say so, and renamed the first question with decided item 3's name
+  but kept other choices. The example card then matched neither.
+- **The section recording the review said every finding was fixed** before anyone had checked the
+  fixes.
+- **Figures were misstated:** that `/jargone` "did not beat" a one-shot rewrite (it had fewer unknown
+  terms, but not a third fewer), and the documents verdict without its unconfirmed reading.
+- **The maintainer's pick on the seam pair** was read as a preference, though it answered the
+  question decided item 5 retires.
+
+The round-2 fixes have not been reviewed again.
