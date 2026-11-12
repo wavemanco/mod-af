@@ -470,9 +470,13 @@ pattern does. Only the automatic parts (hooks, pane and status line) are tied to
 - `survey` and `plan` read no tracked file the person's Read rules deny (the owner, 2026-11-04: "Obey the
   deny rules"; section 9). Each file is put to Claude Code's permission check before it is read, a check
   that fails counts as a deny, and a denied file is counted in Not measured, never read, named or stat'ed.
-  The Node command, run outside Claude Code, has no such rules and reads every tracked file. `check`, `map`
-  and the short view read the pair through git and the settings file with no such check (a parked minor of
-  the Phase 2 check).
+  The Node command has no such rules and reads every tracked file wherever it runs, a Claude Code session
+  included. So when Not measured counts denied files, the survey's procedure, the context line of both
+  procedures and the inventory name no Node command and no `--json` output: they send the re-run to the
+  person's `/housekeeping survey --tracker ... --not-tracker ...` and say not to run the Node command's
+  survey in that session (the second check's finding 1). Those are words to the agent, not a guard. `check`,
+  `map` and the short view read the pair through git and the settings file with no such check (a parked
+  minor of the Phase 2 check).
 - No import from GitHub Issues, Projects or other trackers in this version. `survey` reports them, and
   `plan` may link them.
 - No durations, estimates, hill charts or date timelines.

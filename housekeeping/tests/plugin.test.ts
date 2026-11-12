@@ -53,7 +53,8 @@ type World = {
 // the engine may hand a hook a Windows-style path
 const posix = (p: string) => p.replaceAll('\\', '/').replace(/^[A-Za-z]:/, '')
 // stand-ins for prompts/*.md: the test kit imports code files only, so it cannot read the real ones
-const PROMPTS: Record<string, string> = { survey: '# the survey procedure', plan: '# the plan procedure' }
+// the survey's has a line that names the Node command, as the real one does
+const PROMPTS: Record<string, string> = { survey: '# the survey procedure\nRe-run: node <path to housekeeping>/cli.ts survey', plan: '# the plan procedure' }
 const under = (p: string) => posix(p).replace(/^\/w\//, '')
 
 // The engine stand-ins: git answers from small.ts's files, tools are logged, the store is a map.
@@ -594,6 +595,10 @@ const TRACKED = { 'docs/todo.md': '## T-1 one\n## T-2 two\n- [ ] three\n', 'src/
 
 // finding 22: the agent was never told where housekeeping lives, so it guessed the Node command and the format
 const WHERE = /^housekeeping is installed at (.+): run its Node command as node \1\/cli\.ts \(survey takes --tracker and --not-tracker\), and read its row format in \1\/FORMAT\.md\.$/
+const DENIED_WHERE = new RegExp('^housekeeping is installed at (.+); read its row format in \\1/FORMAT\\.md\\. Not measured counts files ' +
+  "the person's Read rules deny, and housekeeping's Node command ignores those rules wherever it runs: do not run its survey in " +
+  'this session\\. To survey again with --tracker and --not-tracker, ask the person to run /housekeeping survey --tracker <path> ' +
+  '--not-tracker <path>, which obeys the rules\\.$')
 
 test('/housekeeping survey hands over the procedure, where housekeeping lives, then the inventory, and writes nothing', async ($, on) => {
   const w: World = { tracked: { ...TRACKED }, reads: [] }
@@ -637,6 +642,14 @@ test('the survey reads no file the Read rules deny, names none, and counts them 
   expect(inv).toContain('\nFiles not read: 2 denied by Read rules.\n')
   for (const word of ['secret', 'hidden', 'swordfish', 'README']) expect(inv).not.toContain(word)
   expect(w.reads!.filter(p => /secret|README/.test(p))).toEqual([])
+  // second check, finding 1: the Node command would read the denied files, so the context names none and sends the
+  // re-run to the person's slash command; plan keeps its procedure whole
+  expect(r.context.join('\n')).not.toContain('cli.ts')
+  expect(r.context[0]).toBe('# the survey procedure')
+  expect(r.context[1]).toMatch(DENIED_WHERE)
+  const plan = await run($, 'plan')
+  expect(plan.context[0]).toBe(PROMPTS.plan)
+  expect(plan.context[1]).toMatch(DENIED_WHERE)
   // every tracker denied: what was measured, never "nothing to move"
   w.denied = Object.keys(w.tracked!)
   const all = await run($, 'survey')
@@ -671,7 +684,7 @@ test('/housekeeping survey takes --tracker and --not-tracker, repeatable, a quot
   const inv = r.context.at(-1)
   expect(inv).toContain('\n## Candidates (score, hint, path: signals)\n   0.0  maybe           docs/my list.md: named by --tracker\n' +
     '   0.0  maybe           tasks.yaml: named by --tracker\n\n')
-  // finding 12 of the fix round's check: the not-tracker answers reach the agent, on their one line and nowhere else
+  // second check, finding 12: the not-tracker answers reach the agent, on their one line and nowhere else
   const answers = 'Answers in this run: --tracker docs/my list.md, tasks.yaml; --not-tracker docs/todo.md, NOTES.md.'
   expect(inv.split('\n').filter(l => /docs\/todo\.md|NOTES\.md/.test(l))).toEqual([answers])
   const bad = await run($, 'survey --tracker gone.md')

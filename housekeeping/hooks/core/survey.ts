@@ -184,8 +184,14 @@ export function notRead(inv: Pick<Inventory, 'skipped' | 'denied'>, stops = fals
   return out
 }
 
+/** The survey procedure with its lines that name the Node command left out: with a file denied, the re-run is the
+ *  person's /housekeeping survey, since the Node command ignores the Read rules (second check, finding 1). */
+export const withoutNode = (procedure: string): string => procedure.split('\n').filter(l => !l.includes('cli.ts')).join('\n')
+
 export function formatInventory(inv: Inventory, maxChars = 20_000): string {
-  const lines = [`housekeeping survey: ${inv.files} files read, ${inv.candidates.length} candidates, ${inv.skipped.length} skipped`]
+  // with a file denied no note offers the --json output: only the Node command gives it, and it ignores the Read rules
+  const json = inv.denied ? '' : ' (the --json output names them)'
+  const lines =[`housekeeping survey: ${inv.files} files read, ${inv.candidates.length} candidates, ${inv.skipped.length} skipped`]
   // both answers, where the cut cannot reach: a tracker is a named candidate, a not-tracker is nowhere else
   const trackers = inv.candidates.filter(c => c.signals.named).map(c => c.path)
   if (trackers.length || inv.notTracker.length)
@@ -204,14 +210,14 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
   lines.push('', '## Suspects (below the score of 3, with some sign of pending work)')
   for (const s of inv.suspects.slice(0, SUSPECTS)) lines.push(`${s.path}: ${s.why}`)
   if (!inv.suspects.length) lines.push('none')
-  else if (inv.suspects.length > SUSPECTS) lines.push(`and ${inv.suspects.length - SUSPECTS} more (the --json output names them)`)
+  else if (inv.suspects.length > SUSPECTS) lines.push(`and ${inv.suspects.length - SUSPECTS} more${json}`)
   // before the references and guides, the long sections, so a cut hides them first; lockfiles and binaries are counted
   const noise = (s: Skipped) => s.why === LOCK || s.why === BINARY
   if (inv.skipped.length) {
     lines.push('', '## Skipped')
     for (const s of inv.skipped) if (!noise(s)) lines.push(`${s.path}: ${s.why}`)
     const n = inv.skipped.filter(noise).length
-    if (n) lines.push(`and ${n} more: lockfiles and binaries (the --json output names them)`)
+    if (n) lines.push(`and ${n} more: lockfiles and binaries${json}`)
   }
   // at most REFS files per target, so the references (unbounded) cannot crowd the guide lines out of the budget
   if (inv.references.length) {
@@ -223,7 +229,7 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
       for (const r of refs.slice(0, REFS))
         lines.push(`${String(r.count).padStart(6)}  ${r.from}${r.machine ? ' (machine)' : ''}${r.ambiguous ? ' (ambiguous: a bare name several targets share)' : ''}${r.possible ? ' (possible use: a bare word)' : ''}`)
       const rest = refs.slice(REFS)
-      if (rest.length) lines.push(`        and ${rest.length} more, ${rest.filter(r => r.machine).length} of them machine (the --json output names them)`)
+      if (rest.length) lines.push(`        and ${rest.length} more, ${rest.filter(r => r.machine).length} of them machine${json}`)
     }
   }
   if (inv.guides.length) {
@@ -235,7 +241,7 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
 
   const text = lines.join('\n')
   if (text.length <= maxChars) return text
-  const note = (n: number) => `[cut at ${maxChars} characters: ${n} more lines; the --json output has everything]`
+  const note = (n: number) => `[cut at ${maxChars} characters: ${n} more lines${inv.denied ? '' : '; the --json output has everything'}]`
   let kept = 0, used = 0
   while (kept < lines.length && used + lines[kept].length + 1 + note(lines.length).length <= maxChars) used += lines[kept++].length + 1
   return [...lines.slice(0, kept), note(lines.length - kept)].join('\n').slice(0, maxChars)

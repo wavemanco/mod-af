@@ -183,7 +183,7 @@ test('a --tracker path is a candidate with a named signal, first, with its reade
   expect(formatInventory(inv)).toContain('\n   0.0  maybe           tasks.yaml: named by --tracker\n')
 })
 
-// finding 12 of the fix round's check: through the slash route the agent never saw a not-tracker answer
+// second check, finding 12: through the slash route the agent never saw a not-tracker answer
 test('with --tracker or --not-tracker the inventory keeps the not-trackers and the text names both answers in one line', () => {
   const inv = inventory(FILES, [], { tracker: ['tasks.yaml'], notTracker: ['BACKLOG.md', 'NOTES.md'] })
   expect(inv.notTracker).toEqual(['BACKLOG.md', 'NOTES.md'])
@@ -192,6 +192,18 @@ test('with --tracker or --not-tracker the inventory keeps the not-trackers and t
   expect(formatInventory(inventory(FILES, [], { notTracker: ['NOTES.md'] })))
     .toContain('\nAnswers in this run: --tracker none; --not-tracker NOTES.md.\n')
   expect(formatInventory(inventory(FILES))).not.toContain('Answers in this run')
+})
+
+// second check, finding 1: with a file denied, the re-run is the person's slash command, which has no --json
+test('with a file denied, no note in the text offers the --json output', () => {
+  const inv = inventory([{ path: 'BACKLOG.md', text: BACKLOG },
+    ...Array.from({ length: 20 }, (_, i) => ({ path: `docs/n${String(i).padStart(2, '0')}.md`, text: 'see BACKLOG.md\n- [ ] x\n' }))],
+  [{ path: 'pnpm-lock.yaml', why: 'a lockfile' }], { denied: 1 })
+  expect(formatInventory({ ...inv, denied: 0 }, 1e9).match(/--json/g)!.length).toBe(3)
+  expect(formatInventory({ ...inv, denied: 0 }, 400)).toContain('; the --json output has everything]')
+  for (const max of [1e9, 400]) expect(formatInventory(inv, max)).not.toContain('--json')
+  expect(formatInventory(inv, 1e9)).toContain('\nand 5 more\n')
+  expect(formatInventory(inv, 400)).toMatch(/\[cut at 400 characters: \d+ more lines\]$/)
 })
 
 test('the named paths are made repository-relative with "/"; one git does not track, or named both ways, is an error naming it', () => {

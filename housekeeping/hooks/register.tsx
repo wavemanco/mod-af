@@ -4,7 +4,7 @@ import { behind, brief, onBranch } from './core/brief.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
 import { parseSettings } from './core/settings.ts'
-import { formatInventory, inventory, notRead } from './core/survey.ts'
+import { formatInventory, inventory, notRead, withoutNode } from './core/survey.ts'
 import { initFiles } from './core/templates.ts'
 import type { BuildOutput } from './core/types.ts'
 
@@ -139,10 +139,17 @@ async function procedure($: EngineInterface, arg: 'survey' | 'plan', named?: { t
   const t = await readTracked($, root, named)
   if ('error' in t) return { text: t.error, exitCode: 1 }
   const inv = inventory(t.files, t.skipped, { denied: t.denied, ...t.named })
-  // where housekeeping lives, which the procedures need for the Node command and FORMAT.md (finding 22)
+  // where housekeeping lives, which the procedures need for the Node command and FORMAT.md (finding 22). With a file
+  // denied, no Node command: it ignores the Read rules, so the re-run is the person's slash command (second check, finding 1)
   const home = $.plugin.root
-  const context = [await $.fs.read(`${home}/prompts/${arg}.md`), `housekeeping is installed at ${home}: run its Node command as ` +
-    `node ${home}/cli.ts (survey takes --tracker and --not-tracker), and read its row format in ${home}/FORMAT.md.`, formatInventory(inv)]
+  const text = await $.fs.read(`${home}/prompts/${arg}.md`)
+  const where = inv.denied ? `housekeeping is installed at ${home}; read its row format in ${home}/FORMAT.md. Not measured counts ` +
+    "files the person's Read rules deny, and housekeeping's Node command ignores those rules wherever it runs: do not run its survey " +
+    'in this session. To survey again with --tracker and --not-tracker, ask the person to run /housekeeping survey --tracker <path> ' +
+    '--not-tracker <path>, which obeys the rules.'
+    : `housekeeping is installed at ${home}: run its Node command as node ${home}/cli.ts (survey takes --tracker and --not-tracker), ` +
+    `and read its row format in ${home}/FORMAT.md.`
+  const context = [inv.denied && arg === 'survey' ? withoutNode(text) : text, where, formatInventory(inv)]
   if (arg === 'plan' && (await $.fs.exists(`${root}/${SETTINGS}`))) {
     const l = await load($)
     context.push(`The current /housekeeping check findings:\n${'error' in l ? l.error : l.text || 'none'}`)

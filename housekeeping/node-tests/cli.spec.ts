@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { backlog, playbook, settings } from '../tests/fixtures/small.ts'
+import { withoutNode } from '../hooks/core/survey.ts'
 
 const CLI = join(import.meta.dirname, '..', 'cli.ts')
 // this file's own git calls never run a git.exe that a fixture holds (finding 2), whatever shell started the run
@@ -237,6 +238,17 @@ test('survey takes --tracker and --not-tracker, repeatable; a path git does not 
   assert.equal(bad.status, 2)
   assert.match(bad.stdout, /not a tracked file: nope\.md/)
   assert.equal(run('check', '--repo', dir, '--tracker', 'tasks.yaml').status, 2) // survey's option only
+})
+
+// second check, finding 1: with a file denied, the plugin hands over the real procedure without its Node lines (the
+// kit cannot read it, so this is where it is pinned)
+test('the survey procedure without its Node lines names no Node command and sends the re-run to the slash command', () => {
+  const cut = withoutNode(readFileSync(join(import.meta.dirname, '..', 'prompts', 'survey.md'), 'utf8'))
+  assert.doesNotMatch(cut, /cli\.ts|--json/)
+  assert.match(cut, /When Not measured counts files denied by Read rules: [^\n]*do not run it in this session/)
+  assert.match(cut, /ask them to run `\/housekeeping survey --tracker <path> --not-tracker <path>`/)
+  for (const part of ['**The suspects.**', 'Then run the survey again', '**What you could not tell.**', '**Then** offer', 'Rules: write nothing'])
+    assert.ok(cut.includes(part), part)
 })
 
 // finding 29: from a subfolder the survey read only that subtree, and could say there was nothing to move
