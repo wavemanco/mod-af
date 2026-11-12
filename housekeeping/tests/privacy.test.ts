@@ -52,6 +52,12 @@ test('an address whose domain has non-ASCII letters is found; a percent-encoded 
   expect(scanPrivacy('write to jane%40corp.io today')).toEqual([])
 })
 
+test('an address whose local part ends in an accented letter or a mark is found; a wholly CJK one has an at-name\'s shape', () => {
+  for (const hit of ['josé@corp.io', 'zoë@corp.io', 'josé@corp.io', 'éva@corp.io'])
+    expect([hit, kinds(`write to ${hit} today`)]).toEqual([hit, ['email']])
+  expect(scanPrivacy('ask 漢字@corp.io today')).toEqual([])
+})
+
 test('near misses are not keys', () => {
   expect(scanPrivacy('sk-short AKIA123 ghp_abc xoxb-1 sk_live_short glpat-short npm_abc ASIA123 whsec_abc eyJa.eyJb.c')).toEqual([])
 })

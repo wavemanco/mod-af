@@ -1,7 +1,8 @@
 export type PrivacyHit = { kind: 'email' | 'key'; index: number; sample: string }
 
-// the domain may hold non-ASCII letters; a percent-encoded address stays out, at the owner's choice (2026-11-04)
-const EMAIL = /[A-Za-z0-9._%+-]+@[\p{L}0-9.-]+\.\p{L}{2,}/gu
+// the domain may hold non-ASCII letters; a percent-encoded address stays out, at the owner's choice (2026-11-04).
+// The local part may too, after one ASCII character: a wholly non-ASCII one is an at-name after CJK text.
+const EMAIL = /[A-Za-z0-9._%+-][\p{L}\p{M}0-9._%+-]*@[\p{L}0-9.-]+\.\p{L}{2,}/gu
 const KEYS = [
   /(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9_-]{20,}/g, // not the end of a word: "task-add-..."
   /(?<![A-Za-z0-9])[rs]k_live_[A-Za-z0-9]{20,}/g, // a live payment key

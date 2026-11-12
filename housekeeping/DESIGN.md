@@ -241,9 +241,11 @@ clone holds part of it, so no history is read there and `check` warns (finding 1
   key of a shape it knows, and reports where it found it. It reads the page's text, not its escaped code.
   - The shapes: `sk-` keys, live payment keys (`sk_live_`, `rk_live_`), AWS access keys, long-term and
     temporary, GitHub, GitLab, npm, Slack and Google API tokens, webhook signing secrets (`whsec_`), JWTs and
-    private key blocks. An address's domain may hold non-ASCII letters.
-  - What passes: a password, a key of any other shape, and a percent-encoded address (the owner's choice,
-    2026-11-04).
+    private key blocks. An address's domain may hold non-ASCII letters, and so may its local part once it
+    holds one ASCII letter, digit or sign: `josé@` is found.
+  - What passes: a password, a key of any other shape, a percent-encoded address (the owner's choice,
+    2026-11-04), and an address whose local part holds no ASCII letter, digit or sign, one wholly in CJK
+    for example: it has the shape of an at-name written right after CJK text, which must build.
 - It never shows commit authors.
 - A privacy hit in a commit subject, which cannot be edited, is masked and does not block the page
   (decided 2026-11-03; section 9). The short view is masked in the same way, each text before it is cut,

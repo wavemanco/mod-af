@@ -79,6 +79,12 @@ test('a dotted at-name after markup, a curly quote or CJK text, or at a line sta
   expect(o.html).not.toBeNull()
 })
 
+test('an address whose local part ends in an accented letter, in a Details cell, is refused', () => {
+  const o = build(input({ backlog: small.backlog.replace('one client can exhaust it', 'ask josé@corp.io') }))
+  expect(o.html).toBeNull()
+  expect(o.findings.some(f => f.rule === 'privacy' && f.message.startsWith('B-001:'))).toBe(true)
+})
+
 test('a hit in a commit subject is masked from the decoded subject', () => {
   const o = build(withSubject(`fix “@jane.doe” wording; ask “jane.doe@corp.io”—${KEY}`))
   expect(o.findings.filter(f => f.rule === 'privacy')).toEqual([])
