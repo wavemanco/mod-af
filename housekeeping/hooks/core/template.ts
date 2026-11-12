@@ -577,7 +577,9 @@ window.DATA = /*DATA*/null;
           (r) => h('p', { class: 'trig' }, md(r.trigger), SEP + (duty.get(r.id).lastDone ? 'last done ' + duty.get(r.id).lastDone : 'no "Last done" date'))));
     },
     checklists() {
-      if (!D.checklists.length) return section(empty('The settings name no checklist, or the checklists have no lines.'));
+      if (!D.checklists.length) return section(empty(D.findings.some((f) => f.rule === 'checklist-heading')
+        ? 'A checklist the settings name matches no ## heading whole, so its lines are not read: see Warnings.'
+        : 'The settings name no checklist, or the checklists have no lines.'));
       const heads = [];
       for (const l of D.checklists) if (heads.indexOf(l.heading) < 0) heads.push(l.heading);
       return section(intro('The open lines of each checklist, with the rows each settles.'), heads.map((hd) => {

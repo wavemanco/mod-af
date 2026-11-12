@@ -155,6 +155,17 @@ test('the switch buttons are real buttons and Light overrides a dark system', ()
   assert.match(html, /:root:not\(\[data-theme="light"\]\)/)
 })
 
+// second check, finding 8: "no checklist" is said only when it is true
+test('the Checklists view says a checklist heading matched nothing, not that the settings name none', () => {
+  const view = (d: PageData) => (clickAll(renderPage(d)).views.get('tab-checklists') ?? []).map(text).join(' ')
+  const none = 'The settings name no checklist, or the checklists have no lines.'
+  assert.ok(view({ ...SMALL, checklists: [] }).includes(none))
+  const missed = view({ ...SMALL, checklists: [], findings: [{ level: 'warning', rule: 'checklist-heading', file: 'backlog',
+    message: 'the checklist "Launch checklist" matches no ## heading whole, so its lines are not read' }] })
+  assert.ok(!missed.includes(none), missed)
+  assert.match(missed, /matches no ## heading/)
+})
+
 test('a lane with no milestone says so, not "all reached"', () => {
   const lane = SMALL.lanes[0]
   const d: PageData = { ...SMALL, lanes: [{ ...lane, stations: [], next: null }] }

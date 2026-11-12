@@ -191,6 +191,21 @@ test('checklist and where-we-are headings match whole; a row table in skipSectio
   expect(good().findings).toEqual([])
 })
 
+// second check, finding 8: a checklist named by the start of its heading reads nothing, so it is said
+test('a checklist heading that matches no ## heading is a warning, naming the headings that start with it', () => {
+  const warned = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'checklist-heading')
+  const suffixed = once(backlog, '## Launch checklist\n', '## Launch checklist (beta)\n')
+  expect(parseFiles(s, { backlog: suffixed, playbook }).checklists).toEqual([])
+  expect(warned(suffixed).map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 7]])
+  expect(warned(suffixed)[0].message).toContain('"Launch checklist (beta)"')
+  const gone = warned(once(backlog, '## Launch checklist\n', '## Checks\n'))
+  expect(gone.map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', undefined]])
+  expect(gone[0].message).toContain('"Launch checklist"')
+  expect(warned(once(backlog, '## Launch checklist\n', '```\n## Launch checklist\n```\n'))).toHaveLength(1) // a fenced heading is none
+  expect(warned(backlog)).toEqual([])
+  expect(parseFiles(s, { backlog, playbook: null }).findings.filter(f => f.rule === 'checklist-heading')).toEqual([])
+})
+
 // finding 16: a reopened row is legitimate, so a warning, not an error
 test('an ID both open and in Done, or twice in Done, is a warning', () => {
   const done = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'done-id')

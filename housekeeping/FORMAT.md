@@ -52,7 +52,7 @@ How the files are read:
 - **Who.** Mapped through `values.who`; any other text is `unknown`.
 - **Duplicate IDs.** Each is an error (`id-unique`); lookups use the first row.
 - **Done entries.** Rows of tables under a `##` section whose title starts with a `done` `sectionPrefix`. The IDs are those found (by the `ids` patterns, standing alone, not inside a longer word or hyphenated name) in the ID column cell. The entry belongs to `done.file`, unless the last ID starts with a `fileByIdPrefix` value, which names the other file.
-- **Checklists.** `- [ ]` and `- [x]` lines under a configured `##` heading; the group is the `###` heading above. An indented line that is not a list item continues the line above. IDs are found over the line and its continuation lines.
+- **Checklists.** `- [ ]` and `- [x]` lines under a configured `##` heading, matched whole; the group is the `###` heading above. A configured heading that matches no `##` heading is a `checklist-heading` warning, naming any heading that starts with it. An indented line that is not a list item continues the line above. IDs are found over the line and its continuation lines.
 - **Where we are.** The first paragraph under the configured heading, or, with a `marker`, the paragraph that starts with it. Its date is the first `YYYY-MM-DD` in its first 80 characters.
 - **Missing file.** A file that cannot be read is an error (`file`); the other is still read.
 - **Not doing.** With `notDoing` set, the rows of the table under that `##` heading read as item, why and reopen condition (cells 0, 1 and 2). A missing section gives an empty list, not a finding.

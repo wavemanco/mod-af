@@ -51,6 +51,17 @@ function sectionLines(text: string, heading: string): SecLine[] {
   return out
 }
 
+// The `##` headings outside fences, with their lines.
+function sectionTitles(text: string): { title: string; line: number }[] {
+  let fenced: string | null = null
+  return normalise(text).split('\n').flatMap((t, i) => {
+    const was = fenced
+    fenced = stepFence(fenced, t)
+    const h = was === null && fenced === null ? HEADING.exec(t) : null
+    return h && h[1] === '##' ? [{ title: h[2], line: i + 1 }] : []
+  })
+}
+
 // upTo: the head commit's day; a where-we-are date after it is ignored.
 export function parseFiles(s: Settings, files: Record<FileKey, string | null>, upTo?: string): Parsed {
   const out: Parsed = { rows: [], done: [], checklists: [], whereWeAre: null, notDoing: [], tables: [], findings: [] }
@@ -166,6 +177,13 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>, u
   }
 
   for (const k of s.checklists) {
+    const titles = sectionTitles(text[k.file])
+    if (files[k.file] !== null && !titles.some(t => t.title === k.heading)) { // a missing file is its own error
+      const near = titles.filter(t => t.title.startsWith(k.heading))
+      out.findings.push({ level: 'warning', rule: 'checklist-heading', file: k.file, ...(near.length ? { line: near[0].line } : {}),
+        message: `the checklist "${k.heading}" matches no ## heading whole, so its lines are not read` +
+          (near.length ? `; ${near.map(t => `"${t.title}"`).join(', ')} starts with it: write the heading whole in the settings` : '') })
+    }
     let cur: ChecklistLine | null = null
     for (const l of sectionLines(text[k.file], k.heading)) {
       const m = /^\s*[-*]\s+\[([ xX])\]\s*(.*)$/.exec(l.text)
