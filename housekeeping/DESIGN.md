@@ -241,7 +241,7 @@ clone holds part of it, so no history is read there and `check` warns (finding 1
   key of a shape it knows, and reports where it found it. It reads the page's text, not its escaped code.
   - The shapes: `sk-` keys, live payment keys (`sk_live_`, `rk_live_`), AWS access keys, long-term and
     temporary, GitHub, GitLab, npm, Slack and Google API tokens, webhook signing secrets (`whsec_`), JWTs and
-    private key blocks. An address's domain may hold non-ASCII letters, and so may its local part once it
+    private key blocks, PGP's included. An address's domain may hold non-ASCII letters, and so may its local part once it
     holds one ASCII letter, digit or sign: `josé@` is found.
   - What passes: a password, a key of any other shape, a percent-encoded address (the owner's choice,
     2026-11-04), and an address whose local part holds no ASCII letter, digit or sign, one wholly in CJK

@@ -85,6 +85,27 @@ test('an address whose local part ends in an accented letter, in a Details cell,
   expect(o.findings.some(f => f.rule === 'privacy' && f.message.startsWith('B-001:'))).toBe(true)
 })
 
+const PGP = (kind: string, sep: string) =>
+  [`-----BEGIN PGP ${kind} KEY BLOCK-----`, '', 'lQOYBFAKEFAKEFAKEFAKE', `-----END PGP ${kind} KEY BLOCK-----`].join(sep)
+
+test('a PGP private block joined with <br> in a Details cell is refused; a PGP public block builds', () => {
+  const o = build(input({ backlog: small.backlog.replace('one client can exhaust it', PGP('PRIVATE', '<br>')) }))
+  expect(o.html).toBeNull()
+  expect(o.findings.some(f => f.rule === 'privacy' && f.message.startsWith('B-001:'))).toBe(true)
+  const pub = build(input({ backlog: small.backlog.replace('one client can exhaust it', PGP('PUBLIC', '<br>')) }))
+  expect(pub.findings.filter(f => f.rule === 'privacy')).toEqual([])
+  expect(pub.html).not.toBeNull()
+})
+
+test('a one-line PGP private block in a commit subject is masked whole', () => {
+  const o = build(withSubject(`add ${PGP('PRIVATE', '')} by mistake`))
+  expect(o.html).not.toBeNull()
+  const page = decoded(o.html!)
+  expect(page.includes('FAKE')).toBe(false)
+  expect(page.includes('PRIVATE KEY')).toBe(false)
+  expect(page.includes(' by mistake')).toBe(true)
+})
+
 test('a hit in a commit subject is masked from the decoded subject', () => {
   const o = build(withSubject(`fix “@jane.doe” wording; ask “jane.doe@corp.io”—${KEY}`))
   expect(o.findings.filter(f => f.rule === 'privacy')).toEqual([])

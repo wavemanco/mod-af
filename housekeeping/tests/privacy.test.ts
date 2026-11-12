@@ -40,7 +40,7 @@ test('each key shape is found on a made-up value', () => {
   const samples = [
     'sk-' + a('a', 24), 'sk-ant-' + a('b', 24), 'AKIA' + a('A', 16), 'ghp_' + a('c', 36), 'gho_' + a('d', 40),
     'github_pat_' + a('e', 22), 'xoxb-' + a('1', 12), 'AIza' + a('f', 35), '-----BEGIN RSA PRIVATE KEY-----',
-    '-----BEGIN PRIVATE KEY-----', 'sk_live_' + a('g', 24), 'rk_live_' + a('h', 24), 'glpat-' + a('i', 20),
+    '-----BEGIN PRIVATE KEY-----', '-----BEGIN PGP PRIVATE KEY BLOCK-----', 'sk_live_' + a('g', 24), 'rk_live_' + a('h', 24), 'glpat-' + a('i', 20),
     'npm_' + a('j', 36), 'ASIA' + a('B', 16), 'whsec_' + a('k', 32),
     'eyJ' + a('l', 12) + '.eyJ' + a('m', 12) + '.' + a('n', 16)]
   for (const k of samples) expect([k, kinds(`token: ${k} end`)]).toEqual([k, ['key']])
@@ -56,6 +56,13 @@ test('an address whose local part ends in an accented letter or a mark is found;
   for (const hit of ['josé@corp.io', 'zoë@corp.io', 'josé@corp.io', 'éva@corp.io'])
     expect([hit, kinds(`write to ${hit} today`)]).toEqual([hit, ['email']])
   expect(scanPrivacy('ask 漢字@corp.io today')).toEqual([])
+})
+
+test('a PGP private block is masked whole, END line and all; a PGP public block is no key', () => {
+  const m = maskPrivacy('before -----BEGIN PGP PRIVATE KEY BLOCK-----\nlQOYBFAKEFAKE\n-----END PGP PRIVATE KEY BLOCK----- after')
+  expect([m.includes('FAKE'), m.includes('BLOCK')]).toEqual([false, false])
+  expect(m.endsWith(' after')).toBe(true) // the mask stops at the END line
+  expect(scanPrivacy('-----BEGIN PGP PUBLIC KEY BLOCK-----\nmQENBFAKEFAKE\n-----END PGP PUBLIC KEY BLOCK-----')).toEqual([])
 })
 
 test('near misses are not keys', () => {

@@ -15,8 +15,8 @@ const KEYS = [
   /AIza[0-9A-Za-z_-]{35}/g,
   /whsec_[A-Za-z0-9+/]{24,}/g, // a webhook signing secret
   /eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, // a JWT
-  // the whole block, body and all, to its END line or the end of the text
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g,
+  // the whole block, body and all, to its END line or the end of the text; PGP's label ends in " BLOCK"
+  /-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY(?: BLOCK)?-----|$)/g,
 ]
 
 const mask = (m: string): string =>
