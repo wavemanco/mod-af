@@ -37,7 +37,7 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
     const r = await git(showArgs(sha, path).slice(1))
     if (r.isStdoutTruncated) return { error: `git show was cut short at ${sha.slice(0, 7)}` }
     if (r.exitCode === 0) return r.stdout
-    return (await git(blobArgs(sha, path).slice(1))).exitCode === 0 ? { error: unreadable(sha, path, r.stderr.split('\n')[0].trim()) } : null
+    return (await git(blobArgs(sha, path).slice(1))).exitCode === 0 ? { error: unreadable(settings, sha, path, r.stderr.split('\n')[0].trim()) } : null
   }
   const filesAt = async (sha: string): Promise<Record<FileKey, string | null> | { error: string }> => {
     const b = await show(sha, settings.files.backlog.path), p = await show(sha, settings.files.playbook.path)

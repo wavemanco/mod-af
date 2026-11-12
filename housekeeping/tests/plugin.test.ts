@@ -461,6 +461,7 @@ test('in a shallow clone no history is walked, and check warns that the clone ho
   expect(walks(w)).toBe(0)
 })
 
+const CURE = 'To fetch the old files, run git backfill, or git log -p main -- backlog.md playbook.md, then run this again.'
 // a tied minor: in a blobless clone git show fetched, and a show that failed read as a missing file
 test('git runs with lazy fetching off, and a blob the clone does not hold is reported, not read as a missing file', async ($, on) => {
   const w: World = { blobless: true, argv: [], envs: [] }
@@ -470,6 +471,8 @@ test('git runs with lazy fetching off, and a blob the clone does not hold is rep
   const r = await run($, 'check')
   expect(r.exitCode).toBe(1)
   expect(r.text).toContain(`cannot read backlog.md at ${SHA.slice(0, 7)}, which this clone does not hold: housekeeping never fetches (git said: fatal: bad object x)`)
+  // second check, finding 18, at the owner's "Keep the stop, add next step": the stop names the cure
+  expect(r.text).toContain(`(git said: fatal: bad object x). ${CURE}`)
   w.argv!.forEach((a, i) => { if (a[1] === 'log' || a[1] === 'show') expect(w.envs![i]?.GIT_NO_LAZY_FETCH).toBe('1') })
 })
 

@@ -112,6 +112,11 @@ test('in a blobless clone the command never fetches, and says which file it cann
   assert.equal(c.status, 2, c.stdout + c.stderr)
   assert.match(c.stdout, new RegExp(`^housekeeping: cannot read backlog\\.md at ${first.slice(0, 7)}, which this clone does not hold: housekeeping never fetches`, 'm'))
   assert.equal(has(), false)
+  // second check, finding 18, at the owner's "Keep the stop, add next step": the stop names the cure, and the cure works
+  const CURE = 'To fetch the old files, run git backfill, or git log -p main -- backlog.md playbook.md, then run this again.'
+  assert.ok(c.stdout.includes(`). ${CURE}\n`), c.stdout)
+  execFileSync('git', ['log', '-p', 'main', '--', 'backlog.md', 'playbook.md'], { cwd: clone, stdio: 'ignore' })
+  assert.equal(run('check', '--repo', clone).status, 0)
 })
 
 // second check, finding 11: in a treeless clone the history's git log failed, and check, map and brief died with a

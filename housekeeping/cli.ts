@@ -93,7 +93,7 @@ export async function main(argv: string[]): Promise<number> {
   const show = (sha: string, path: string): string | null => {
     try { return git(showArgs(sha, path).slice(1)) } catch (e) {
       try { git(blobArgs(sha, path).slice(1)) } catch { return null }
-      cannot ||= unreadable(sha, path, gitSaid(e))
+      cannot ||= unreadable(settings, sha, path, gitSaid(e))
       return null
     }
   }
