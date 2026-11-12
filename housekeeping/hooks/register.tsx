@@ -1,6 +1,6 @@
 import type { EngineInterface, Register } from 'claude-code'
 import { commonDir, PAGE, readInput, readTracked, repoKey, writeFile, writePage } from './adapter.ts'
-import { behind, brief, onBranch } from './core/brief.ts'
+import { behind, brief, onBranch, withBranch } from './core/brief.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
 import { parseSettings } from './core/settings.ts'
@@ -26,8 +26,9 @@ async function repoRoot($: EngineInterface): Promise<string> {
   return r?.exitCode === 0 && r.stdout.trim() ? r.stdout.trim() : start
 }
 
-// Reads the repository and builds. The view may read the clock; the page may not.
-async function load($: EngineInterface): Promise<Loaded> {
+// Reads the repository and builds. The view may read the clock; the page may not. branchLine false: the view has no
+// branch line, for the store (second check, finding 15).
+async function load($: EngineInterface, branchLine = true): Promise<Loaded> {
   const root = await repoRoot($)
   const file = `${root}/${SETTINGS}`
   const r = await readInput($, root, (await $.fs.exists(file)) ? await $.fs.read(file) : null)
@@ -36,7 +37,7 @@ async function load($: EngineInterface): Promise<Loaded> {
   const findings = [...r.findings, ...out.findings]
   const today = new Date(await $.clock.now()).toISOString().slice(0, 10)
   const main = r.input.settings.mainBranch
-  out.brief = brief(out.data, { today, branch: r.branch, behindRemote: r.behindRemote, main })
+  out.brief = brief(out.data, { today, branch: branchLine ? r.branch : undefined, behindRemote: r.behindRemote, main })
   return { root, out, sha: r.input.head.sha, text: formatFindings(findings), failed: findings.some(f => f.level === 'error'), project: r.input.settings.project,
     on: { branch: onBranch(r.branch, main, 'check read').join(''), behind: behind(r.behindRemote, main) } }
 }
@@ -74,13 +75,16 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   const key = `brief:${commonDir(root, dir)}`, stamp = [sha, remote, branch, text].join('\n')
   const keep = r.exitCode === 0 && !!sha // main resolves, so the view can be stored
   const hit = keep ? (await $.store.get(key)) as (View & { sha: string; stamp: string }) | undefined : undefined
-  if (hit?.stamp === stamp) return { brief: hit.brief, status: hit.status }
+  // stored with no branch line, served with this checkout's (second check, finding 15); with nothing to store (an
+  // unborn HEAD, say, whose rev-parse names no branch) the load's own line stands
+  const on = (view: string) => keep ? withBranch(view, branch, main) : view
+  if (hit?.stamp === stamp) return { brief: on(hit.brief), status: hit.status }
   const fresh = async () => {
-    const l = await load($)
+    const l = await load($, !keep)
     if ('error' in l) return null
     const v = { brief: l.out.brief, status: statusLine(l.out) }
     if (keep) await $.store.set(key, { sha, stamp, ...v })
-    return v
+    return { ...v, brief: on(v.brief) }
   }
   if (!keep) return fresh() // nothing to store or serve: main does not resolve, so the load stops before any walk
   let build = builds.get(stamp)
@@ -90,7 +94,7 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   }
   if (wait) return build
   build.catch(() => {}) // a failed rebuild leaves the stored view; the next ask tries again
-  return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}, shown while a new one is built.\n${hit.brief}`, status: hit.status }
+  return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}, shown while a new one is built.\n${on(hit.brief)}`, status: hit.status }
     : { brief: BUILDING, status: '' }
 }
 

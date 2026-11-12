@@ -385,6 +385,28 @@ test('prompt.context never awaits the walk: the view is being built, then the st
   expect(walks(w)).toBe(2) // session start's and the rebuild: a prompt starts no second walk of its own
 })
 
+// second check, finding 15: the store holds one view per repository, and a view stored on one branch was served on
+// another with the first one's line
+test('a view stored on one branch and served on another names the second', async ($, on) => {
+  let open!: () => void
+  const w: World = { argv: [], branch: 'first' }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await stored(w)
+  const HEAD = '# Small: where we are (abcdef0, 2026-09-12)'
+  expect(brief(await $.prompt.context({ blocks: [] })).startsWith(`${HEAD}\nOn branch first; the map shows main.\n`)).toBe(true)
+  Object.assign(w, { branch: 'second', gate: new Promise<void>(r => { open = r }) })
+  const stale = await late($.prompt.context({ blocks: [] }))
+  const text = stale === 'late' ? 'late' : brief(stale)
+  expect(text.startsWith(`Stored view of main at abcdef0, shown while a new one is built.\n${HEAD}\nOn branch second; the map shows main.\n`)).toBe(true)
+  expect(text).not.toContain('On branch first')
+  open()
+  await until(() => walks(w) === 2)
+  w.branch = 'main' // back on main: no branch line
+  expect(brief(await $.prompt.context({ blocks: [] }))).not.toContain('On branch')
+})
+
 test('with main unchanged, the short view costs one git rev-parse; a new main commit rebuilds it', async ($, on) => {
   const w: World = { argv: [] }
   world(on, w)

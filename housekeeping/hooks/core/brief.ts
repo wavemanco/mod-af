@@ -44,11 +44,18 @@ export const onBranch = (branch: string | undefined, main: string, what: string)
 export const behind = (n: number | undefined, main: string): string[] =>
   n && n > 0 ? [`Local ${main} is ${n} commits behind its remote copy.`] : []
 
+// The branch's line, after the view's heading. A stored view is kept without one and gets the current branch's when
+// it is served (second check, finding 15).
+export function withBranch(view: string, branch: string | undefined, main: string): string {
+  const [head, ...rest] = view.split('\n')
+  const text = [head, ...onBranch(branch, main, 'the map shows').map(maskPrivacy), ...rest].join('\n')
+  return text.length > MAX ? text.slice(0, MAX - 1) + '…' : text
+}
+
 export function brief(d: PageData, opts: { today?: string; branch?: string; behindRemote?: number; main?: string }): string {
   const main = opts.main ?? 'main'
   const byId = new Map(d.rows.map(r => [r.id, r]))
-  const out: string[] = [`# ${d.project}: where we are (${d.commit}, ${d.date})`,
-    ...onBranch(opts.branch, main, 'the map shows'), ...behind(opts.behindRemote, main)]
+  const out: string[] = [`# ${d.project}: where we are (${d.commit}, ${d.date})`, ...behind(opts.behindRemote, main)]
   const w = maskPrivacy(d.whereWeAre?.text ?? '')
   if (w) {
     // shortcut: cuts at the last space inside 600 characters, or hard at 600 for one long word
@@ -70,6 +77,6 @@ export function brief(d: PageData, opts: { today?: string; branch?: string; behi
     out.push(`Duties due: ${d.duties.filter(x => dutyDue(x.trigger, x.lastDone, opts.today!)).map(x => x.id).join(', ')}`)
   }
   out.push(`${d.findings.filter(f => f.level === 'warning').length} warnings, ${d.findings.filter(f => f.level === 'error').length} errors: /housekeeping check`)
-  const text = maskPrivacy(out.join('\n')) // the short view stays in the person's session: a hit is masked, not blocked
-  return text.length > MAX ? text.slice(0, MAX - 1) + '…' : text
+  // the short view stays in the person's session: a hit is masked, not blocked
+  return withBranch(maskPrivacy(out.join('\n')), opts.branch, main)
 }
