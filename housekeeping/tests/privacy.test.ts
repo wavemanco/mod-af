@@ -76,3 +76,18 @@ test('sample never holds more than four characters of the match', () => {
   expect(hits[1].sample.startsWith('sk')).toBe(true)
   expect(hits.map(h => h.index)).toEqual([...hits.map(h => h.index)].sort((x, y) => x - y))
 })
+
+// the small check of the second round (HK-088): the older PGP label passed, and a long run of letters made the address
+// scan grow with its square
+test('a PGP block under the older SECRET KEY label is a key and is masked whole', () => {
+  const m = maskPrivacy('before -----BEGIN PGP SECRET KEY BLOCK-----\nlQOYBFAKEFAKE\n-----END PGP SECRET KEY BLOCK----- after')
+  expect([m.includes('FAKE'), m.includes('BLOCK'), m.endsWith(' after')]).toEqual([false, false, true])
+  expect(kinds('token: -----BEGIN PGP SECRET KEY BLOCK----- end')).toEqual(['key'])
+})
+
+test('a long run of mixed letters is scanned in linear time, and a 64-letter local part is still found', () => {
+  const t0 = performance.now()
+  expect(scanPrivacy('a.é'.repeat(40_000) + ' end')).toEqual([])
+  expect(performance.now() - t0).toBeLessThan(1000)
+  expect(kinds(`write to ${'a'.repeat(64)}@corp.io today`)).toEqual(['email'])
+})

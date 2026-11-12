@@ -2,7 +2,8 @@ export type PrivacyHit = { kind: 'email' | 'key'; index: number; sample: string 
 
 // the domain may hold non-ASCII letters; a percent-encoded address stays out, at the owner's choice (2026-11-04).
 // The local part may too, after one ASCII character: a wholly non-ASCII one is an at-name after CJK text.
-const EMAIL = /[A-Za-z0-9._%+-][\p{L}\p{M}0-9._%+-]*@[\p{L}0-9.-]+\.\p{L}{2,}/gu
+// At most the 64 characters RFC 5321 allows, so a long run of letters is scanned in linear time (HK-088).
+const EMAIL = /[A-Za-z0-9._%+-][\p{L}\p{M}0-9._%+-]{0,63}@[\p{L}0-9.-]+\.\p{L}{2,}/gu
 const KEYS = [
   /(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9_-]{20,}/g, // not the end of a word: "task-add-..."
   /(?<![A-Za-z0-9])[rs]k_live_[A-Za-z0-9]{20,}/g, // a live payment key
@@ -15,8 +16,9 @@ const KEYS = [
   /AIza[0-9A-Za-z_-]{35}/g,
   /whsec_[A-Za-z0-9+/]{24,}/g, // a webhook signing secret
   /eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, // a JWT
-  // the whole block, body and all, to its END line or the end of the text; PGP's label ends in " BLOCK"
-  /-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY(?: BLOCK)?-----|$)/g,
+  // the whole block, body and all, to its END line or the end of the text; PGP's label ends in " BLOCK", and its
+  // older label says SECRET (HK-088)
+  /-----BEGIN [A-Z ]*(?:PRIVATE|SECRET) KEY(?: BLOCK)?-----[\s\S]*?(?:-----END [A-Z ]*(?:PRIVATE|SECRET) KEY(?: BLOCK)?-----|$)/g,
 ]
 
 const mask = (m: string): string =>
