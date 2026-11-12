@@ -192,6 +192,17 @@ test('a fence that holds a ## heading is a warning at its opener, once; paired f
   expect(at(listed)).toEqual([])
 })
 
+// the small check of the second round (HK-088, finding 9's limit): a stray opener closed by a fence in its own
+// section hid that section's rows with no warning
+test('a fence that holds a table with the ID and Item columns is a warning at its opener; in a skipped section, or another table, it is not', () => {
+  const fence = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'fence')
+  const lost = '## Open\n\n```text\nnotes\n\n| ID | Item |\n|---|---|\n| B-001 | one |\n\n```\n'
+  expect(fence(lost).map(f => [f.level, f.line])).toEqual([['warning', 3]])
+  expect(fence(lost)[0].message).toContain('a table with ID and Item columns')
+  expect(fence(lost.replace('## Open', '## Plan to all clear'))).toEqual([])
+  expect(fence(lost.replace('| ID | Item |', '| Name | Note |'))).toEqual([])
+})
+
 // the tied minor on rows in a named section
 test('checklist and where-we-are headings match whole; a row table in skipSections is said once', () => {
   const table = (...ids: string[]) => '| ID | Item |\n|---|---|\n' + ids.map(id => `| ${id} | a row |\n`).join('')
