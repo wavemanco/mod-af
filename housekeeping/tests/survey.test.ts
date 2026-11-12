@@ -367,3 +367,31 @@ test('the readers stop at 30 MB in all and say so', async () => {
   expect(r.files.length).toBe(62) // 62 * 500,000 bytes is under 30 MiB; the 63rd is over
   expect(r.skipped).toEqual([{ path: 'f62.txt', why: 'stopped at 30 MB in all: this file and the 7 after it were not read', unread: 8 }])
 })
+
+// the small check of the second round (HK-088): weak suspects pushed an ID table out of view, possible uses swelled the
+// machine count, ./ credited two targets, and the shell mark was on Suspects lines only
+test('suspects are listed strongest first, so status words alone cannot push an ID table past the 15 shown', () => {
+  const weak = Array.from({ length: 16 }, (_, i) => ({ path: `docs/a${String(i).padStart(2, '0')}.md`, text: 'OPEN\n' }))
+  const text = formatInventory(inventory([...weak, { path: 'docs/z.md', text: '| ID | What |\n|---|---|\n| T-1 | thing |\n' }]))
+  expect(text).toContain('\n## Suspects (below the score of 3, with some sign of pending work)\ndocs/z.md: 1 ID tables\ndocs/a00.md: 1 status words\n')
+})
+
+test('past the five shown, possible uses are said apart from the machine readers', () => {
+  const scripts = Array.from({ length: 6 }, (_, i) => ({ path: `scripts/s${i}.sh`, text: 'grep T- ../TODO\n' }))
+  const inv = inventory([{ path: 'TODO', text: '## T-1 one\n## T-2 two\n' }, ...scripts,
+    { path: 'src/a.ts', text: '// TODO\n' }, { path: 'src/b.ts', text: '// TODO\n' }])
+  expect(formatInventory(inv)).toContain('\n        and 3 more, 1 of them machine, 2 possible uses (the --json output names them)')
+})
+
+test('./ in a text file credits the file it names from its own folder only', () => {
+  const list = '## B-1 one\n## B-2 two\n'
+  const inv = inventory([{ path: 'docs/todo.md', text: list }, { path: 'todo.md', text: list }, { path: 'docs/notes.txt', text: 'see ./todo.md\n' }])
+  expect(inv.references.filter(r => r.from === 'docs/notes.txt')).toEqual([{ target: 'docs/todo.md', from: 'docs/notes.txt', count: 1, machine: true }])
+})
+
+test('a path the shell can read as commands is marked as a candidate and in the answers line too', () => {
+  const text = formatInventory(inventory([{ path: 'docs/b&x.md', text: BACKLOG }], [], { tracker: ['docs/b&x.md'] }))
+  expect(text).toMatch(/ {2}docs\/b&x\.md: [^\n]*\(name it only through \/housekeeping survey: a shell can read this path as commands\)\n/)
+  expect(text).toContain('\nAnswers in this run: --tracker docs/b&x.md; --not-tracker none. A path here holds characters a shell can read ' +
+    'as commands: name it only through /housekeeping survey.\n')
+})

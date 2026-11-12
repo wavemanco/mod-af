@@ -44,6 +44,9 @@ const PENDING_HEADING = /^#{1,6}[ \t]+(?:to[ -]?dos?|roadmap|next[ -]steps?)\b/i
 const TOP = 15, REFS = 5, SUSPECTS = 15
 // letters, digits, space, dot, dash, underscore and slash: a path of these alone no shell reads as more than a word
 const SHELL_SAFE = /^[\p{L}\p{Nd} ._/-]*$/u
+// a path the procedure sends through the slash route, which uses no shell, wherever the inventory names it (second
+// check, finding 3; HK-088)
+const unsafe = (path: string): string => SHELL_SAFE.test(path) ? '' : ' (name it only through /housekeeping survey: a shell can read this path as commands)'
 // why the readers skipped a file
 const LOCK = 'a lockfile', BINARY = 'binary (a NUL character)', BIG = 'over 2 MB', UNREADABLE = 'unreadable'
 const MISSING = 'missing from the working tree', NOT_FILE = 'not a regular file (a link, a folder or a submodule)'
@@ -110,6 +113,9 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = [],
     const history = signals.dated || f.path.split('/').slice(0, -1).some(d => HISTORY_DIR.test(d))
     candidates.push({ path: f.path, signals, score, hint: history ? 'likely-history' : score >= 10 ? 'likely-tracker' : 'maybe' })
   }
+  // strongest first, then by path, so files with status words only cannot push an ID table past the cap (HK-088)
+  const strength = (why: string) => /ID (?:tables|headings)/.test(why) ? 0 : /^\d+ status words$/.test(why) ? 2 : 1
+  suspects.sort((a, b) => strength(a.why) - strength(b.why))
   // named first; history last: it stays where it is, so it should not spend the top places the references are counted for
   const old = (c: Candidate) => +(c.hint === 'likely-history')
   candidates.sort((a, b) => +b.signals.named - +a.signals.named || old(a) - old(b) || b.score - a.score || byPath(a.path, b.path))
@@ -143,8 +149,9 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = [],
         if (!before) { for (const t of targets) hit(t, targets.length > 1 && name.includes('.'), !name.includes('.')); continue }
         const relative = /^\.\.?\//.test(before)
         const said = fold(relative ? `${f.path}/../${before}${name}` : before + name)
-        // a script, a workflow or a hook runs from the top, so its ./ and ../ are folded from there too
-        const fromTop = relative && !MARKDOWN.test(f.path) ? fold(before + name) : said
+        // a script, a workflow or a hook runs from the top, so its ./ and ../ are folded from there too, unless the fold
+        // from its own folder names a tracked file, which then stands alone (HK-088: one mention, one target)
+        const fromTop = relative && !MARKDOWN.test(f.path) && !known.has(said) ? fold(before + name) : said
         const credited = targets.filter(t => t === said || t === fromTop || (!relative && ends(t, said)))
         for (const t of credited) hit(t)
         if (!credited.length && !known.has(said) && !known.has(fromTop)) for (const t of targets) hit(t, false, true)
@@ -210,7 +217,9 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
   // both answers, where the cut cannot reach: a tracker is a named candidate, a not-tracker is nowhere else
   const trackers = inv.candidates.filter(c => c.signals.named).map(c => c.path)
   if (trackers.length || inv.notTracker.length)
-    lines.push('', `Answers in this run: --tracker ${trackers.join(', ') || 'none'}; --not-tracker ${inv.notTracker.join(', ') || 'none'}.`)
+    lines.push('', `Answers in this run: --tracker ${trackers.join(', ') || 'none'}; --not-tracker ${inv.notTracker.join(', ') || 'none'}.` +
+      ([...trackers, ...inv.notTracker].some(p => unsafe(p)) ? ' A path here holds characters a shell can read as commands: ' +
+        'name it only through /housekeeping survey.' : ''))
   // "nothing to move" only where nothing is tracked; elsewhere what was measured, and Not measured right after the
   // header, so the cut cannot hide it
   if (!inv.files && !inv.skipped.length && !inv.denied) lines.push('', 'No tracked files: nothing to move. /housekeeping init sets up the pair.')
@@ -220,12 +229,10 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
     'The score does not read data files (YAML, JSON, CSV, TOML), nor code files apart from their TODO comments.')
   if (inv.candidates.length) {
     lines.push('', '## Candidates (score, hint, path: signals)')
-    for (const c of inv.candidates) lines.push(`${c.score.toFixed(1).padStart(6)}  ${c.hint.padEnd(14)}  ${c.path}: ${said(c.signals)}`)
+    for (const c of inv.candidates) lines.push(`${c.score.toFixed(1).padStart(6)}  ${c.hint.padEnd(14)}  ${c.path}: ${said(c.signals)}${unsafe(c.path)}`)
   }
   lines.push('', '## Suspects (below the score of 3, with some sign of pending work)')
-  // a path the procedure sends through the slash route, which uses no shell (second check, finding 3)
-  for (const s of inv.suspects.slice(0, SUSPECTS))
-    lines.push(`${s.path}: ${s.why}${SHELL_SAFE.test(s.path) ? '' : ' (name it only through /housekeeping survey: a shell can read this path as commands)'}`)
+  for (const s of inv.suspects.slice(0, SUSPECTS)) lines.push(`${s.path}: ${s.why}${unsafe(s.path)}`)
   if (!inv.suspects.length) lines.push('none')
   else if (inv.suspects.length > SUSPECTS) lines.push(`and ${inv.suspects.length - SUSPECTS} more${json}`)
   // before the references and guides, the long sections, so a cut hides them first; lockfiles and binaries are counted
@@ -246,7 +253,10 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
       for (const r of refs.slice(0, REFS))
         lines.push(`${String(r.count).padStart(6)}  ${r.from}${r.machine ? ' (machine)' : ''}${r.ambiguous ? ' (ambiguous: a bare name several targets share)' : ''}${r.possible ? ' (possible use: a bare word, or a path that names no tracked file)' : ''}`)
       const rest = refs.slice(REFS)
-      if (rest.length) lines.push(`        and ${rest.length} more, ${rest.filter(r => r.machine).length} of them machine${json}`)
+      // a possible use is no reader, so it is said apart from the machine count (HK-088)
+      const possible = rest.filter(r => r.possible).length
+      if (rest.length) lines.push(`        and ${rest.length} more, ${rest.filter(r => r.machine && !r.possible).length} of them machine` +
+        `${possible ? `, ${possible} possible uses` : ''}${json}`)
     }
   }
   if (inv.guides.length) {
