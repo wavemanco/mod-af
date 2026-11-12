@@ -160,7 +160,7 @@ test('name and status words count in prose files only: in code they are identifi
 
 test('an empty file set gives no candidates, and the text says there is nothing to move', () => {
   const inv = inventory([])
-  expect(inv).toEqual({ files: 0, candidates: [], suspects: [], references: [], guides: [], skipped: [], denied: 0, notTracker: [] })
+  expect(inv).toEqual({ files: 0, candidates: [], suspects: [], references: [], guides: [], skipped: [], denied: 0, notTracker: [], outside: 0 })
   expect(formatInventory(inv)).toContain('\n\nNo tracked files: nothing to move. /housekeeping init sets up the pair.\n')
 })
 

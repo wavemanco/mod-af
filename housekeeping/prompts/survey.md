@@ -32,7 +32,7 @@ For each, give the repository's own words for it: quote the guide line or headin
 The re-run is `node <path to housekeeping>/cli.ts survey --repo <dir> --tracker <path> --not-tracker <path>`, in Claude Code from the folder the context names, or the person runs `/housekeeping survey --tracker <path> --not-tracker <path>`.
 
 The re-run is the person's in two cases: ask them to run `/housekeeping survey --tracker <path> --not-tracker <path>`, which obeys the Read rules and uses no shell.
-- When Not measured counts files denied by Read rules: the Node command ignores those rules wherever it runs, so do not run it in this session.
+- When Not measured counts files denied by Read rules or outside the folder this session started in: the Node command ignores the Read rules wherever it runs, so do not run it in this session.
 - When a path holds anything but letters, digits, space, dot, dash, underscore or slash (the inventory marks such a suspect): a shell can read it as commands, whatever the quoting, so put it in no command line.
 
 **Then** offer `/housekeeping plan` (elsewhere, `prompts/plan.md` with this survey) to turn the survey into steps. Say there is nothing to move only when the inventory says the repository has no tracked files. When no file reached the score of 3, say that in those words, with what was not measured. Before you say that no file holds pending work, read the guide files (README, CLAUDE, AGENTS, CONTRIBUTING, GOAL) whole and put the suspects to the person; only then offer `/housekeeping init` instead (elsewhere, setting up the pair as housekeeping's `FORMAT.md` says under "New repositories").

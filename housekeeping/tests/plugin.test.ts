@@ -669,7 +669,7 @@ const TRACKED = { 'docs/todo.md': '## T-1 one\n## T-2 two\n- [ ] three\n', 'src/
 // finding 22: the agent was never told where housekeeping lives, so it guessed the Node command and the format
 const WHERE = /^housekeeping is installed at (.+): run its Node command as node \1\/cli\.ts \(survey takes --tracker and --not-tracker\), and read its row format in \1\/FORMAT\.md\.$/
 const DENIED_WHERE = new RegExp('^housekeeping is installed at (.+); read its row format in \\1/FORMAT\\.md\\. Not measured counts files ' +
-  "the person's Read rules deny, and housekeeping's Node command ignores those rules wherever it runs: do not run its survey in " +
+  "the person's Read rules deny, and housekeeping's Node command ignores the Read rules wherever it runs: do not run its survey in " +
   'this session\\. To survey again with --tracker and --not-tracker, ask the person to run /housekeeping survey --tracker <path> ' +
   '--not-tracker <path>, which obeys the rules\\.$')
 
@@ -799,7 +799,9 @@ test('in a subfolder session an ask with no rule for a file outside the folder i
   const r = await run($, 'survey')
   expect(w.reads!.filter(p => p.includes('secret'))).toEqual([])
   expect(w.reads).toContain('/w/docs/notes.md') // inside the session's folder an ask is read, as before
-  expect(r.context.at(-1)).toContain('\nFiles not read: 1 denied by Read rules.\n')
+  // no rule denied it, so it is counted as what it is (HK-088)
+  expect(r.context.at(-1)).toContain('\nFiles not read: 1 outside the folder this session started in.\n')
+  expect(r.context[1]).toContain("Not measured counts files outside the folder this session started in, where the Read rules of the repository's top are not in force, and")
   expect(r.context.join('\n')).not.toContain('hidden')
   expect(r.text).toBe('housekeeping survey: 2 files read, 1 candidates\n1 files outside the folder this session started in were not read, ' +
     "since the repository's Read rules are not in force here: start the session at the top of the repository, /w, to survey them.\n" +

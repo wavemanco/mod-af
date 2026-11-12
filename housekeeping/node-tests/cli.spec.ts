@@ -291,7 +291,7 @@ test('survey takes --tracker and --not-tracker, repeatable; a path git does not 
 test('the survey procedure without its Node lines names no Node command and sends the re-run to the slash command', () => {
   const cut = withoutNode(readFileSync(join(import.meta.dirname, '..', 'prompts', 'survey.md'), 'utf8'))
   assert.doesNotMatch(cut, /cli\.ts|--json/)
-  assert.match(cut, /When Not measured counts files denied by Read rules: [^\n]*do not run it in this session/)
+  assert.match(cut, /When Not measured counts files denied by Read rules or outside the folder this session started in: [^\n]*do not run it in this session/)
   assert.match(cut, /ask them to run `\/housekeeping survey --tracker <path> --not-tracker <path>`/)
   for (const part of ['**The suspects.**', 'Then run the survey again', '**What you could not tell.**', '**Then** offer', 'Rules: write nothing'])
     assert.ok(cut.includes(part), part)

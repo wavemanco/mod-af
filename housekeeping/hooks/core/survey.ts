@@ -19,7 +19,9 @@ export type Suspect = { path: string; why: string }
 // denied: the files the person's Read rules kept the survey from, counted and never named; notTracker: the
 // --not-tracker paths, which leave the candidates and the suspects but are said, so the agent sees the answer
 export type Inventory = { files: number; candidates: Candidate[]; suspects: Suspect[]; references: Reference[];
-  guides: { path: string; line: number; text: string }[]; skipped: Skipped[]; denied: number; notTracker: string[] }
+  guides: { path: string; line: number; text: string }[]; skipped: Skipped[]; denied: number; notTracker: string[]
+  // outside: of the denied, those outside the folder a session below the top started in, whose rules are not in force (HK-088)
+  outside?: number }
 
 const NAME = /backlog|todo|roadmap|plan|open|pending|defer|follow.?up|checklist|docket|tracker|playbook|issues|tasks|progress|launch/i
 // [ \t] where the plan's pattern says \s: with /m, \s would run on past the line's end
@@ -102,7 +104,7 @@ function suspectOf({ path, text }: SurveyFile, s: Signals): string {
 // The person's answers (the owner, 2026-11-04): a tracker is a candidate, ranked first, even when it was not read; a
 // not-tracker is neither a candidate nor a suspect. checkNamed has made both tracked, "/"-separated paths.
 export function inventory(files: SurveyFile[], skipped: Skipped[] = [],
-  { denied = 0, tracker = [] as string[], notTracker = [] as string[] } = {}): Inventory {
+  { denied = 0, outside = 0, tracker = [] as string[], notTracker = [] as string[] } = {}): Inventory {
   const read = new Set(files.map(f => f.path))
   const sorted = [...files, ...tracker.filter(p => !read.has(p)).map(path => ({ path, text: '' }))].sort((a, b) => byPath(a.path, b.path))
   const candidates: Candidate[] = [], suspects: Suspect[] = []
@@ -172,7 +174,7 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = [],
       if (GUIDE_LINE.test(l)) guides.push({ path: f.path, line: i + 1, text: maskPrivacy(l.trim()) })
     })
   }
-  return { files: files.length, candidates, suspects, references, guides, skipped, denied, notTracker }
+  return { files: files.length, candidates, suspects, references, guides, skipped, denied, notTracker, outside }
 }
 
 const LABELS: [keyof Signals, string][] = [['idHeadings', 'ID headings'], ['idTables', 'ID tables'],
@@ -187,20 +189,20 @@ function said(s: Signals): string {
 }
 
 // Not measured's reasons, in its order; a stop is a limit that ended the reading
-const DENIED = 'denied by Read rules', CUT = 'past the end of a cut-short list of tracked files'
+const DENIED = 'denied by Read rules', OUTSIDE = 'outside the folder this session started in', CUT = 'past the end of a cut-short list of tracked files'
 const REASONS: [string, (s: Skipped) => boolean, boolean][] = [
   ['over 2 MB', s => s.why === BIG, false], ['binary or lockfile', s => s.why === LOCK || s.why === BINARY, false],
   ['unreadable', s => s.why === UNREADABLE, false], [MISSING, s => s.why === MISSING, false],
-  ['links, folders or submodules', s => s.why === NOT_FILE, false], [DENIED, () => false, false],
+  ['links, folders or submodules', s => s.why === NOT_FILE, false], [DENIED, () => false, false], [OUTSIDE, () => false, false],
   ['past the 3,000-file limit', s => s.why.startsWith(AT_FILES), true], ['past the 30 MB limit', s => s.why.startsWith(AT_TOTAL), true],
   [CUT, s => s.why === CUT_LIST, true]]
 
 /** The files not read, counted by reason ("5 past the 3,000-file limit"); with stops, only the limits that ended the reading. */
-export function notRead(inv: Pick<Inventory, 'skipped' | 'denied'>, stops = false): string[] {
+export function notRead(inv: Pick<Inventory, 'skipped' | 'denied' | 'outside'>, stops = false): string[] {
   const out: string[] = []
   for (const [label, of, stop] of REASONS) {
     if (stops && !stop) continue
-    const n = label === DENIED ? inv.denied : inv.skipped.filter(of).reduce((n, s) => n + (s.unread ?? 1), 0)
+    const n = label === DENIED ? inv.denied - (inv.outside ?? 0) : label === OUTSIDE ? inv.outside ?? 0 : inv.skipped.filter(of).reduce((n, s) => n + (s.unread ?? 1), 0)
     if (n) out.push(label === CUT ? label : `${n} ${label}`)
   }
   return out

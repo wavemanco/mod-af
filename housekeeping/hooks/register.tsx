@@ -142,13 +142,16 @@ async function procedure($: EngineInterface, arg: 'survey' | 'plan', named?: { t
   const root = await repoRoot($)
   const t = await readTracked($, root, named)
   if ('error' in t) return { text: t.error, exitCode: 1 }
-  const inv = inventory(t.files, t.skipped, { denied: t.denied, ...t.named })
+  const inv = inventory(t.files, t.skipped, { denied: t.denied, outside: t.outside, ...t.named })
   // where housekeeping lives, which the procedures need for the Node command and FORMAT.md (finding 22). With a file
   // denied, no Node command: it ignores the Read rules, so the re-run is the person's slash command (second check, finding 1)
   const home = $.plugin.root
   const text = await $.fs.read(`${home}/prompts/${arg}.md`)
+  // the files outside the session's folder are said as such: no rule denied them (HK-088)
+  const kept = [t.denied > t.outside && "files the person's Read rules deny",
+    t.outside && "files outside the folder this session started in, where the Read rules of the repository's top are not in force"]
   const where = inv.denied ? `housekeeping is installed at ${home}; read its row format in ${home}/FORMAT.md. Not measured counts ` +
-    "files the person's Read rules deny, and housekeeping's Node command ignores those rules wherever it runs: do not run its survey " +
+    `${kept.filter(Boolean).join(' and ')}, and housekeeping's Node command ignores the Read rules wherever it runs: do not run its survey ` +
     'in this session. To survey again with --tracker and --not-tracker, ask the person to run /housekeeping survey --tracker <path> ' +
     '--not-tracker <path>, which obeys the rules.'
     : `housekeeping is installed at ${home}: run its Node command as node ${home}/cli.ts (survey takes --tracker and --not-tracker), ` +
