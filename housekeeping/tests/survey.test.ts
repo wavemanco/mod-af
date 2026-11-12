@@ -83,7 +83,9 @@ test('a mention with a path names the target that path ends; a bare name names e
     { path: 'notes.md', text: 'Each package has a TODO.md.\n' },
     { path: 'tools/old.sh', text: 'cat archive/BACKLOG.md\n' }])
   expect(inv.candidates.map(c => c.path)).toEqual(['BACKLOG.md', 'packages/a/TODO.md', 'packages/b/TODO.md'])
+  // second check, finding 10: archive/BACKLOG.md names no tracked file, so it is a possible use, not no use
   expect(inv.references).toEqual([
+    { target: 'BACKLOG.md', from: 'tools/old.sh', count: 1, machine: true, possible: true },
     { target: 'packages/a/TODO.md', from: 'notes.md', count: 1, machine: false, ambiguous: true },
     { target: 'packages/a/TODO.md', from: 'packages/a/guide.md', count: 1, machine: false },
     { target: 'packages/b/TODO.md', from: 'notes.md', count: 1, machine: false, ambiguous: true },
@@ -104,7 +106,29 @@ test('for a target with no extension a bare word is a possible use, after the re
     { target: 'TODO', from: 'lib/c.ts', count: 5, machine: true, possible: true },
     { target: 'TODO', from: 'src/a.ts', count: 25, machine: true, possible: true },
     { target: 'TODO', from: 'src/b.ts', count: 2, machine: true, possible: true }])
-  expect(formatInventory(inv)).toContain('\n    25  src/a.ts (machine) (possible use: a bare word)\n')
+  expect(formatInventory(inv)).toContain('\n    25  src/a.ts (machine) (possible use: a bare word, or a path that names no tracked file)\n')
+})
+
+// second check, finding 10: finding 31's strict rule dropped real readers, with nothing to say so
+test('a path that ends a target after a space, ./ in a script from the top and a percent-encoded link are readers; $ROOT, absolute paths and URLs are possible uses', () => {
+  const list = '## B-1 one\n## B-2 two\n'
+  const inv = inventory([{ path: 'docs/backlog.md', text: list },
+    { path: 'scripts/ci.sh', text: 'cat "$ROOT/docs/backlog.md"\ngrep B- /home/u/repo/docs/backlog.md\n' },
+    { path: 'README.md', text: 'See https://github.com/o/r/blob/main/docs/backlog.md.\n' },
+    { path: '.github/workflows/check.yml', text: 'run: grep B- ./docs/backlog.md && grep B- ../docs/backlog.md\n' },
+    { path: 'docs/guide.md', text: 'Not [this](./docs/backlog.md).\n' }])
+  expect(inv.references).toEqual([
+    { target: 'docs/backlog.md', from: '.github/workflows/check.yml', count: 2, machine: true },
+    { target: 'docs/backlog.md', from: 'README.md', count: 1, machine: false, possible: true },
+    { target: 'docs/backlog.md', from: 'docs/guide.md', count: 1, machine: false, possible: true },
+    { target: 'docs/backlog.md', from: 'scripts/ci.sh', count: 2, machine: true, possible: true }])
+  const spaced = inventory([{ path: 'my docs/todo.md', text: list }, { path: 'tools/a.sh', text: 'cat "my docs/todo.md"\n' },
+    // %E9 alone is no UTF-8, so it stays as it is
+    { path: 'notes.md', text: '[the list](my%20docs/todo.md)\n' }, { path: 'b.md', text: '[the list](my%20docs/caf%E9/todo.md)\n' }])
+  expect(spaced.references).toEqual([
+    { target: 'my docs/todo.md', from: 'notes.md', count: 1, machine: false },
+    { target: 'my docs/todo.md', from: 'tools/a.sh', count: 1, machine: true },
+    { target: 'my docs/todo.md', from: 'b.md', count: 1, machine: false, possible: true }])
 })
 
 test('the guide lines that say where pending work goes: whole in the inventory, cut at 200 and marked in the text', () => {

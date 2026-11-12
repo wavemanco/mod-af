@@ -10,7 +10,7 @@ export type Signals = { named: boolean; name: boolean; idHeadings: number; idTab
 export type Candidate = { path: string; signals: Signals; score: number;
   hint: 'likely-tracker' | 'maybe' | 'likely-history' }
 // ambiguous: some of the mentions are a bare name that more than one of the top files has; possible: every mention
-// is a bare word for a name with no extension
+// is a bare word for a name with no extension, or a path that names no tracked file
 export type Reference = { target: string; from: string; count: number; machine: boolean; ambiguous?: true; possible?: true }
 // unread: on a stop, the files it left unread, this one included
 export type Skipped = { path: string; why: string; unread?: number }
@@ -120,21 +120,32 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = [],
     const same = new Map<string, string[]>()
     for (const t of top) same.set(baseOf(t), [...(same.get(baseOf(t)) ?? []), t])
     const names = [...same.keys()].sort((a, b) => b.length - a.length).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    const re = new RegExp(`(?<![\\w./-])(/?(?:[\\w.-]+/)*)(${names.join('|')})(?![\\w-])`, 'g')
+    // "/*": a URL's "//" may open the path
+    const re = new RegExp(`(?<![\\w./-])(/*(?:[\\w.-]+/)*)(${names.join('|')})(?![\\w-])`, 'g')
+    const known = new Set([...sorted.map(f => f.path), ...skipped.map(s => s.path)])
+    // a target ends with the written path where the character before it in the target is not a path character: "/",
+    // or a space, "@" or accented letter the capture stopped at (second check, finding 10)
+    const ends = (t: string, said: string) => t.endsWith(said) && !/[\w.-]/.test(t.charAt(t.length - said.length - 1))
     for (const f of sorted) {
-      // possible: a bare word for a name with no extension ("TODO", "open"), which plain text uses too
+      // possible: a bare word for a name with no extension ("TODO", "open"), which plain text uses too, or a path that
+      // names no tracked file ($ROOT/x, an absolute path, a URL)
       const hits = new Map<string, { count: number; possible: number; ambiguous: boolean }>()
       const hit = (t: string, ambiguous = false, possible = false) => {
         const h = hits.get(t) ?? { count: 0, possible: 0, ambiguous: false }
         hits.set(t, { count: h.count + +!possible, possible: h.possible + +possible, ambiguous: h.ambiguous || ambiguous })
       }
-      for (const [, before, name] of f.text.matchAll(re)) {
+      // percent-encoded links decoded; a run that is no UTF-8 stays as it is
+      const text = f.text.replace(/(?:%[0-9A-Fa-f]{2})+/g, s => { try { return decodeURIComponent(s) } catch { return s } })
+      for (const [, before, name] of text.matchAll(re)) {
         const targets = same.get(name)!
         if (!before) { for (const t of targets) hit(t, targets.length > 1 && name.includes('.'), !name.includes('.')); continue }
-        // shortcut: a path that does not end a target ($ROOT/x, a URL) names none, short of the base-name match it had; upgrade when one is missed
         const relative = /^\.\.?\//.test(before)
         const said = fold(relative ? `${f.path}/../${before}${name}` : before + name)
-        for (const t of targets) if (t === said || (!relative && t.endsWith(`/${said}`))) hit(t)
+        // a script, a workflow or a hook runs from the top, so its ./ and ../ are folded from there too
+        const fromTop = relative && !MARKDOWN.test(f.path) ? fold(before + name) : said
+        const credited = targets.filter(t => t === said || t === fromTop || (!relative && ends(t, said)))
+        for (const t of credited) hit(t)
+        if (!credited.length && !known.has(said) && !known.has(fromTop)) for (const t of targets) hit(t, false, true)
       }
       for (const [target, h] of hits) if (target !== f.path)
         references.push({ target, from: f.path, count: h.count || h.possible, machine: !MARKDOWN.test(f.path),
@@ -231,7 +242,7 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
     for (const [target, refs] of byTarget) {
       lines.push(target)
       for (const r of refs.slice(0, REFS))
-        lines.push(`${String(r.count).padStart(6)}  ${r.from}${r.machine ? ' (machine)' : ''}${r.ambiguous ? ' (ambiguous: a bare name several targets share)' : ''}${r.possible ? ' (possible use: a bare word)' : ''}`)
+        lines.push(`${String(r.count).padStart(6)}  ${r.from}${r.machine ? ' (machine)' : ''}${r.ambiguous ? ' (ambiguous: a bare name several targets share)' : ''}${r.possible ? ' (possible use: a bare word, or a path that names no tracked file)' : ''}`)
       const rest = refs.slice(REFS)
       if (rest.length) lines.push(`        and ${rest.length} more, ${rest.filter(r => r.machine).length} of them machine${json}`)
     }
