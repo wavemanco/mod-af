@@ -3,8 +3,8 @@
 // session's own tools, except the plugin's own page (writePage).
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
-import { blobArgs, headArgs, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot,
-  unreadable } from './core/history.ts'
+import { blobArgs, headArgs, historyUnread, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs,
+  snapshot, unreadable } from './core/history.ts'
 import { parseSettings } from './core/settings.ts'
 import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
@@ -48,6 +48,7 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
   if (shallow) findings.push(SHALLOW_WARNING)
   const log = shallow ? null : await git(logArgs(settings).slice(1))
   if (log?.isStdoutTruncated) return fail('git log was cut short')
+  if (log && log.exitCode !== 0) return fail(historyUnread(settings, log.stderr.split('\n')[0].trim()))
   const snapshots: (Snapshot & CommitInfo)[] = []
   for (const c of parseLog(log?.stdout ?? '')) {
     const f = await filesAt(c.sha)

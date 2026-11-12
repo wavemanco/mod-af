@@ -114,6 +114,23 @@ test('in a blobless clone the command never fetches, and says which file it cann
   assert.equal(has(), false)
 })
 
+// second check, finding 11: in a treeless clone the history's git log failed, and check, map and brief died with a
+// stack trace, exit 1
+test('in a treeless clone check, map and brief say they cannot read the history, exit 2, with no stack trace', () => {
+  const dir = repo()
+  writeFileSync(join(dir, 'backlog.md'), backlog.replace('Tidy the build scripts', 'Tidy the build and test scripts'))
+  git(dir, 'commit', '-qam', 'a change')
+  const clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  execFileSync('git', ['clone', '-q', '--filter=tree:0', '-u', 'git -c uploadpack.allowFilter=true upload-pack', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
+  for (const cmd of ['check', 'map', 'brief']) {
+    const r = run(cmd, '--repo', clone, '--out', join(clone, 'm.html'))
+    assert.equal(r.status, 2, cmd + r.stdout + r.stderr)
+    assert.match(r.stdout, /^housekeeping: cannot read the history of backlog\.md and playbook\.md on main: housekeeping never fetches \(git said: fatal: .+\)$/m)
+    assert.doesNotMatch(r.stderr, /\n\s+at /)
+  }
+  assert.equal(existsSync(join(clone, 'm.html')), false)
+})
+
 // finding 12: on another branch a passing check said nothing of which branch it read; a tied minor: map and check
 // never said local main was behind its remote copy
 test('check names the branch it read when HEAD is elsewhere, and map and check say local main is behind', () => {

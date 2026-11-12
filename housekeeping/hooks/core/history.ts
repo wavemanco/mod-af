@@ -26,6 +26,9 @@ export const NO_FETCH = { GIT_NO_LAZY_FETCH: '1' }
 export const blobArgs = (sha: string, path: string): string[] => ['git', 'rev-parse', '--verify', '--quiet', '--end-of-options', `${sha}:${path}`]
 export const unreadable = (sha: string, path: string, said: string): string =>
   `cannot read ${path} at ${sha.slice(0, 7)}, which this clone does not hold: housekeeping never fetches (git said: ${said})`
+// A history walk that git stops, in a treeless clone say, is a stop, never an empty history (second check, finding 11).
+export const historyUnread = (s: Settings, said: string): string =>
+  `cannot read the history of ${s.files.backlog.path} and ${s.files.playbook.path} on ${s.mainBranch}: housekeeping never fetches (git said: ${said})`
 
 export function parseLog(stdout: string): CommitInfo[] {
   return stdout.split('\n').filter(l => l.trim()).map(l => {

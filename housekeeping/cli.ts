@@ -7,8 +7,8 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { build } from './hooks/core/index.ts'
 import { behind, brief, onBranch } from './hooks/core/brief.ts'
 import { formatFindings } from './hooks/core/findings.ts'
-import { blobArgs, headArgs, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot,
-  unreadable } from './hooks/core/history.ts'
+import { blobArgs, headArgs, historyUnread, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs,
+  snapshot, unreadable } from './hooks/core/history.ts'
 import { parseSettings } from './hooks/core/settings.ts'
 import { checkNamed, collect, formatInventory, inventory } from './hooks/core/survey.ts'
 import type { CommitInfo, FileKey, Snapshot } from './hooks/core/types.ts'
@@ -101,7 +101,12 @@ export async function main(argv: string[]): Promise<number> {
     ({ backlog: show(sha, settings.files.backlog.path), playbook: show(sha, settings.files.playbook.path) })
 
   const shallow = git(SHALLOW.slice(1)).trim() === 'true'
-  const snapshots: (Snapshot & CommitInfo)[] = shallow ? [] : parseLog(git(logArgs(settings).slice(1)))
+  let log = ''
+  try { log = shallow ? '' : git(logArgs(settings).slice(1)) } catch (e) {
+    console.log(`housekeeping: ${historyUnread(settings, gitSaid(e) || (e as Error).message)}`)
+    return 2
+  }
+  const snapshots: (Snapshot & CommitInfo)[] = parseLog(log)
     .map(c => ({ ...snapshot(settings, filesAt(c.sha)), ...c })) // the file text is dropped as each commit is done
   const files = filesAt(head.sha)
   if (cannot) { console.log(`housekeeping: ${cannot}`); return 2 }

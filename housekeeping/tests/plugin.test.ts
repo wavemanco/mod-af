@@ -43,6 +43,7 @@ type World = {
   denied?: string[] // tracked paths the person's Read rules deny
   asked?: string[] // tracked paths the engine answers with an ask and no rule, as it does outside the session's folder
   oldGit?: boolean // git rev-parse echoes --path-format, as a git before 2.31 does
+  logFail?: string // the history walk's git log exits 128 with this stderr, as in a treeless clone
   lsFail?: boolean // git ls-files exits 128
   lsCut?: boolean // git ls-files output is cut short
   reads?: string[] // every path fs.read was asked for
@@ -87,6 +88,7 @@ function world(on: On, w: World = {}) {
       stderr: 'fatal: not a git repository (or any of the parent directories): .git\n' } }
     if (a === 'ls-files') return ok(Object.keys(w.tracked ?? {}).map(p => `${p}\0`).join(''), 0, w.lsCut)
     if (w.gitFail && (a === 'log' || b === '--verify')) return { value: { exitCode: 128, stdout: '', stderr: w.gitFail, isStdoutTruncated: false, isStderrTruncated: false } }
+    if (a === 'log' && w.logFail && e.argv.includes('--reverse')) return { value: { exitCode: 128, stdout: '', stderr: w.logFail, isStdoutTruncated: false, isStderrTruncated: false } }
     if (a === 'log' && w.gate && e.argv.includes('--reverse')) return w.gate.then(() => ok(`${SHA}\t2026-09-12\thead\n`))
     if (a === 'log') return w.noBranch ? ok('', 128) : ok(`${SHA}\t2026-09-12\thead\n`)
     if (a === 'show') {
@@ -447,6 +449,21 @@ test('git runs with lazy fetching off, and a blob the clone does not hold is rep
   expect(r.exitCode).toBe(1)
   expect(r.text).toContain(`cannot read backlog.md at ${SHA.slice(0, 7)}, which this clone does not hold: housekeeping never fetches (git said: fatal: bad object x)`)
   w.argv!.forEach((a, i) => { if (a[1] === 'log' || a[1] === 'show') expect(w.envs![i]?.GIT_NO_LAZY_FETCH).toBe('1') })
+})
+
+// second check, finding 11: in a treeless clone the history's git log failed, and check passed with an empty history
+test('a history walk that git stops is a git error naming the two files, and nothing is published; a shallow clone walks none', async ($, on) => {
+  const w: World = { logFail: 'fatal: unable to read tree (0ff1621)\nmore\n' }
+  world(on, w)
+  await $.session.start(START)
+  const c = await run($, 'check')
+  expect(c.exitCode).toBe(1)
+  expect(c.text).toBe('error git - cannot read the history of backlog.md and playbook.md on main: housekeeping never fetches (git said: fatal: unable to read tree (0ff1621))')
+  expect((await run($, 'map')).exitCode).toBe(1)
+  expect(w.written).toBeUndefined()
+  expect(w.calls!.length).toBe(0)
+  w.shallow = true
+  expect((await run($, 'check')).exitCode).toBe(0)
 })
 
 // finding 12 and a tied minor: check names the branch it read, and map and check say local main is behind
