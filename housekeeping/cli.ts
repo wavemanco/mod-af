@@ -8,7 +8,7 @@ import { build } from './hooks/core/index.ts'
 import { behind, brief, onBranch } from './hooks/core/brief.ts'
 import { formatFindings } from './hooks/core/findings.ts'
 import { blobArgs, headArgs, historyUnread, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs,
-  snapshot, unreadable } from './hooks/core/history.ts'
+  snapshot, treeArgs, treeless, unreadable } from './hooks/core/history.ts'
 import { parseSettings } from './hooks/core/settings.ts'
 import { checkNamed, collect, formatInventory, inventory } from './hooks/core/survey.ts'
 import type { CommitInfo, FileKey, Snapshot } from './hooks/core/types.ts'
@@ -92,7 +92,10 @@ export async function main(argv: string[]): Promise<number> {
   let cannot = '' // a file the clone does not hold, which is no missing file
   const show = (sha: string, path: string): string | null => {
     try { return git(showArgs(sha, path).slice(1)) } catch (e) {
-      try { git(blobArgs(sha, path).slice(1)) } catch { return null }
+      try { git(blobArgs(sha, path).slice(1)) } catch {
+        if (sha === head.sha) try { git(treeArgs(sha).slice(1)) } catch { cannot ||= treeless(sha, path) }
+        return null
+      }
       cannot ||= unreadable(settings, sha, path, gitSaid(e))
       return null
     }

@@ -4,7 +4,7 @@
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
 import { blobArgs, headArgs, historyUnread, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs,
-  snapshot, unreadable } from './core/history.ts'
+  snapshot, treeArgs, treeless, unreadable } from './core/history.ts'
 import { parseSettings } from './core/settings.ts'
 import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
@@ -37,7 +37,8 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
     const r = await git(showArgs(sha, path).slice(1))
     if (r.isStdoutTruncated) return { error: `git show was cut short at ${sha.slice(0, 7)}` }
     if (r.exitCode === 0) return r.stdout
-    return (await git(blobArgs(sha, path).slice(1))).exitCode === 0 ? { error: unreadable(settings, sha, path, r.stderr.split('\n')[0].trim()) } : null
+    if ((await git(blobArgs(sha, path).slice(1))).exitCode === 0) return { error: unreadable(settings, sha, path, r.stderr.split('\n')[0].trim()) }
+    return sha === head.sha && (await git(treeArgs(sha).slice(1))).exitCode !== 0 ? { error: treeless(sha, path) } : null
   }
   const filesAt = async (sha: string): Promise<Record<FileKey, string | null> | { error: string }> => {
     const b = await show(sha, settings.files.backlog.path), p = await show(sha, settings.files.playbook.path)

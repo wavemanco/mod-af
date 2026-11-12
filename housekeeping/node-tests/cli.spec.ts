@@ -143,6 +143,23 @@ test('in a blobless clone with merges on main, the cure the stop names is enough
   assert.equal(run('check', '--repo', clone).status, 0)
 })
 
+// the small check of the second round (HK-088, HK-075): in a shallow treeless clone with main not checked out, check
+// said the two files were not on main, where the clone held no tree of main's to read them from
+test('in a shallow treeless clone with main not checked out, check says it does not hold main\'s tree, exit 2', () => {
+  const dir = repo()
+  git(dir, 'checkout', '-q', '-b', 'side')
+  writeFileSync(join(dir, 'other.md'), 'x\n')
+  git(dir, 'add', 'other.md')
+  git(dir, 'commit', '-qm', 'side')
+  const clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  execFileSync('git', ['clone', '-q', '--depth', '1', '--no-single-branch', '--filter=tree:0', '-b', 'side', '-u', 'git -c uploadpack.allowFilter=true upload-pack',
+    pathToFileURL(dir).href, clone], { stdio: 'ignore' })
+  git(clone, 'branch', '-q', 'main', 'origin/main')
+  const c = run('check', '--repo', clone)
+  assert.equal(c.status, 2, c.stdout + c.stderr)
+  assert.match(c.stdout, /^housekeeping: cannot read backlog\.md at [0-9a-f]{7}, whose tree this clone does not hold: housekeeping never fetches\. Checking out the main branch fetches it; then run this again\.$/m)
+})
+
 // second check, finding 11: in a treeless clone the history's git log failed, and check, map and brief died with a
 // stack trace, exit 1
 test('in a treeless clone check, map and brief say they cannot read the history, exit 2, with no stack trace', () => {

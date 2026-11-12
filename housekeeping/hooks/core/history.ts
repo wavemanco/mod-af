@@ -36,6 +36,12 @@ export const unreadable = (s: Settings, sha: string, path: string, said: string)
       : 'To fetch the old versions, run git log -p -m --first-parent <main branch> -- <backlog> <playbook> with the settings\' names ' +
         'quoted for your shell (one holds characters a shell may run, so they are not printed here), then run this again.')
 }
+// Main's own files, where the path is not found: a commit whose tree the clone does not hold, in a shallow treeless
+// clone with main not checked out, is a stop, never two missing files (HK-088, HK-075)
+export const treeArgs = (sha: string): string[] => ['git', 'cat-file', '-e', `${sha}^{tree}`]
+export const treeless = (sha: string, path: string): string =>
+  `cannot read ${path} at ${sha.slice(0, 7)}, whose tree this clone does not hold: housekeeping never fetches. ` +
+  'Checking out the main branch fetches it; then run this again.'
 // A history walk that git stops, in a treeless clone say, is a stop, never an empty history (second check, finding 11).
 export const historyUnread = (s: Settings, said: string): string =>
   `cannot read the history of ${s.files.backlog.path} and ${s.files.playbook.path} on ${s.mainBranch}: housekeeping never fetches (git said: ${said})`

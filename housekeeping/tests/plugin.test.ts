@@ -44,6 +44,7 @@ type World = {
   asked?: string[] // tracked paths the engine answers with an ask and no rule, as it does outside the session's folder
   oldGit?: boolean // git rev-parse echoes --path-format, as a git before 2.31 does
   logFail?: string // the history walk's git log exits 128 with this stderr, as in a treeless clone
+  noTree?: boolean // the clone holds no tree of main's head: show, the path's rev-parse and cat-file fail
   lsFail?: boolean // git ls-files exits 128
   lsCut?: boolean // git ls-files output is cut short
   reads?: string[] // every path fs.read was asked for
@@ -82,6 +83,8 @@ function world(on: On, w: World = {}) {
     w.argv?.push([...e.argv])
     w.envs?.push(e.init?.env)
     const [, a, b] = e.argv
+    if (w.noTree && (a === 'show' || a === 'cat-file' || (b === '--verify' && String(e.argv.at(-1)).includes(':'))))
+      return { value: { exitCode: a === 'show' ? 128 : 1, stdout: '', stderr: 'fatal: bad object x\n', isStdoutTruncated: false, isStderrTruncated: false } }
     if (w.blobless && a === 'show') return { value: { exitCode: 128, stdout: '', stderr: 'fatal: bad object x\n', isStdoutTruncated: false, isStderrTruncated: false } }
     if (w.blobless && b === '--verify' && String(e.argv.at(-1)).includes(':')) return ok('5626abf0f72e58d7a153368ba57db4c673c0e171\n')
     if (a === 'ls-files' && w.lsFail) return { value: { exitCode: 128, stdout: '', isStdoutTruncated: false, isStderrTruncated: false,
@@ -745,6 +748,15 @@ test('after a procedure, each compaction of the conversation is told to keep the
 })
 
 // the small check of the second round (HK-088, HK-090)
+test("with no tree of main's head in the clone, check stops and says so, never two missing files (HK-075)", async ($, on) => {
+  world(on, { noTree: true })
+  await $.session.start(START)
+  const r = await run($, 'check')
+  expect(r.exitCode).toBe(1)
+  expect(r.text).toContain(`cannot read backlog.md at ${SHA.slice(0, 7)}, whose tree this clone does not hold: housekeeping never fetches. ` +
+    'Checking out the main branch fetches it; then run this again.')
+})
+
 test('a procedure whose reply the site refuses is not recorded, so a compaction goes on as it came', async ($, on) => {
   world(on, { tracked: { ...TRACKED }, badPrompt: true })
   const told = compacts(on)
