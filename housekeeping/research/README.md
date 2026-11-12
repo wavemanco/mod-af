@@ -31,3 +31,7 @@ not run with its evidence, and what became of each gap the dry runs found, are i
 
 The minors that the adversarial check of Phase 2 parked, and those the build's ledger deferred, each with its
 place and whether the fix round settled it, are in [phase-2-check-minors.md](phase-2-check-minors.md).
+
+The minors that the check of that fix round parked, and the findings the second fix round stopped, each with
+its place and whether the second round settled it, are in
+[phase-2-fixes-check-minors.md](phase-2-fixes-check-minors.md).
