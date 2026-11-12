@@ -207,6 +207,16 @@ test('a --tracker path is a candidate with a named signal, first, with its reade
   expect(formatInventory(inv)).toContain('\n   0.0  maybe           tasks.yaml: named by --tracker\n')
 })
 
+// second check, finding 17, at the owner's "Widen the suspects": a lone ID table scored 2 and was no suspect
+test('in a prose file below the score, its scored signs are suspect reasons: a 50-row ID table with lowercase statuses is listed', () => {
+  const table = ['| ID | What | Status |', '|---|---|---|', ...Array.from({ length: 50 }, (_, i) => `| T-${i + 1} | thing | open |`)].join('\n')
+  const inv = inventory([{ path: 'docs/list.md', text: table + '\n' }, { path: 'docs/one.md', text: '## X-1 one\nDONE\n' },
+    { path: 'src/table.ts', text: `const t = \`${table}\`\n` }])
+  expect(inv.candidates).toEqual([])
+  expect(inv.suspects).toEqual([{ path: 'docs/list.md', why: '1 ID tables' }, { path: 'docs/one.md', why: '1 ID headings, 1 status words' }])
+  expect(formatInventory(inv)).toContain('\n## Suspects (below the score of 3, with some sign of pending work)\ndocs/list.md: 1 ID tables\n')
+})
+
 // second check, finding 12: through the slash route the agent never saw a not-tracker answer
 test('with --tracker or --not-tracker the inventory keeps the not-trackers and the text names both answers in one line', () => {
   const inv = inventory(FILES, [], { tracker: ['tasks.yaml'], notTracker: ['BACKLOG.md', 'NOTES.md'] })

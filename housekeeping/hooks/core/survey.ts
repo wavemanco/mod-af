@@ -84,14 +84,16 @@ const scoreOf = (s: Signals): number =>
   Math.round(10 * (3 * +s.name + 2 * s.idHeadings + 2 * s.idTables + s.openBoxes + s.statusWords / 5 + s.todos / 10)) / 10
 
 // The suspects' signs, which the score leaves out (the owner, 2026-11-04): in prose, a TODO, roadmap or next-steps
-// heading, TODOs or open boxes; a data file whose name holds a tracker word. '' for none.
+// heading, TODOs or open boxes; a data file whose name holds a tracker word. In prose the scored signs too, below
+// 3 (second check, finding 17, the owner's "Widen the suspects"): a lone ID table scores 2. '' for none.
 function suspectOf({ path, text }: SurveyFile, s: Signals): string {
   const base = baseOf(path)
   if (DATA.test(base)) return NAME.test(base) ? 'a data file named like a tracker' : ''
   if (!isProse(base, text)) return ''
   const todos = count(TODO, text)
   return [PENDING_HEADING.test(text) && 'a TODO, roadmap or next-steps heading', todos && `${todos} TODOs`,
-    s.openBoxes && `${s.openBoxes} open boxes`].filter(Boolean).join(', ')
+    s.openBoxes && `${s.openBoxes} open boxes`, s.idHeadings && `${s.idHeadings} ID headings`,
+    s.idTables && `${s.idTables} ID tables`, s.statusWords && `${s.statusWords} status words`].filter(Boolean).join(', ')
 }
 
 // The person's answers (the owner, 2026-11-04): a tracker is a candidate, ranked first, even when it was not read; a
