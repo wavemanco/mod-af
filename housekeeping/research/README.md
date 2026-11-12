@@ -35,3 +35,6 @@ place and whether the fix round settled it, are in [phase-2-check-minors.md](pha
 The minors that the check of that fix round parked, and the findings the second fix round stopped, each with
 its place and whether the second round settled it, are in
 [phase-2-fixes-check-minors.md](phase-2-fixes-check-minors.md).
+
+The small check of the second round, what held, and its confirmed findings and parked minors are in
+[phase-2-round2-check-minors.md](phase-2-round2-check-minors.md).
