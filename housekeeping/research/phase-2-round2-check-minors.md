@@ -10,17 +10,17 @@ Of the 18 findings the round answered and finding 13's two minors:
 - **Hold:** 5, 7, 8 and 12.
 - **Hold with a limit:** 1, 3, 4, 6, 9, 10, 11, 13 and its two minors, 15, 16 and 17.
 - **Untried, because they need a live session:** 2 and 14.
-- **Does not hold:** 18 (HK-087).
+- **Does not hold:** 18 (HK-087), fixed after the check in db75b1b, with tests; no check has run on that fix.
 
 How to read a line: the place is the file and line the check gave, under `housekeeping/`. **Open** means
 nothing settled it. **Fixed** names the commit. "Disclosed" means a row or a minors list already held the
 class and the check shows more. No skeptic tried these minors.
 
-## Confirmed (HK-087)
+## Confirmed (HK-087, fixed)
 
-- **Open.** `hooks/core/history.ts:28-31`: the blobless stop's line to paste is built from the settings'
+- **Fixed** (db75b1b). `hooks/core/history.ts:28-31`: the blobless stop's line to paste is built from the settings'
   branch and paths, so a hidden command in either runs when it is pasted (finding 18).
-- **Open.** `hooks/core/history.ts:31`, `README.md:42`, `DESIGN.md` 3.4 and section 9: the cure it names does not
+- **Fixed** (db75b1b). `hooks/core/history.ts:31`, `README.md:42`, `DESIGN.md` 3.4 and section 9: the cure it names does not
   cure a main with merge commits, and `git backfill` does not cure it on a branch behind main (finding 18).
 
 ## Parked minors (HK-088)
