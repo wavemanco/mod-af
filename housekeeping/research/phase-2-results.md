@@ -96,8 +96,10 @@ needs the owner as a row in `../BACKLOG.md`. Each gap is described in the raw re
 - Guide lines cut at 200 characters: the inventory now keeps each line whole (the `--json` output), and the
   text view ends a cut line with `...`; the survey procedure says to read such a line in its file. Test
   repository A's pointer to its build handoff, at character 262 of a 1,377-character line, is now in the
-  JSON, and its line is marked as cut. With fewer candidates, the reference repository's text now shows 60
-  of its 95 guide lines before the 20,000-character cut, and the JSON has all 95.
+  JSON, and its line is marked as cut. With fewer candidates, the reference repository's text showed 60 of
+  its 95 guide lines before the 20,000-character cut at the close-out, and the JSON had all 95. The fix
+  round then added the Not measured and Suspects sections and changed how references are found, so that
+  count no longer holds; it was not measured again.
 
 **Explained, not changed.**
 - Files that outscore the canonical one: test repository B's agent correspondence files, which quote the
@@ -107,7 +109,8 @@ needs the owner as a row in `../BACKLOG.md`. Each gap is described in the raw re
   sorted each and none became a row. The survey procedure now names these kinds and says the repository's
   own words decide. The weights stay as they are: the call Task 6's ruling left to this task.
 - A tracker word inside a longer word of a prose file's name: kept, because a tighter pattern would miss
-  trackers named as compounds. A name alone scores 3.0, the lowest score a candidate can have.
+  trackers named as compounds. A name alone scores 3.0, the score a file needs to be a candidate; since the
+  fix round, a file the person names with `--tracker` is a candidate at any score.
 - Test repository A's misses (a review response holding the release plan, a dependency document's open
   decision, a review triage, and the brief for gathering test data) carry no tracker signal of their
   own. The procedure already sends the agent to what a reference or guide line points at, and the reading

@@ -36,7 +36,7 @@ No finding of the fix round was stopped: each of the round's first five tasks cl
 - **Open.** `hooks/core/survey.ts:43`: a byte order mark hides a heading or box on a file's first line.
 - **Open.** `cli.ts:40; hooks/adapter.ts:115`: during a merge conflict each unmerged file is listed, and read, three times.
 - **Open.** `hooks/core/survey.ts:118`: a tracker saved as UTF-16 is counted under "binary or lockfile" and not named.
-- **Partly fixed** (90b9afb). `hooks/core/survey.ts:76`: a name joined to another by a dot no longer counts as a reference, but case variants and encoded links still do not count.
+- **Partly fixed** (90b9afb, 5669ce6). `hooks/core/survey.ts:76`: a name joined to another by a dot before it no longer counts as a reference, and since the second round a percent-encoded link does; a name with a suffix after it (`BACKLOG.md.bak`) still counts, and case variants still do not.
 - **Open.** `hooks/core/survey.ts:82`: "(machine)" marks `.txt`, `.rst`, `.org` and extensionless prose files as if they were code.
 - **Open.** `hooks/core/survey.ts:43`: ID headings and boxes inside code fences count, while tables there do not.
 - **Open.** `hooks/core/survey.ts:85`: the text's five files per target are the ones with most mentions, so machine readers, which often name a file once, are the first hidden.
@@ -112,9 +112,9 @@ No finding of the fix round was stopped: each of the round's first five tasks cl
 
 ## Records (HK-066)
 
-- **Partly fixed** (ee65dff). `FORMAT.md:46, :48, :53, :56`: line 48 on skipped tables is now true, but lines 46, 53 and 56 still say less than the code on fences, Done entries and the where-we-are date (its fence, done-id and undated warnings).
+- **Partly fixed** (ee65dff, 302b6cd). `FORMAT.md:46, :48, :53, :56`: line 48 on skipped tables was made truer, though the second check found it still says every cut warns where four kinds of section are exempt; line 46 on fences says the code's fence warning since the second round; lines 53 and 56 still say less than the code on first-row lookups and the where-we-are date.
 - **Open.** `DESIGN.md:620, :650-653; hooks/register.tsx:155; hooks/adapter.ts:95`: DESIGN section 10 item 13 and two code comments still describe the rules from before HK-030 and HK-033, including that the page's direct write moved to the top of the git tree, which the owner has yet to be told.
-- **Fixed** (55a8c67, c739375, and research/README.md in the commit that adds this file). `README.md:3, :5, :77, :87; DESIGN.md:197`: the words the Phase 2 edits left stale in the README, research/README.md and DESIGN 3.4's list of the Node command's subcommands.
+- **Partly fixed** (55a8c67, c739375, and research/README.md in the commit that adds this file). `README.md:3, :5, :77, :87; DESIGN.md:197`: the words the Phase 2 edits left stale in the README, research/README.md and DESIGN 3.4's list of the Node command's subcommands were replaced, but README line 5's new words, that under plan the agent commits only the steps you approve, did not hold in the second check (its finding 2, where only the procedure's words were changed).
 - **Open.** `research/phase-2-results.md:21, :40, :113; BACKLOG.md:76`: a few small claims in the results and in HK-001 say more than the raw reports do.
 - **Open.** `BACKLOG.md:13, :24, :25`: HK-052 is an open row that is mostly done, though a failed publish on a second run is still not driven by a test, and HK-051 and HK-003 say stale things.
 - **Open.** `BACKLOG.md:27, :29`: HK-054 says the plan's five commits are in the raw notes though only their hashes are, and HK-056 can read as if the owner had decided.
@@ -154,7 +154,7 @@ line, the line is the one at this file's commit.
 - **Open.** `tests/plugin.test.ts` (the cached view): the cached-view test was loosened from exactly one rev-parse to rev-parse calls only and no history walk.
 - **A note.** Phase 2's Task 4 Done rows each carry their commit.
 - **Open.** `tests/brief.test.ts` (HK-038, HK-037): the line-length test does not pin the 120-character cut, and the HK-037 node spec was never seen failing before its fix.
-- **Open.** `hooks/core/index.ts:88`: the page-size check counts characters as bytes, true only while the page stays ASCII, which a code comment now states and no test pins.
+- **A note.** `hooks/core/index.ts:47-48`: the page-size check counts characters as bytes, which holds because the page writes every non-ASCII character as an escape, as the code's comments say, and `tests/page.test.ts` pins the template and the built page as ASCII.
 - **A note.** `DESIGN.md` 3.4: the masking bullet's "decided 2026-11-03; section 9" holds, since section 9's row of that day on a privacy hit in a commit subject records it.
 - **A note.** Phase 2's Task 5 fix round took its gate result from its report; every later task's gate has passed since.
 - **Fixed** (a8d709a, then c484ff2 and f31618d). `hooks/adapter.ts` (readTracked): the plugin tests reach it through `/housekeeping survey`, now with a Read deny and a failed listing.
