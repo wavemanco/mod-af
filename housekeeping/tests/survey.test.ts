@@ -124,11 +124,14 @@ test('a path that ends a target after a space, ./ in a script from the top and a
     { target: 'docs/backlog.md', from: 'scripts/ci.sh', count: 2, machine: true, possible: true }])
   const spaced = inventory([{ path: 'my docs/todo.md', text: list }, { path: 'tools/a.sh', text: 'cat "my docs/todo.md"\n' },
     // %E9 alone is no UTF-8, so it stays as it is
-    { path: 'notes.md', text: '[the list](my%20docs/todo.md)\n' }, { path: 'b.md', text: '[the list](my%20docs/caf%E9/todo.md)\n' }])
+    { path: 'notes.md', text: '[the list](my%20docs/todo.md)\n' }, { path: 'b.md', text: '[the list](my%20docs/caf%E9/todo.md)\n' },
+    // "s/todo.md" ends the target after a path character, "c": it is no reader of it
+    { path: 'c.sh', text: 'cat s/todo.md\n' }])
   expect(spaced.references).toEqual([
     { target: 'my docs/todo.md', from: 'notes.md', count: 1, machine: false },
     { target: 'my docs/todo.md', from: 'tools/a.sh', count: 1, machine: true },
-    { target: 'my docs/todo.md', from: 'b.md', count: 1, machine: false, possible: true }])
+    { target: 'my docs/todo.md', from: 'b.md', count: 1, machine: false, possible: true },
+    { target: 'my docs/todo.md', from: 'c.sh', count: 1, machine: true, possible: true }])
 })
 
 test('the guide lines that say where pending work goes: whole in the inventory, cut at 200 and marked in the text', () => {
