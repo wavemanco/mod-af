@@ -286,6 +286,13 @@ test('the plan procedure: approval is the owner\'s own message after the numbere
     assert.ok(plan.includes(part), part)
 })
 
+// second check, finding 14: agents wrote the absolute install folder into the committed guide line
+test('the plan procedure writes the agent-guide line with its placeholder, word for word, as init writes it', () => {
+  const plan = PLAN()
+  assert.ok(plan.includes('`At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.`'))
+  assert.match(plan, /Write it with its placeholder `<path to housekeeping>` as it stands, word for word, as `init` writes it, /)
+})
+
 // finding 29: from a subfolder the survey read only that subtree, and could say there was nothing to move
 test('survey --repo <subfolder> surveys the whole repository from its top, and says so', () => {
   const dir = mkdtempSync(join(tmpdir(), 'hk-cli-')), pkg = join(dir, 'pkg')
