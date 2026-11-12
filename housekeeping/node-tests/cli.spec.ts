@@ -15,7 +15,7 @@ process.env.NoDefaultCurrentDirectoryInExePath = '1'
 // every fixture folder is removed when the file's tests end (HK-089: thousands were left in the temp folder)
 const made: string[] = []
 const tmp = () => { const d = mkdtempSync(join(tmpdir(), 'hk-cli-')); made.push(d); return d }
-after(() => { for (const d of made) rmSync(d, { recursive: true, force: true, maxRetries: 3 }) })
+after(() => { for (const d of made) for (const p of [d, `${d}-key`, `${d}-key.pub`]) rmSync(p, { recursive: true, force: true, maxRetries: 3 }) })
 const git =(dir: string, ...a: string[]) =>
   execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.test', ...a], { cwd: dir, encoding: 'utf8', stdio: 'pipe' })
 
