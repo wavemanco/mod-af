@@ -206,6 +206,15 @@ test('with a file denied, no note in the text offers the --json output', () => {
   expect(formatInventory(inv, 400)).toMatch(/\[cut at 400 characters: \d+ more lines\]$/)
 })
 
+// second check, finding 3: a cmd.exe shim for node re-read a tracked name's "&" as a command
+test('a suspect whose path holds anything but letters, digits, space, dot, dash, underscore or slash is marked for the slash route', () => {
+  const paths = ['docs/b&mkdir,x&.md', "docs/it's.md", 'docs/50%.md', 'docs/my list.md', 'docs/café.md', 'docs/a_b-c.1.md']
+  const text = formatInventory(inventory(paths.map(path => ({ path, text: '- [ ] x\n' }))))
+  const mark = ' (name it only through /housekeeping survey: a shell can read this path as commands)'
+  for (const p of paths.slice(0, 3)) expect(text).toContain(`\n${p}: 1 open boxes${mark}\n`)
+  for (const p of paths.slice(3)) expect(text).toMatch(new RegExp(`\\n${p.replaceAll('.', '\\.')}: 1 open boxes(\\n|$)`))
+})
+
 test('the named paths are made repository-relative with "/"; one git does not track, or named both ways, is an error naming it', () => {
   expect(checkNamed(['docs/a.md', 'b.md'], ['./docs/a.md', 'docs\\a.md'], ['b.md'])).toEqual({ tracker: ['docs/a.md'], notTracker: ['b.md'] })
   expect(checkNamed(['a.md'], ['nope.md', 'a.md'], ['gone.md'])).toEqual({ error: 'not a tracked file: nope.md, gone.md' })

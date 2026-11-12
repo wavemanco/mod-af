@@ -42,6 +42,8 @@ const LOCKFILE = /(?:^|\/)(?:[^/]*\.lock|pnpm-lock\.yaml|package-lock\.json)$/
 const DATA = /\.(?:ya?ml|json|csv|toml)$/i
 const PENDING_HEADING = /^#{1,6}[ \t]+(?:to[ -]?dos?|roadmap|next[ -]steps?)\b/im
 const TOP = 15, REFS = 5, SUSPECTS = 15
+// letters, digits, space, dot, dash, underscore and slash: a path of these alone no shell reads as more than a word
+const SHELL_SAFE = /^[\p{L}\p{Nd} ._/-]*$/u
 // why the readers skipped a file
 const LOCK = 'a lockfile', BINARY = 'binary (a NUL character)', BIG = 'over 2 MB', UNREADABLE = 'unreadable'
 const MISSING = 'missing from the working tree', NOT_FILE = 'not a regular file (a link, a folder or a submodule)'
@@ -208,7 +210,9 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
     for (const c of inv.candidates) lines.push(`${c.score.toFixed(1).padStart(6)}  ${c.hint.padEnd(14)}  ${c.path}: ${said(c.signals)}`)
   }
   lines.push('', '## Suspects (below the score of 3, with some sign of pending work)')
-  for (const s of inv.suspects.slice(0, SUSPECTS)) lines.push(`${s.path}: ${s.why}`)
+  // a path the procedure sends through the slash route, which uses no shell (second check, finding 3)
+  for (const s of inv.suspects.slice(0, SUSPECTS))
+    lines.push(`${s.path}: ${s.why}${SHELL_SAFE.test(s.path) ? '' : ' (name it only through /housekeeping survey: a shell can read this path as commands)'}`)
   if (!inv.suspects.length) lines.push('none')
   else if (inv.suspects.length > SUSPECTS) lines.push(`and ${inv.suspects.length - SUSPECTS} more${json}`)
   // before the references and guides, the long sections, so a cut hides them first; lockfiles and binaries are counted
