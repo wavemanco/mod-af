@@ -90,4 +90,8 @@ test('a long run of mixed letters is scanned in linear time, and a 64-letter loc
   expect(scanPrivacy('a.é'.repeat(40_000) + ' end')).toEqual([])
   expect(performance.now() - t0).toBeLessThan(1000)
   expect(kinds(`write to ${'a'.repeat(64)}@corp.io today`)).toEqual(['email'])
+  // a longer local part is masked whole, though the pattern reads only its last 64 characters
+  const long = 'b'.repeat(36) + 'a'.repeat(64)
+  expect(maskPrivacy(`write to ${long}@corp.io today`)).toBe(`write to bb${'*'.repeat(long.length + 8 - 4)}io today`)
+  expect(scanPrivacy(`write to ${long}@corp.io today`)[0].index).toBe(9)
 })

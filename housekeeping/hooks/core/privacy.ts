@@ -29,16 +29,38 @@ function allowed(email: string): boolean {
   return ['example.com', 'example.org', 'example.net', 'users.noreply.github.com'].includes(domain)
 }
 
+// Each address with its whole local part: the pattern reads at most the last 64 characters of it, so a longer one is
+// widened to the left here, and no part of it is left unmasked (HK-088)
+const LOCAL = /[\p{L}\p{M}0-9._%+-]/u
+function emails(text: string): { start: number; end: number }[] {
+  const out: { start: number; end: number }[] = []
+  for (const m of text.matchAll(EMAIL)) {
+    let start = m.index
+    while (start > (out.at(-1)?.end ?? 0) && LOCAL.test(text[start - 1])) start--
+    out.push({ start, end: m.index + m[0].length })
+  }
+  return out
+}
+
 export function scanPrivacy(text: string): PrivacyHit[] {
   const hits: PrivacyHit[] = []
-  for (const m of text.matchAll(EMAIL)) if (!allowed(m[0])) hits.push({ kind: 'email', index: m.index, sample: mask(m[0]) })
+  for (const { start, end } of emails(text)) {
+    const m = text.slice(start, end)
+    if (!allowed(m)) hits.push({ kind: 'email', index: start, sample: mask(m) })
+  }
   for (const re of KEYS) for (const m of text.matchAll(re)) hits.push({ kind: 'key', index: m.index, sample: mask(m[0]) })
   return hits.sort((a, b) => a.index - b.index)
 }
 
 // The text with each hit masked as its sample is. For commit subjects, which cannot be edited.
 export function maskPrivacy(text: string): string {
-  let out = text.replace(EMAIL, m => (allowed(m) ? m : mask(m)))
+  let out = '', at = 0
+  for (const { start, end } of emails(text)) {
+    const m = text.slice(start, end)
+    out += text.slice(at, start) + (allowed(m) ? m : mask(m))
+    at = end
+  }
+  out += text.slice(at)
   for (const re of KEYS) out = out.replace(re, mask)
   return out
 }
