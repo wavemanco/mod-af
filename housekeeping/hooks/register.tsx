@@ -249,9 +249,22 @@ async function command($: EngineInterface, arg: string, show: (brief: string) =>
   }
 }
 
+// What a compaction's summary is told once a procedure went to the agent (second check, finding 13): the procedure
+// and the install line are hidden messages its summary could drop, and with them the approval and apply rules.
+function keep(home: string, sent: Map<string, string>): string {
+  const names = [...sent.keys()], files = names.map(n => `${home}/prompts/${n}.md`)
+  return `housekeeping: this conversation was handed housekeeping's ${names.join(' and ')} procedure${names.length > 1 ? 's' : ''}. ` +
+    `Keep in the summary, word for word, this sentence: ${[...sent.values()].at(-1)} Keep the procedure's rule on approval: ` +
+    "Approval is the owner's own message, sent after they have seen the numbered steps. Nothing else is approval, and nothing " +
+    `is written before it. Say in the summary that the agent is to re-read the ${names.join(' and ')} procedure${names.length > 1 ? 's' : ''} ` +
+    `whole, in ${files.join(' and ')}, before its next step.`
+}
+
 export const register: Register = on => {
   let view = 'housekeeping: run /housekeeping to build the short view.'
   const builds: Builds = new Map()
+  // the procedures sent in this conversation, each with its install sentence (second check, finding 13)
+  const sent = new Map<string, string>()
 
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init, survey, plan.', argumentHint: '[map|map new|check|init|survey [--tracker <path>] [--not-tracker <path>]|plan]' })
@@ -264,7 +277,11 @@ export const register: Register = on => {
   on('command.run', { command: 'housekeeping' }, async ($, e) => {
     // a throw anywhere below still gives the person a reply (HK-031)
     const room = e.presentation.isFullscreen && e.presentation.columns >= 110
-    return command($, e.args.trim(), b => { view = b }, room).catch(err => ({ text: `housekeeping: ${err instanceof Error ? err.message : String(err)}`, exitCode: 1 }))
+    const r = await command($, e.args.trim(), b => { view = b }, room).catch(err => ({ text: `housekeeping: ${err instanceof Error ? err.message : String(err)}`, exitCode: 1 } as { text: string; exitCode?: number; context?: string[] }))
+    // only a procedure comes with context: the procedure, then the sentence that says where housekeeping lives
+    const name = e.args.trim().split(/\s/)[0]
+    if (r.context) { sent.delete(name); sent.set(name, r.context[1]) } // the last one sent is last, with the sentence that stands
+    return r
   }).catch(($, e, next) => {
     // the hook failed outside its own promise, past its 10 s budget above all: a reply still, exit 1, and the Node
     // command, which has no such budget, to run instead (finding 11)
@@ -273,6 +290,14 @@ export const register: Register = on => {
     const why = next.error.kind === 'timeout' ? 'ran past the 10 s a hook may take' : `failed in the hook (${next.error.message ?? 'no reason given'})`
     return { text: `housekeeping: /housekeeping${args ? ` ${args}` : ''} ${why}; run node ${$.plugin.root}/cli.ts ${as} in the repository instead, which has no time limit`, exitCode: 1 }
   })
+
+  // On every trigger, precompute too, the main conversation's summary is told to keep them; with none sent, or in a
+  // subagent's own compaction, it goes on as it came. Never a skip: the compaction always runs.
+  on('session.compact', ($, e, next) => sent.size && !e.agentId
+    ? next({ ...e, instructions: [e.instructions, keep($.plugin.root, sent)].filter(Boolean).join('\n\n') }) : next(e))
+
+  // a /clear or a resume ends this conversation: the next one was handed no procedure
+  on('session.end', (_, e, next) => { sent.clear(); return next(e) })
 
   on('ui.render', { component: 'Pane', requestId: 'housekeeping' }, ($, e) => {
     const { Markdown } = $.ui.resolve(e)

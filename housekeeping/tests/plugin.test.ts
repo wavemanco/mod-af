@@ -703,6 +703,64 @@ test('/housekeeping plan adds the check findings when a .housekeeping.json exist
   expect((await run($, 'plan')).context.length).toBe(3)
 })
 
+// second check, finding 13 and the two minors that share its cause: the procedure and the install line are hidden
+// messages a compaction's summary could drop, and with them the approval rule and the apply rules
+const APPROVAL = "Approval is the owner's own message, sent after they have seen the numbered steps."
+const MSGS = [{ role: 'user' as const, text: 'go ahead', toolUses: [] }]
+const compacts = (on: any) => {
+  const told: (string | undefined)[] = []
+  on('session.compact', (_: unknown, e: { instructions?: string; messages: unknown[] }) => { told.push(e.instructions); return { messages: e.messages } })
+  return told
+}
+
+test('after a procedure, each compaction of the conversation is told to keep the install sentence and the approval rule and to re-read the procedure, and goes ahead', async ($, on) => {
+  const w: World = { tracked: { ...TRACKED } }
+  world(on, w)
+  const told = compacts(on)
+  await $.session.start(START)
+  const where = (await run($, 'plan')).context[1], home = WHERE.exec(where)![1]
+  for (const trigger of ['manual', 'auto', 'plugin', 'precompute'] as const) {
+    const got = await $.session.compact({ trigger, messages: MSGS, ...(trigger === 'manual' ? { instructions: 'keep the test names' } : {}) })
+    expect(got.skip).toBeUndefined()
+    expect(got.messages).toEqual(MSGS)
+  }
+  expect(told.length).toBe(4)
+  expect(told[0]!.startsWith('keep the test names\n\n')).toBe(true) // the person's words after /compact stay first
+  for (const t of told) {
+    expect(t).toContain(`word for word, this sentence: ${where}`)
+    expect(t).toContain(APPROVAL)
+    expect(t).toContain(`re-read the plan procedure whole, in ${home}/prompts/plan.md, before its next step`)
+    expect(t).not.toContain('undefined')
+  }
+  w.denied = ['docs/todo.md'] // both sent: both named, and the install sentence is the last one sent
+  const last = (await run($, 'survey')).context[1]
+  await $.session.compact({ trigger: 'auto', messages: MSGS })
+  expect(told.at(-1)).toContain(`re-read the plan and survey procedures whole, in ${home}/prompts/plan.md and ${home}/prompts/survey.md`)
+  expect(last).toMatch(DENIED_WHERE)
+  expect(told.at(-1)).toContain(`this sentence: ${last} Keep`)
+  expect(told.at(-1)).not.toContain(where)
+})
+
+test('with no procedure sent, after a failed one, in a subagent\'s compaction or after /clear, a compaction goes on as it came', async ($, on) => {
+  const w: World = { tracked: { ...TRACKED }, lsFail: true }
+  world(on, w)
+  const told = compacts(on)
+  on('session.end', (_, e) => ({ sessionId: e.sessionId }))
+  await $.session.start(START)
+  const compact =(e: object = {}) => $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine', ...e })
+  expect((await compact()).skip).toBeUndefined()
+  await run($, 'check')
+  await run($, '')
+  expect((await run($, 'plan')).exitCode).toBe(1) // git failed: no procedure went to the agent
+  await compact()
+  w.lsFail = false
+  await run($, 'plan')
+  await compact({ agentId: 'a1' }) // a subagent's own transcript never held it
+  await $.session.end({ reason: 'clear', sessionId: 's1', resume: { id: 's1' } })
+  await compact()
+  expect(told).toEqual(['mine', 'mine', 'mine', 'mine'])
+})
+
 // finding 3: the survey read past the person's Read deny rules, and its context carried the denied files' lines
 test('the survey reads no file the Read rules deny, names none, and counts them in Not measured', async ($, on) => {
   const w: World = { reads: [], denied: ['secret/plan.md', 'README.md'], tracked: { ...TRACKED,
