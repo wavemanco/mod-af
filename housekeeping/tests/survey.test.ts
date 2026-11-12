@@ -133,7 +133,7 @@ test('name and status words count in prose files only: in code they are identifi
 
 test('an empty file set gives no candidates, and the text says there is nothing to move', () => {
   const inv = inventory([])
-  expect(inv).toEqual({ files: 0, candidates: [], suspects: [], references: [], guides: [], skipped: [], denied: 0 })
+  expect(inv).toEqual({ files: 0, candidates: [], suspects: [], references: [], guides: [], skipped: [], denied: 0, notTracker: [] })
   expect(formatInventory(inv)).toContain('\n\nNo tracked files: nothing to move. /housekeeping init sets up the pair.\n')
 })
 
@@ -181,6 +181,17 @@ test('a --tracker path is a candidate with a named signal, first, with its reade
   expect(inv.references.filter(r => r.target === 'tasks.yaml')).toEqual([{ target: 'tasks.yaml', from: 'scripts/load.py', count: 1, machine: true }])
   expect(inv.files).toBe(9)
   expect(formatInventory(inv)).toContain('\n   0.0  maybe           tasks.yaml: named by --tracker\n')
+})
+
+// finding 12 of the fix round's check: through the slash route the agent never saw a not-tracker answer
+test('with --tracker or --not-tracker the inventory keeps the not-trackers and the text names both answers in one line', () => {
+  const inv = inventory(FILES, [], { tracker: ['tasks.yaml'], notTracker: ['BACKLOG.md', 'NOTES.md'] })
+  expect(inv.notTracker).toEqual(['BACKLOG.md', 'NOTES.md'])
+  const text = formatInventory(inv)
+  expect(text.split('\n').slice(1, 3)).toEqual(['', 'Answers in this run: --tracker tasks.yaml; --not-tracker BACKLOG.md, NOTES.md.'])
+  expect(formatInventory(inventory(FILES, [], { notTracker: ['NOTES.md'] })))
+    .toContain('\nAnswers in this run: --tracker none; --not-tracker NOTES.md.\n')
+  expect(formatInventory(inventory(FILES))).not.toContain('Answers in this run')
 })
 
 test('the named paths are made repository-relative with "/"; one git does not track, or named both ways, is an error naming it', () => {

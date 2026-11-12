@@ -16,9 +16,10 @@ export type Reference = { target: string; from: string; count: number; machine: 
 export type Skipped = { path: string; why: string; unread?: number }
 // a file below the score that shows some sign of pending work, and that sign
 export type Suspect = { path: string; why: string }
-// denied: the files the person's Read rules kept the survey from, counted and never named
+// denied: the files the person's Read rules kept the survey from, counted and never named; notTracker: the
+// --not-tracker paths, which leave the candidates and the suspects but are said, so the agent sees the answer
 export type Inventory = { files: number; candidates: Candidate[]; suspects: Suspect[]; references: Reference[];
-  guides: { path: string; line: number; text: string }[]; skipped: Skipped[]; denied: number }
+  guides: { path: string; line: number; text: string }[]; skipped: Skipped[]; denied: number; notTracker: string[] }
 
 const NAME = /backlog|todo|roadmap|plan|open|pending|defer|follow.?up|checklist|docket|tracker|playbook|issues|tasks|progress|launch/i
 // [ \t] where the plan's pattern says \s: with /m, \s would run on past the line's end
@@ -149,7 +150,7 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = [],
       if (GUIDE_LINE.test(l)) guides.push({ path: f.path, line: i + 1, text: maskPrivacy(l.trim()) })
     })
   }
-  return { files: files.length, candidates, suspects, references, guides, skipped, denied }
+  return { files: files.length, candidates, suspects, references, guides, skipped, denied, notTracker }
 }
 
 const LABELS: [keyof Signals, string][] = [['idHeadings', 'ID headings'], ['idTables', 'ID tables'],
@@ -185,6 +186,10 @@ export function notRead(inv: Pick<Inventory, 'skipped' | 'denied'>, stops = fals
 
 export function formatInventory(inv: Inventory, maxChars = 20_000): string {
   const lines = [`housekeeping survey: ${inv.files} files read, ${inv.candidates.length} candidates, ${inv.skipped.length} skipped`]
+  // both answers, where the cut cannot reach: a tracker is a named candidate, a not-tracker is nowhere else
+  const trackers = inv.candidates.filter(c => c.signals.named).map(c => c.path)
+  if (trackers.length || inv.notTracker.length)
+    lines.push('', `Answers in this run: --tracker ${trackers.join(', ') || 'none'}; --not-tracker ${inv.notTracker.join(', ') || 'none'}.`)
   // "nothing to move" only where nothing is tracked; elsewhere what was measured, and Not measured right after the
   // header, so the cut cannot hide it
   if (!inv.files && !inv.skipped.length && !inv.denied) lines.push('', 'No tracked files: nothing to move. /housekeeping init sets up the pair.')

@@ -671,8 +671,9 @@ test('/housekeeping survey takes --tracker and --not-tracker, repeatable, a quot
   const inv = r.context.at(-1)
   expect(inv).toContain('\n## Candidates (score, hint, path: signals)\n   0.0  maybe           docs/my list.md: named by --tracker\n' +
     '   0.0  maybe           tasks.yaml: named by --tracker\n\n')
-  expect(inv).not.toContain('docs/todo.md')
-  expect(inv).not.toContain('NOTES.md')
+  // finding 12 of the fix round's check: the not-tracker answers reach the agent, on their one line and nowhere else
+  const answers = 'Answers in this run: --tracker docs/my list.md, tasks.yaml; --not-tracker docs/todo.md, NOTES.md.'
+  expect(inv.split('\n').filter(l => /docs\/todo\.md|NOTES\.md/.test(l))).toEqual([answers])
   const bad = await run($, 'survey --tracker gone.md')
   expect(bad.exitCode).toBe(1)
   expect(bad.text).toBe('housekeeping: not a tracked file: gone.md (paths are from the top of /w)')
