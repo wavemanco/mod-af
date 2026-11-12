@@ -186,7 +186,9 @@ settings keys as the work needs them.
 Two choices are kept per person, outside the repository, because the page is the person's own private
 link: the publish target and the cadence. The plugin's per-person store holds them, keyed by the
 repository's shared git folder (`git rev-parse --git-common-dir`), so that all worktrees of one repository
-share them. The cadence's default comes from the plugin's own settings.
+share them. It asks with no `--path-format`, which a git before 2.31 does not know, and resolves a relative
+answer against the repository's top, so two repositories never share a key (the second check's finding 7).
+The cadence's default comes from the plugin's own settings.
 
 ### 3.4 The generator: one core, three callers
 
@@ -228,6 +230,11 @@ So the reference repository's files, unchanged, pass `check` with recommendation
 
 **Deterministic:** the same commit, given the whole history, gives the same page on any machine. A shallow
 clone holds part of it, so no history is read there and `check` warns (finding 13 of the Phase 2 check).
+A clone that lacks what the walk needs stops instead, with housekeeping's own message and no stack trace:
+in a treeless clone git stops the walk, and in a blobless clone the first old version of the two files that
+the clone does not hold stops it, with a message naming the cure, `git backfill` or `git log -p` over the two
+files on main, which the person runs (the second check's findings 11 and 18; the owner's "Keep the stop, add
+next step", 2026-11-12).
 - The page reads no clock, no network, no CI and no chat.
 - It stamps the commit and the commit's date.
 - It reads the local main branch's files (`git show <main>:<file>`) and never fetches. If a remote copy of
@@ -244,8 +251,10 @@ clone holds part of it, so no history is read there and `check` warns (finding 1
     private key blocks, PGP's included. An address's domain may hold non-ASCII letters, and so may its local part once it
     holds one ASCII letter, digit or sign: `josé@` is found.
   - What passes: a password, a key of any other shape, a percent-encoded address (the owner's choice,
-    2026-11-04), and an address whose local part holds no ASCII letter, digit or sign, one wholly in CJK
-    for example: it has the shape of an at-name written right after CJK text, which must build.
+    2026-11-04), an address whose local part holds no ASCII letter, digit or sign, one wholly in CJK
+    for example: it has the shape of an at-name written right after CJK text, which must build. So do an
+    address whose domain holds a combining mark and a JWT with no signature (a parked minor of the second
+    check).
 - It never shows commit authors.
 - A privacy hit in a commit subject, which cannot be edited, is masked and does not block the page
   (decided 2026-11-03; section 9). The short view is masked in the same way, each text before it is cut,
@@ -292,7 +301,9 @@ The short view comes from the same core and runs to about 2,000 tokens at most:
   commit, an updated view rides on that tool call's result, because the session-start context block cannot
   be changed once sent. The context never waits for the history walk, whose time would count against its
   hook's budget: while the view is rebuilt it carries the last stored view, labelled with its commit, or with
-  nothing stored says the view is being built (finding 20 of the Phase 2 check).
+  nothing stored says the view is being built (finding 20 of the Phase 2 check). The view is stored without
+  its branch line, and the current checkout's line is put in each time it is served, so a view stored on one
+  branch names the branch it is served on (the second check's finding 15).
 
 **For agents outside Claude Code:** `init` and `plan` add one line to the repository's agent guide (its
 AGENTS.md or equivalent): at session start, run `node <plugin>/cli.ts brief`, or read the page.
@@ -324,7 +335,9 @@ The short view is a view of the files, never a store of its own.
 - for each file: whether it is canonical, a neighbour or history, how many items it holds, and how their
   status is written;
 - the outside-work items;
-- every file that names the pending-work files, with counts;
+- every file that names the pending-work files, with counts. A mention whose path names no tracked file
+  (`$ROOT/...`, an absolute path, a URL) is listed as a possible use, not counted (the second check's
+  finding 10);
 - the machine readers that depend on names, IDs or formatting: tests, scripts, frozen configurations,
   merge guards;
 - the repository's own rules that constrain the move. Examples: who may write which paths, a rule of one
@@ -342,15 +355,22 @@ Its text then says what the score did not see:
   list), and one fixed line: the score does not read data files (YAML, JSON, CSV, TOML), nor code files apart
   from their TODO comments.
 - **Suspects:** files below 3 with some sign of pending work, each with its reason: a prose file with a TODO,
-  roadmap or next-steps heading, TODO lines or open boxes; a data file whose name holds a tracker word. At
-  most 15 show in the text, with a count of the rest; `--json` names them all.
+  roadmap or next-steps heading, TODO lines, open boxes, or any of the scored signs, ID headings, ID tables
+  and status words (the owner's "Widen the suspects", 2026-11-12: a lone ID table scores 2); a data file
+  whose name holds a tracker word. At most 15 show in the text, with a count of the rest; `--json` names them
+  all. A suspect whose path holds anything but letters, digits, space, dot, dash, underscore or slash is
+  marked, since a shell can read such a path as commands (the second check's finding 3).
 - **Re-scoring.** The agent puts each suspect to the person: study it, it is a tracker, or it is not. For
-  one to study, it reads the file and gives its reading as its own. It then runs the survey again with
-  `--tracker <path>` and `--not-tracker <path>`, each repeatable, on the Node command and on `/housekeeping
-  survey`. A tracker is a candidate with a `named` signal, even when it was not read; it ranks first, is read
-  first, and its references are found as for any top candidate. A not-tracker leaves the candidates and the
-  suspects. A path git does not track, or one named both ways, is an error naming it. The answers stay in
-  the session and go into the plan: nothing is written before the plan is approved.
+  one to study, it reads the file and gives its reading as its own. The survey then runs again with
+  `--tracker <path>` and `--not-tracker <path>`, each repeatable, on the Node command or on `/housekeeping
+  survey`. The re-run is the person's `/housekeeping survey`, which obeys the Read rules and uses no shell,
+  when Not measured counts denied files (section 4) or a marked path is among the answers (the second
+  check's findings 1 and 3). A tracker is a candidate with a `named` signal, even when it was not read; it
+  ranks first, is read first, and its references are found as for any top candidate. A not-tracker leaves
+  the candidates and the suspects. A path git does not track, or one named both ways, is an error naming it.
+  With either flag, the text names both answers in one line after the header, so the agent sees them through
+  the slash route too (the second check's finding 12). The answers stay in the session and go into the plan:
+  nothing is written before the plan is approved.
 - **Wording.** With no candidates, the reply says that no file reached the survey's score of 3 and gives the
   number of suspects; "nothing to move" is kept for a repository with no tracked files. Before the agent
   says that no file holds pending work, it reads the guide files whole and puts the suspects to the person.
@@ -371,7 +391,16 @@ Its text then says what the score did not see:
 Where a step conflicts with one of the repository's own rules, the plan says so as the owner's decision in
 that repository. It is the agent's proposal. Once the owner approves it, it is applied on a branch, one
 commit per step, split the way the repository's own guards require, with the repository's own tests run
-before and after.
+before and after. Approval is the owner's own message, sent after they have seen the numbered steps; a "go"
+before them, a guide-file rule, commits already on the branch or a where-we-are saying a move is under way
+are not (the second check's finding 2; the owner's "Reword, file a hook", 2026-11-12). Those are words to
+the agent: a hook that stops housekeeping's writes before approval is filed, not built (HK-077).
+
+Once a survey or plan procedure has gone to the agent, each compaction of the main conversation is told to
+keep, word for word, the sentence that says where housekeeping is installed, and the approval rule, and to
+have the agent re-read the procedure whole before its next step (the second check's finding 13). A
+compaction with no procedure sent, or a subagent's own, goes on as it came, and none is ever skipped; a
+`/clear` or a resume starts with no procedure. What a real summary keeps is the owner's live check (HK-080).
 
 **`/housekeeping init`,** for a new repository: it creates both files with their definitions and empty
 tables, one path, the settings file and the `.gitignore` line.
@@ -477,6 +506,15 @@ pattern does. Only the automatic parts (hooks, pane and status line) are tied to
   survey in that session (the second check's finding 1). Those are words to the agent, not a guard. `check`,
   `map` and the short view read the pair through git and the settings file with no such check (a parked
   minor of the Phase 2 check).
+  - The rules obeyed are those in force in the session. In a session started below the repository's top,
+    the top's project settings are not in force: an ask with no rule, for a file outside the session's
+    folder, counts as not granted, and the reply says to start the session at the top (the owner's "Treat
+    'ask' as refused", 2026-11-12; the second check's finding 4). A file inside that folder that the top's
+    rule covers is read. An explicit ask rule passes, and another plugin's answer to the permission check
+    can lift a deny rule (parked minors of the second check).
+  - Only the permission check is asked. A PreToolUse hook, or another plugin's guard on the tool call
+    itself, is not: the promise covers the Read rules, and a repository-wide Grep would pass such a guard
+    anyway (the second check, a refuted finding).
 - No import from GitHub Issues, Projects or other trackers in this version. `survey` reports them, and
   `plan` may link them.
 - No durations, estimates, hill charts or date timelines.
@@ -673,16 +711,21 @@ Only the "Chosen" column holds the owner's words, quoted exactly. The other colu
 | 2026-11-03 | A privacy hit in a commit subject | "Mask it in subjects (Recommended)" | A commit subject cannot be edited, so refusing the page for one blocked it for good; and the check named only "the page" (final check, finding 4) | Refusing the page and naming the commit whose subject holds the hit: it still blocks for good. Leaving the check as it was: it also tripped on ordinary words such as `task-add-...` | A hit in a row still blocks the page and names the row; a hit anywhere else blocks it and gives the masked text. The key pattern now needs a word boundary on its left |
 | 2026-11-03 | The counts at the top of the page | "Yes, a counts line up top (Recommended)" | On the reference repository's page the counts sat below the views, under a Lanes view about 36,000 px tall and a 4,000-character "where we are" (final check, finding 9) | Moving the whole "Can I trust it?" section up: it is long and pushes the lanes down. Leaving the counts below only | The full "Can I trust it?" section stays below and shows how every sum adds up |
 | 2026-11-04 | Theme switch | "Yes, add the switch" | The owner's live check found no way to pick light or dark ("I didn;t see light vs dark background option in either") | "No, follow the system": the page followed the system theme only | The page still follows the system when nothing is stored |
-| 2026-11-04 | How much one fix round covers | "All 32 in one round (Recommended)" | The Phase 2 check confirmed 2 critical and 30 important findings, most with a small fix already tried alone. One round takes them all, with the four minors that tied on their votes, then one check of the fixes run together (plans/2026-11-04-phase-2-fixes.md) | "Secrets and lost work: 17 now": the other 15 would wait for a second round and a second check. "Only the 2 critical": 30 important findings would stay, among them common keys reaching the page and rows lost with no finding | The check of the fixes run together looks for what the round broke; any further round is the owner's (stop rule 3). The 94 parked minors are rows, listed in research/phase-2-check-minors.md |
+| 2026-11-04 | How much one fix round covers | "All 32 in one round (Recommended)" | The Phase 2 check confirmed 2 critical and 30 important findings, most with a small fix already tried alone. One round takes them all, with the four minors that tied on their votes, then one check of the fixes run together (plans/2026-11-04-phase-2-fixes.md) | "Secrets and lost work: 17 now": the other 15 would wait for a second round and a second check. "Only the 2 critical": 30 important findings would stay, among them common keys reaching the page and rows lost with no finding | The check of the fixes run together looks for what the round broke; any further round is the owner's (stop rule 3). The 94 parked minors are listed in research/phase-2-check-minors.md, with one backlog row per group (HK-060 to HK-068) |
 | 2026-11-04 | The test repositories' words in the branch's commits | "Reword and rewrite (Recommended)" | Some of the branch's commits held test repository A's install and test commands and other words of A and B, against section 4, and once pushed no later commit could take them out of the history. Before the fix round the branch's 20 commits were rewritten so that those words became descriptions; nothing had been pushed | "Leave them in": the words would reach the remote with the first push and stay in its history | The name and word searches over the branch's files and commit messages run before any push. The commits from before the rewrite are kept only on the owner's machine and are never pushed |
 | 2026-11-04 | The owner's address on the branch's commits | "Use GitHub no-reply (Recommended)" | All 20 of the branch's commits carried the owner's personal address as author and committer, and a push would have put 20 more on the remote. The same rewrite set both to the owner's GitHub no-reply address | "Leave as it is": the personal address on 20 more pushed commits | This repository's local git settings now give the no-reply address. A commit made under other settings carries theirs, so the author and committer fields are checked before a push, counted and never printed |
 | 2026-11-04 | Read deny rules (finding 3) | "Obey the deny rules (Recommended)" | Under a Read deny rule the agent's own Read was refused, yet `survey` and `plan` passed the denied files' guide lines, paths and counts into its context, while this document said files went only through Claude Code's own tools. Now each tracked file is put to Claude Code's permission check first, and a denied one is counted, never read or named (section 4) | "Keep reading, reword design": the denied text would still reach the agent and the session's transcript; only the promise would change | The Node command, outside Claude Code, reads every tracked file. `check`, `map` and the short view still read the pair and the settings with no Read check (a parked minor). One check per file costs time on a large repository: 17 to 45 s on 3,000 files in the check |
-| 2026-11-04 | Key shapes (finding 4) | "Add JWTs, not encoded (Recommended)" | Live payment, GitLab and npm keys, AWS temporary keys, webhook secrets, JWTs and addresses at non-ASCII domains all reached the page. The scan now knows those shapes and letters, and the README and 3.4 name what it covers instead of promising every key | "Add both": percent-encoded addresses too, a rarer form whose decoding would be one more way for text that holds no address to stop the page, as finding 1's false stops did. "Clear cases only": the other shapes without JWTs, so a bearer token of that common shape would still pass | A password, a key of any other shape and a percent-encoded address still pass, as 3.4 and the README say. A new shape is one pattern in privacy.ts, with a test on a made-up value |
-| 2026-11-04 | A guide file's standing approval (finding 9) | "No: approve after seeing steps (Recommended)" | A rule in a guide file to act without asking made `plan` write before any step was shown, in most runs on two models; with two added sentences, 0 of 25 runs wrote. Both procedures now say that a "go" before the numbered steps are shown, or such a rule, is not approval: the agent reports it and waits | "Yes, if it names the plugin": a standing approval that named the commands also wrote in the runs, including a committed rename, and it would let steps be applied that the owner never saw | The procedures' words are the guard, and the person's own permission prompts remain the last one. Opus, and some ordinary wordings of such a rule, were not run against the new sentences |
+| 2026-11-04 | Key shapes (finding 4) | "Add JWTs, not encoded (Recommended)" | Live payment, GitLab and npm keys, AWS temporary keys, webhook secrets, JWTs and addresses at non-ASCII domains all reached the page. The scan now knows those shapes and letters, and the README and 3.4 name what it covers instead of promising every key | "Add both": percent-encoded addresses too, a rarer form whose decoding would be one more way for text that holds no address to stop the page, as finding 1's false stops did. "Clear cases only": the other shapes without JWTs, so a bearer token of that common shape would still pass | A password, a key of any other shape and a percent-encoded address still pass, as 3.4 says; the README names the first two. The second check found more that passed: PGP's private key blocks and addresses whose local part ends in an accented letter, which its round fixed, and domains holding a combining mark and JWTs with no signature, which are parked (3.4). A new shape is one pattern in privacy.ts, with a test on a made-up value |
+| 2026-11-04 | A guide file's standing approval (finding 9) | "No: approve after seeing steps (Recommended)" | A rule in a guide file to act without asking made `plan` write before any step was shown, in most runs on two models; with two added sentences, none of 25 runs with an ordinary rule not to ask wrote. Both procedures now say that a "go" before the numbered steps are shown, or such a rule, is not approval: the agent reports it and waits | "Yes, if it names the plugin": a standing approval that named the commands also wrote in the runs, including a committed rename, and it would let steps be applied that the owner never saw | The procedures' words are the guard, and the person's own permission prompts remain the last one. Opus, and some ordinary wordings of such a rule, were not run against the new sentences; the second check ran them, and three other kinds of trigger still wrote (its finding 2, the row of 2026-11-12) |
 | 2026-11-04 | Starting the agent's turn (finding 21) | "Say what's next (Recommended)" | `/housekeeping survey` and `plan` start no model turn, so their count read as the finished result, and under `claude -p` the run ended there. The reply now ends by saying that the agent carries out the procedure on the person's next message, for example "go ahead", and the README says how under `claude -p` | "Start the turn itself": the command would start a model turn of its own (`$.prompt.submit`) each time it runs, where the person's own next message now starts it | A person who reads only the count still sees no procedure carried out; the reply's last line and the README are what tell them |
 | 2026-11-04 | The survey's weights (finding 8) | "Your recommended option + also mention what was NOT measured (and mention which files housekeeping suspects might have trackers or pending items). The plugin can then ask the user if they want housekeeping to study those files or if the user already knows those files are trackers or not. And then a re-scoring can be done based on that. Is that feasible?" | The score missed pending work it does not weigh (a README TODO list, `*` or numbered boxes, data files), and the reply then said that no file held any. Claude answered that it is feasible. The recommended option stands: the weights as they are, the result worded as what was measured, every box marker counted, and the guide files read before saying no file holds pending work. Not measured, the Suspects and re-scoring come with it (3.8) | "Also score data files": a tracker word in a data file's name would bring back editor task files and API specs as candidates, the noise the prose-only rule had removed | A tracker the score misses and that shows no suspect's sign is still missed; the person names it with `--tracker`. Not measured says what the score does not read |
 | 2026-11-04 | Building the suspects design | "Build it in this round (Recommended)" | The wording alone would leave a file the score misses with nothing pointing at it. Not measured, the Suspects, at most 15 in the text, and `--tracker` and `--not-tracker` fit the survey's code and both procedures in this round (3.8) | "Recommended wording now, idea later": the false "nothing to move" would go, but the misses would wait for a later round | It is the round's largest change to the survey; the check of the fixes run together covers it |
 | 2026-11-11 | Test repository B's commands in the branch's history, and pushing it | "Yes, rewrite then push" | The second check found that the Phase 2 plan still held B's pinned package manager and its exact install and test commands, though the row of 2026-11-04 says such words became descriptions. Only a rewrite before the first push could take them out of the history. The branch's 69 commits were rewritten, and the branch was then pushed as work in progress, under the repository's root CLAUDE.md of 2026-11-10: "Commit and push each piece of work as soon as it is finished, before it is reviewed." | "Guards design first": the 69 commits would stay on one machine until then. "Leave them" (the question held on 2026-11-05): the commands would reach the remote's history | The second check's 18 findings are unfixed on the pushed branch, and so are its 82 minors. No fix round or check starts until the owner approves the guards design and answers the two held questions |
+| 2026-11-12 | How much the second fix round covers | "All 18 + the two smaller parked findings" | The second check (2026-11-05) confirmed 18 important findings and no critical one, and parked 82 minors. Two of the minors share finding 13's cause and its fix, a `session.compact` hook, so they land with it. One round takes all 18 in six tasks, each finding with a test seen failing first; agents on this machine may not start live sessions, so the live checks are the owner's (plans/2026-11-12-phase-2-fixes-2.md) | "17 of 18": finding 13 would wait for Phase 3's hooks, and a compaction before the numbered steps would keep losing the install folder. "Only the 9 that matter most": the other nine would wait for another round and another check. "No round: file all 18": a private key block and an accented address would keep reaching the page, and the survey's re-run would keep crossing the Read rules | The round's live checks (findings 13, 2, 4 and 1) are the owner's (HK-080). The 82 minors are listed in research/phase-2-fixes-check-minors.md, with one backlog row per group of open ones. Any further round or check is the owner's (stop rule 3) |
+| 2026-11-12 | Approval in the plan procedure (second check, finding 2) | "Reword, file a hook (Recommended)" | A guide-file rule that pre-approves the commands, a rule to log or commit as you go or to treat a branch as the plan, and a move left half done made the agent commit steps nobody was shown, mostly on Opus. plan.md now says that approval is the owner's own message, sent after they have seen the numbered steps, and lists what is not; on a scratch copy the check's wording stopped the writes in every run tried (3.8) | "Reword and build a hook now": a hook that stops housekeeping's writes until approval would be a new guard, which must know when the steps were shown and what answered them, and would need its own check; it is filed (HK-077) | The words are the only guard, and the clause on commits already on the branch and a where-we-are saying a move is under way was not tried. If the owner's live check (HK-080) still sees a write before the steps, HK-077 is the next step |
+| 2026-11-12 | A session started in a subfolder (second check, finding 4) | "Treat 'ask' as refused (Recommended)" | In a session started below the repository's top, the top's project settings are not in force, so the permission check answered ask, with no rule, for files the top denies, and the survey read them: the denied line reached the model's request. Such an ask, for a file outside the session's folder, now counts as not granted and is counted in Not measured, and the reply says to start the session at the top (section 4) | "Keep the read, reword promise": the denied text would keep reaching the agent from a subfolder, and section 4 would promise only the rules in force in the session | A file inside the subfolder under the top's rule is still read, and an explicit ask rule passes (a parked minor). A difference in a drive letter's case between the session's folder and git's top treats an inside file as outside, which fails closed. The live subfolder check is the owner's (HK-080) |
+| 2026-11-12 | A lone ID table (second check, finding 17) | "Widen the suspects (Recommended)" | A 50-row ID table with lowercase statuses scored 2 and got "Suspects: none", and beside a thin candidate the agent never named it in 5 of 9 runs. The scored signs below 3 (ID headings, ID tables, status words) are now suspect reasons in a prose file; the 15-name cap and `--json` stay as they are (3.8) | "Keep the design, file it": `--tracker` would stay the only remedy, and only for a person who already knows the file | More suspects for the person to answer: in the check's trial on the reference repository they went from 2 to 8. Past 15 the rest are a count, cut in path order (a parked minor) |
+| 2026-11-12 | A blobless clone (second check, finding 18) | "Keep the stop, add next step (Recommended)" | In a blobless clone `check`, `map` and the short view stop at the first old version of the two files that the clone does not hold, since housekeeping never fetches, and the message named no way on. It now names the cure on both routes, `git backfill` or `git log -p` over the two files on main, and the README says so (3.4) | "Treat it like a shallow clone": no history would be read and `check` would only warn, so the page would lose its history in a clone that one command can complete | A later pull with two record commits can bring the stop back, and the cure is run again. A treeless clone stops on the walk itself, with git's first line (finding 11) |
 
 ## 10. Calls Claude made, for the owner to check
 
