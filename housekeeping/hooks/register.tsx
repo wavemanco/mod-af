@@ -201,8 +201,12 @@ async function command($: EngineInterface, arg: string, show: (brief: string) =>
     $.ui.invalidate('ui.render') // a pane already open draws the new view (finding 18)
     const pane = await $.ui.open({ id: 'housekeeping', title: 'housekeeping' })
     $.ui.status(statusLine(l.out))
-    // no pane placed, or one with no room: the person would see nothing or a part, so the brief comes back as text (HK-029)
-    return { text: pane.isPlaced && room ? 'housekeeping: short view open' : l.out.brief }
+    // no pane placed, or one with no room: the person would see nothing or a part, so the brief comes back as text (HK-029).
+    // The hook knows the width only, so a docked pane may still be too short: the reply says how to reach the rest and
+    // repeats the view's last line (second check, finding 16).
+    const docked = 'housekeeping: short view open. Where the pane is too short for all of it, the wheel, or ctrl+x then Tab, ' +
+      `reaches the rest. Its last line:\n${l.out.brief.split('\n').at(-1)}`
+    return { text: pane.isPlaced && room ? docked : l.out.brief }
   }
 
   if (l.failed || l.out.html === null) return { text: l.text, exitCode: 1 }

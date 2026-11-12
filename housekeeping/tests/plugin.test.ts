@@ -162,7 +162,7 @@ test('an impossible Last done date is a check warning naming the row, and the sh
   const r = await run($, 'check')
   expect(r.exitCode).toBe(0)
   expect(r.text).toContain('warning last-done backlog:23 B-005: Last done "2026-13-01" is not a real YYYY-MM-DD date')
-  expect((await run($, '')).text).toBe('housekeeping: short view open')
+  expect((await run($, '')).text).toMatch(/^housekeeping: short view open\./)
   expect(w.status!.at(-1)).toContain('land now')
 })
 
@@ -598,12 +598,13 @@ test('with no pane placed, the short view comes back as text (HK-029)', async ($
   expect(r.text.startsWith('# Small: where we are')).toBe(true)
 })
 
-test('no argument opens the pane and sets the status line', async ($, on) => {
+// second check, finding 16: the hook gets the pane's width, not its height, so a docked pane with no room in height
+// cut the view with nothing to say so; the docked reply says how to reach the rest and repeats the view's last line
+test('no argument opens the pane and sets the status line, and the reply says how to reach the rest and ends with the last line', async ($, on) => {
   const w: World = { status: [] }
   world(on, w)
   await $.session.start(START)
   const r = await run($, '')
-  expect(r.text).toBe('housekeeping: short view open')
   expect(w.status!.at(-1)).toBe('2 land now · 3 need you · next: beta, 3 stops')
   const ui = await $.ui.mount({
     plugin: 'housekeeping', surface: 'terminal', component: 'Pane', requestId: 'housekeeping',
@@ -611,6 +612,10 @@ test('no argument opens the pane and sets the status line', async ($, on) => {
   })
   const md = await ui.find({ type: 'Markdown' })
   expect(md?.props.text).toContain('# Small: where we are')
+  const last = String(md?.props.text).split('\n').at(-1)
+  expect(last).toMatch(/^\d+ warnings, \d+ errors: \/housekeeping check$/)
+  expect(r.text).toBe('housekeeping: short view open. Where the pane is too short for all of it, the wheel, or ctrl+x then Tab, ' +
+    `reaches the rest. Its last line:\n${last}`)
   await ui.unmount()
 })
 
