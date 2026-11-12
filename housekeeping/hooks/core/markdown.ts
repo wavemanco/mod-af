@@ -1,14 +1,14 @@
 export type Table = { section: string; subsection: string; line: number; header: string[];
   rows: { line: number; cells: string[] }[] }
 
-const OPENER = /^\s*(`{3,}|~{3,})(.*)$/
+const OPENER = /^\s*((?:[-*+]|\d+[.)])\s+)?(`{3,}|~{3,})(.*)$/
 
-// One step of fence tracking: the opener while inside a fence, else null. A fence closes only with the same
-// character, at least as long, and nothing after it; the fence lines themselves count as inside.
+// One step of fence tracking: the opener while inside a fence, else null. An opener may follow a list marker. A
+// fence closes only with the same character, at least as long, and nothing after it; the fence lines count as inside.
 export function stepFence(open: string | null, line: string): string | null {
   const m = OPENER.exec(line)
-  if (open === null) return m && !(m[1][0] === '`' && m[2].includes('`')) ? m[1] : null
-  return m && m[1][0] === open[0] && m[1].length >= open.length && m[2].trim() === '' ? null : open
+  if (open === null) return m && !(m[2][0] === '`' && m[3].includes('`')) ? m[2] : null
+  return m && !m[1] && m[2][0] === open[0] && m[2].length >= open.length && m[3].trim() === '' ? null : open
 }
 export const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/
 const SEPARATOR = /^\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/ // GFM: any number of dashes per cell
@@ -30,22 +30,24 @@ export function cellsOf(line: string): string[] {
   return cells
 }
 
-// unclosed: the line of a fence's opener when the file ends inside it
+// unclosed: the line of a fence's opener when the file ends inside it; hiding: the openers of fences that hold a
+// `##` heading, once each, which a later fence's closer may have closed
 export type Scan = { tables: Table[]; dropped: { line: number; section: string; why: 'separator' | 'closed' | 'stray' }[];
-  unclosed: number | null }
+  unclosed: number | null; hiding: number[] }
 
 // dropped, once per break: a pipe line over a pipe separator with another cell count, which GFM reads as no
 // table (separator); a line holding `|` that ends a table because it does not start with one (closed); and
 // a line starting with `|` in no table (stray). The `|` lines right after a break are part of it.
 export function scan(text: string): Scan {
   const lines = normalise(text).split('\n')
-  const tables: Table[] = [], dropped: Scan['dropped'] = []
+  const tables: Table[] = [], dropped: Scan['dropped'] = [], hiding: number[] = []
   let section = '', subsection = '', fenced: string | null = null, open: Table | null = null, run = false, opener = 0
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const was = fenced
     fenced = stepFence(fenced, line)
     if (was === null && fenced !== null) opener = i + 1
+    if (was !== null && fenced !== null && HEADING.exec(line)?.[1] === '##' && hiding[hiding.length - 1] !== opener) hiding.push(opener)
     if (was !== null || fenced !== null) { open = null; run = false; continue }
     const h = HEADING.exec(line)
     if (h) {
@@ -75,6 +77,6 @@ export function scan(text: string): Scan {
     if (piped && !run) dropped.push({ line: i + 1, section, why: 'stray' })
     run = piped
   }
-  return { tables, dropped, unclosed: fenced === null ? null : opener }
+  return { tables, dropped, unclosed: fenced === null ? null : opener, hiding }
 }
 export const scanTables = (text: string): Table[] => scan(text).tables

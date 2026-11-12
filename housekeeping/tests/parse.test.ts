@@ -175,6 +175,23 @@ test('a fence left open is a warning at its opener, wherever it opens', () => {
   expect(fence('```\ntext\n```\n' + backlog)).toEqual([])
 })
 
+// second check, finding 9: a later fence's closer closes a lost opener, so the end of the file is not inside a fence
+test('a fence that holds a ## heading is a warning at its opener, once; paired fences are not', () => {
+  const read = (b: string) => parseFiles(s, { backlog: b, playbook })
+  const at = (b: string) => read(b).findings.filter(f => f.rule === 'fence').map(f => [f.level, f.file, f.line])
+  const code = '\n```bash\nnpm test\n```\n'
+  const lost = once(backlog, '## Product work\n', '```text\nnotes\n\n## Product work\n') + code
+  expect(read(lost).rows.map(r => r.id)).toEqual(['PB-01', 'PB-03'])
+  expect(at(lost)).toEqual([['warning', 'backlog', lost.split('\n').indexOf('```text') + 1]])
+  expect(read(lost).findings.find(f => f.rule === 'fence')!.message).toContain('## heading')
+  expect(at('```\ntext\n```\n' + backlog + code)).toEqual([])
+  // an opener after a list marker: its indented closer opens no fence
+  const listed = once(backlog, '1. Ship the export: B-001, then B-002 (B-004 is closed).\n',
+    '1. Ship the export: B-001, then B-002 (B-004 is closed).\n2. ```bash\n   npm test\n   ```\n')
+  expect(read(listed).rows.length).toBe(6)
+  expect(at(listed)).toEqual([])
+})
+
 // the tied minor on rows in a named section
 test('checklist and where-we-are headings match whole; a row table in skipSections is said once', () => {
   const table = (...ids: string[]) => '| ID | Item |\n|---|---|\n' + ids.map(id => `| ${id} | a row |\n`).join('')

@@ -83,10 +83,13 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>, u
     const skipped = skipFor(s, f), readElsewhere = skipFor(s, f, false)
     const isDone = (section: string) => s.done.some(d => d.file === f && section.startsWith(d.sectionPrefix))
     const heads: string[][] = []
-    const { tables, dropped, unclosed } = scan(text[f])
+    const { tables, dropped, unclosed, hiding } = scan(text[f])
     if (unclosed !== null) // not filtered by section: a fence can open in where-we-are and hide the tables below
       out.findings.push({ level: 'warning', rule: 'fence', file: f, line: unclosed,
         message: 'a fence opens here and never closes, so nothing after it is read' })
+    for (const line of hiding) if (line !== unclosed)
+      out.findings.push({ level: 'warning', rule: 'fence', file: f, line,
+        message: 'a fence opens here and a ## heading falls inside it, so nothing up to the line that closes it is read: a closing fence may be missing above that heading' })
     for (const d of dropped) if (!skipped(d.section) || isDone(d.section)) // a Done table's rows are read
       out.findings.push({ level: 'warning', rule: 'row-dropped', file: f, line: d.line, message: DROPPED[d.why] })
     for (const t of tables) {
