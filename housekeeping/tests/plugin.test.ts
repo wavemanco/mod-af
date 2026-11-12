@@ -809,6 +809,12 @@ test('a rebuild that fails is said at the next prompt, with its first line, and 
   expect(text).toContain('fatal: unable to read tree (0ff1621)')
   brief(await $.prompt.context({ blocks: [] }))
   expect(walks(w)).toBe(1)
+  // the cure run, a minute on: the next prompt tries again, with main's commit unchanged, and the view comes back
+  Object.assign(w, { logFail: undefined, now: '2026-09-12T10:01:01Z' })
+  await $.prompt.context({ blocks: [] })
+  await stored(w, w.mainSha)
+  expect(walks(w)).toBe(2)
+  expect(brief(await $.prompt.context({ blocks: [] }))).not.toContain('could not be built')
 })
 
 test('with no procedure sent, after a failed one, in a subagent\'s compaction or after /clear, a compaction goes on as it came', async ($, on) => {

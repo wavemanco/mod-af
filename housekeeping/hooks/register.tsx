@@ -53,7 +53,8 @@ function statusLine(out: BuildOutput): string {
 type View = { brief: string; status: string }
 // the rebuilds under way, by stamp: one walk however many ask; and the last that failed, with its first line, so a
 // prompt is told why and starts no second walk for it (HK-088)
-type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, string> }
+type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, { line: string; at: number }> }
+const RETRY_MS = 60_000 // a failed rebuild is tried again after this, so the cure the stop names takes effect
 
 const BUILDING = 'housekeeping: the short view is being built and is not ready yet; /housekeeping shows it once it is.'
 
@@ -83,20 +84,27 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   if (hit?.stamp === stamp) return { brief: on(hit.brief), status: hit.status }
   const fresh = async () => {
     const l = await load($, !keep)
-    if ('error' in l) { if (keep) { builds.failed.clear(); builds.failed.set(stamp, l.error.split('\n')[0]) } return null }
+    if ('error' in l) {
+      if (keep) { builds.failed.clear(); builds.failed.set(stamp, { line: l.error.split('\n')[0], at: await $.clock.now() }) }
+      return null
+    }
+    builds.failed.delete(stamp)
     const v = { brief: l.out.brief, status: statusLine(l.out) }
     if (keep) await $.store.set(key, { sha, stamp, ...v })
     return { ...v, brief: on(v.brief) }
   }
   if (!keep) return fresh() // nothing to store or serve: main does not resolve, so the load stops before any walk
+  // a recent failure is said, with no walk; one older than RETRY_MS is said while it is tried again
   const failed = builds.failed.get(stamp)
-  if (!wait && failed) return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}; a new one could not be built: ${failed}\n${on(hit.brief)}`, status: hit.status }
-    : { brief: `housekeeping: the short view could not be built: ${failed}`, status: '' }
+  const retry = !failed || (await $.clock.now()) - failed.at >= RETRY_MS
   let build = builds.running.get(stamp)
-  if (!build) {
+  if (!build && (wait || retry)) {
     build = fresh().finally(() => builds.running.delete(stamp))
     builds.running.set(stamp, build)
   }
+  if (!wait && failed) return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}; a new one could not be built: ${failed.line}\n${on(hit.brief)}`, status: hit.status }
+    : { brief: `housekeeping: the short view could not be built: ${failed.line}`, status: '' }
+  if (!build) return null
   if (wait) return build
   build.catch(() => {}) // a failed rebuild leaves the stored view; the next ask tries again
   return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}, shown while a new one is built.\n${on(hit.brief)}`, status: hit.status }
