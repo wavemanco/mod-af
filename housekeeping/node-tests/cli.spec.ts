@@ -1,5 +1,5 @@
 // The Node command, run as a child process against a temporary git repository.
-import { test } from 'node:test'
+import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -12,11 +12,15 @@ import { withoutNode } from '../hooks/core/survey.ts'
 const CLI = join(import.meta.dirname, '..', 'cli.ts')
 // this file's own git calls never run a git.exe that a fixture holds (finding 2), whatever shell started the run
 process.env.NoDefaultCurrentDirectoryInExePath = '1'
-const git = (dir: string, ...a: string[]) =>
+// every fixture folder is removed when the file's tests end (HK-089: thousands were left in the temp folder)
+const made: string[] = []
+const tmp = () => { const d = mkdtempSync(join(tmpdir(), 'hk-cli-')); made.push(d); return d }
+after(() => { for (const d of made) rmSync(d, { recursive: true, force: true, maxRetries: 3 }) })
+const git =(dir: string, ...a: string[]) =>
   execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.test', ...a], { cwd: dir, encoding: 'utf8', stdio: 'pipe' })
 
 function repo(branch = 'main'): string {
-  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  const dir = tmp()
   git(dir, 'init', '-q', '-b', branch)
   writeFileSync(join(dir, 'backlog.md'), backlog)
   writeFileSync(join(dir, 'playbook.md'), playbook)
@@ -76,7 +80,7 @@ test('a signed commit with log.showSignature on leaves check, map and brief as t
 
 // finding 13: git takes a shallow clone's boundary as a root that touched every file, so the history was false
 test('in a shallow clone no history is read, and check says the clone holds part of it', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-')), at = (day: string) => ({ cwd: dir, stdio: 'ignore' as const,
+  const dir = tmp(), at = (day: string) => ({ cwd: dir, stdio: 'ignore' as const,
     env: { ...process.env, GIT_COMMITTER_DATE: `${day}T00:00:00Z`, GIT_AUTHOR_DATE: `${day}T00:00:00Z` } })
   const id = ['-c', 'user.name=t', '-c', 'user.email=t@example.test']
   execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: dir })
@@ -89,7 +93,7 @@ test('in a shallow clone no history is read, and check says the clone holds part
   execFileSync('git', ['add', '.'], { cwd: dir })
   execFileSync('git', [...id, 'commit', '-q', '-m', 'code only'], at('2026-09-05'))
   assert.doesNotMatch(run('check', '--repo', dir).stdout, /where-we-are|shallow/)
-  const clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  const clone = tmp()
   execFileSync('git', ['clone', '-q', '--depth', '1', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
   const c = run('check', '--repo', clone)
   assert.equal(c.status, 0, c.stdout + c.stderr)
@@ -105,7 +109,7 @@ test('in a blobless clone the command never fetches, and says which file it cann
   writeFileSync(join(dir, 'backlog.md'), backlog.replace('Tidy the build scripts', 'Tidy the build and test scripts'))
   git(dir, 'commit', '-qam', 'a change')
   const first = git(dir, 'rev-list', '--max-parents=0', 'HEAD').trim()
-  const clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  const clone = tmp()
   execFileSync('git', ['clone', '-q', '--filter=blob:none', '-u', 'git -c uploadpack.allowFilter=true upload-pack', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
   const has = () => spawnSync('git', ['cat-file', '-e', `${first}:backlog.md`], { cwd: clone, env: { ...process.env, GIT_NO_LAZY_FETCH: '1' } }).status === 0
   assert.equal(has(), false) // the clone holds the head's files only
@@ -133,7 +137,7 @@ test('in a blobless clone with merges on main, the cure the stop names is enough
   edit(t => t + '\n<!-- m -->\n', 'm')
   git(dir, 'merge', '-q', '--no-ff', 'a', '-m', 'merge a')
   git(dir, 'merge', '-q', '--no-ff', 'b', '-m', 'merge b')
-  const clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  const clone = tmp()
   execFileSync('git', ['clone', '-q', '--filter=blob:none', '-u', 'git -c uploadpack.allowFilter=true upload-pack', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
   execFileSync('git', ['log', '-p', 'main', '--', 'backlog.md', 'playbook.md'], { cwd: clone, stdio: 'ignore' })
   const c = run('check', '--repo', clone)
@@ -151,7 +155,7 @@ test('in a shallow treeless clone with main not checked out, check says it does 
   writeFileSync(join(dir, 'other.md'), 'x\n')
   git(dir, 'add', 'other.md')
   git(dir, 'commit', '-qm', 'side')
-  const clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  const clone = tmp()
   execFileSync('git', ['clone', '-q', '--depth', '1', '--no-single-branch', '--filter=tree:0', '-b', 'side', '-u', 'git -c uploadpack.allowFilter=true upload-pack',
     pathToFileURL(dir).href, clone], { stdio: 'ignore' })
   git(clone, 'branch', '-q', 'main', 'origin/main')
@@ -166,7 +170,7 @@ test('in a treeless clone check, map and brief say they cannot read the history,
   const dir = repo()
   writeFileSync(join(dir, 'backlog.md'), backlog.replace('Tidy the build scripts', 'Tidy the build and test scripts'))
   git(dir, 'commit', '-qam', 'a change')
-  const clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  const clone = tmp()
   execFileSync('git', ['clone', '-q', '--filter=tree:0', '-u', 'git -c uploadpack.allowFilter=true upload-pack', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
   for (const cmd of ['check', 'map', 'brief']) {
     const r = run(cmd, '--repo', clone, '--out', join(clone, 'm.html'))
@@ -180,7 +184,7 @@ test('in a treeless clone check, map and brief say they cannot read the history,
 // finding 12: on another branch a passing check said nothing of which branch it read; a tied minor: map and check
 // never said local main was behind its remote copy
 test('check names the branch it read when HEAD is elsewhere, and map and check say local main is behind', () => {
-  const dir = repo(), clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  const dir = repo(), clone = tmp()
   execFileSync('git', ['clone', '-q', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
   writeFileSync(join(dir, 'code.txt'), 'more\n')
   git(dir, 'add', 'code.txt')
@@ -236,7 +240,7 @@ test('a repository with no main branch exits 2', () => {
 })
 
 test('a directory that is no git repository says what git said, exit 2', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  const dir = tmp()
   writeFileSync(join(dir, '.housekeeping.json'), settings)
   const r = run('check', '--repo', dir)
   assert.equal(r.status, 2)
@@ -261,7 +265,7 @@ test('a file named like the main branch is no problem, and with git off the PATH
 })
 
 test('survey needs no settings, prints the top candidate first, and writes nothing', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  const dir = tmp()
   git(dir, 'init', '-q', '-b', 'main')
   writeFileSync(join(dir, 'TODO.md'), '## T-1 one\n## T-2 two\n## T-3 three\n- [ ] four\n') // 3 + 2*3 + 1
   writeFileSync(join(dir, 'README.md'), 'Pending work goes in TODO.md.\n')
@@ -285,7 +289,7 @@ test('survey needs no settings, prints the top candidate first, and writes nothi
 
 // finding 8, re-scoring: the person's answers on the Node command too
 test('survey takes --tracker and --not-tracker, repeatable; a path git does not track is an error naming it', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  const dir = tmp()
   git(dir, 'init', '-q', '-b', 'main')
   writeFileSync(join(dir, 'TODO.md'), '## T-1 one\n## T-2 two\n')
   writeFileSync(join(dir, 'tasks.yaml'), 'items: []\n')
@@ -336,7 +340,7 @@ test('the plan procedure writes the agent-guide line with its placeholder, word 
 
 // finding 29: from a subfolder the survey read only that subtree, and could say there was nothing to move
 test('survey --repo <subfolder> surveys the whole repository from its top, and says so', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'hk-cli-')), pkg = join(dir, 'pkg')
+  const dir = tmp(), pkg = join(dir, 'pkg')
   git(dir, 'init', '-q', '-b', 'main')
   writeFileSync(join(dir, 'TODO.md'), '## T-1 one\n## T-2 two\n')
   mkdirSync(pkg)
@@ -353,7 +357,7 @@ test('survey --repo <subfolder> surveys the whole repository from its top, and s
 })
 
 test('survey outside a git repository says what git said, exit 2', () => {
-  const r = run('survey', '--repo', mkdtempSync(join(tmpdir(), 'hk-cli-')))
+  const r = run('survey', '--repo', tmp())
   assert.equal(r.status, 2)
   assert.match(r.stdout, /not a git repository/)
 })
