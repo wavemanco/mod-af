@@ -309,7 +309,7 @@ export const register: Register = on => {
     const got = await next(e)
     if (e.fork && sent.size && got && 'agentId' in got && got.agentId) forks.add(got.agentId)
     return got
-  })
+  }).catch(($, e, next) => next(e)) // it gates every spawn: a failure here never stops one
 
   // On every trigger, precompute too, the main conversation's summary and a fork's are told to keep them; with none
   // sent, or in another subagent's own compaction, it goes on as it came. Never a skip: the compaction always runs,
