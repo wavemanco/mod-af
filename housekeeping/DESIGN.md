@@ -249,8 +249,10 @@ the settings that is not plain stays out of that command (the second check's fin
   key of a shape it knows, and reports where it found it. It reads the page's text, not its escaped code.
   - The shapes: `sk-` keys, live payment keys (`sk_live_`, `rk_live_`), AWS access keys, long-term and
     temporary, GitHub, GitLab, npm, Slack and Google API tokens, webhook signing secrets (`whsec_`), JWTs and
-    private key blocks, PGP's included. An address's domain may hold non-ASCII letters, and so may its local part once it
-    holds one ASCII letter, digit or sign: `josé@` is found.
+    private key blocks, PGP's included, under its older SECRET KEY label too. An address's domain may hold non-ASCII
+    letters, and so may its local part once it holds one ASCII letter, digit or sign: `josé@` is found. The pattern
+    reads at most the last 64 characters of a local part, so a long run of letters is scanned in linear time, and
+    the mask covers the whole local part (HK-088).
   - What passes: a password, a key of any other shape, a percent-encoded address (the owner's choice,
     2026-11-04), an address whose local part holds no ASCII letter, digit or sign, one wholly in CJK
     for example: it has the shape of an at-name written right after CJK text, which must build. So do an
@@ -352,15 +354,17 @@ candidate. It reads the names that look like trackers or guide files first, so t
 Its text then says what the score did not see:
 - **Not measured,** right after the header line, so the 20,000-character cut cannot hide it: the files not
   read, counted by reason (over 2 MB, binary or lockfile, unreadable, missing from the working tree, links,
-  folders or submodules, denied by Read rules, past the 3,000-file or 30 MB limit, past the end of a cut-short
+  folders or submodules, denied by Read rules, outside the folder a session below the top started in, past the
+  3,000-file or 30 MB limit, past the end of a cut-short
   list), and one fixed line: the score does not read data files (YAML, JSON, CSV, TOML), nor code files apart
   from their TODO comments.
 - **Suspects:** files below 3 with some sign of pending work, each with its reason: a prose file with a TODO,
   roadmap or next-steps heading, TODO lines, open boxes, or any of the scored signs, ID headings, ID tables
   and status words (the owner's "Widen the suspects", 2026-11-12: a lone ID table scores 2); a data file
-  whose name holds a tracker word. At most 15 show in the text, with a count of the rest; `--json` names them
-  all. A suspect whose path holds anything but letters, digits, space, dot, dash, underscore or slash is
-  marked, since a shell can read such a path as commands (the second check's finding 3).
+  whose name holds a tracker word. At most 15 show in the text, strongest first (ID tables and headings, then
+  the other signs, then status words alone), with a count of the rest; `--json` names them all. A path that
+  holds anything but letters, digits, space, dot, dash, underscore or slash is marked wherever the inventory
+  names it, since a shell can read such a path as commands (the second check's finding 3; HK-088).
 - **Re-scoring.** The agent puts each suspect to the person: study it, it is a tracker, or it is not. For
   one to study, it reads the file and gives its reading as its own. The survey then runs again with
   `--tracker <path>` and `--not-tracker <path>`, each repeatable, on the Node command or on `/housekeeping

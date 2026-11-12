@@ -23,43 +23,43 @@ class and the check shows more. No skeptic tried these minors.
 - **Fixed** (db75b1b). `hooks/core/history.ts:31`, `README.md:42`, `DESIGN.md` 3.4 and section 9: the cure it names does not
   cure a main with merge commits, and `git backfill` does not cure it on a branch behind main (finding 18).
 
-## Parked minors (HK-088)
+## Parked minors (HK-088, fixed)
 
-- **Open.** `hooks/core/privacy.ts:19`: a private key block under the older label `BEGIN PGP SECRET KEY BLOCK`
+- **Fixed** (b315b83). `hooks/core/privacy.ts:19`: a private key block under the older label `BEGIN PGP SECRET KEY BLOCK`
   still reaches the page, the commit-subject mask and the survey (finding 6).
 - **Fixed** (this records pass). `BACKLOG.md`, HK-086: the new false stop also hits Thai and other scripts
   written without spaces, and an accented word just before a dotted at-name (finding 5; disclosed).
-- **Open.** `hooks/core/privacy.ts:5`: the wider local part makes the address scan grow with the square of a
+- **Fixed** (b315b83, 9ce5a40). `hooks/core/privacy.ts:5`: the wider local part makes the address scan grow with the square of a
   long run of non-ASCII letters, about 2 s on 20,000 characters; no natural text was found to trigger it
   (finding 5; disclosed).
-- **Open.** `hooks/register.tsx:259`: after a compaction in a survey with a file denied, the hook has the agent
+- **Fixed** (93c8307). `hooks/register.tsx:259`: after a compaction in a survey with a file denied, the hook has the agent
   re-read `prompts/survey.md` whole, whose lines on the Node re-run and `--json` the denied context had cut
   (findings 1 and 13).
-- **Open.** `hooks/core/survey.ts:228`: the shell mark is on Suspects lines only; the same path as a
+- **Fixed** (08ce181). `hooks/core/survey.ts:228`: the shell mark is on Suspects lines only; the same path as a
   candidate, in the answers line, or once answered, is unmarked (finding 3).
 - **Fixed** (this records pass). `FORMAT.md:73`: it said the Node survey prints the same inventory; it now
   says the Node survey also reads the files the Read rules deny (finding 1).
-- **Open.** `hooks/adapter.ts:147`: in a subfolder session the files outside its folder are told to the agent
+- **Fixed** (4302479). `hooks/adapter.ts:147`: in a subfolder session the files outside its folder are told to the agent
   as denied by Read rules when no rule denies them (finding 4; disclosed).
-- **Open.** `hooks/register.tsx:75`: the stored view's stamp still holds the branch. A view the older version
+- **Fixed** (93c8307). `hooks/register.tsx:75`: the stored view's stamp still holds the branch. A view the older version
   stored is served with two branch lines at every prompt, not once as HK-083 says, and two worktrees on
   different branches rebuild the same view at every prompt, each marked stale (finding 15).
-- **Open.** `hooks/register.tsx:97`: in a blobless clone after a pull, the agent's context shows the old view
+- **Fixed** (93c8307). `hooks/register.tsx:97`: in a blobless clone after a pull, the agent's context shows the old view
   as one being rebuilt at every prompt, the walk reruns each time, and the stop and its cure never reach the
   agent (finding 18).
-- **Open.** `cli.ts:95`: in a shallow treeless clone with main not checked out, `check` still says the two
+- **Fixed** (1c6522e). `cli.ts:95`: in a shallow treeless clone with main not checked out, `check` still says the two
   files are not on main (finding 11; disclosed as HK-075).
-- **Open.** `hooks/core/survey.ts:96`: weak suspects with one status word can fill the 15 shown places by path
+- **Fixed** (08ce181). `hooks/core/survey.ts:96`: weak suspects with one status word can fill the 15 shown places by path
   order and push a lone ID table into "and N more" (finding 17; disclosed).
-- **Open.** `hooks/core/survey.ts:249`: path mentions that name no tracked file are added to the rest line's
+- **Fixed** (08ce181). `hooks/core/survey.ts:249`: path mentions that name no tracked file are added to the rest line's
   machine count, though DESIGN 3.8 says such a mention is not counted (finding 10).
-- **Open.** `hooks/core/survey.ts:147`: in a prose file that is not Markdown, `./` is folded both from the file
+- **Fixed** (08ce181). `hooks/core/survey.ts:147`: in a prose file that is not Markdown, `./` is folded both from the file
   and from the top, so one mention credits a second target of the same name as a machine reader (finding 10).
-- **Open.** `hooks/register.tsx:283`: the record of sent procedures is set even when the reply failed, and it
+- **Fixed** (93c8307). `hooks/register.tsx:283`: the record of sent procedures is set even when the reply failed, and it
   lasts until the session ends (finding 13).
-- **Open.** `hooks/register.tsx:296`: a fork's own compaction is passed on as it came, though a fork's
+- **Fixed** (93c8307, a9068f0). `hooks/register.tsx:296`: a fork's own compaction is passed on as it came, though a fork's
   conversation holds the procedure (finding 13).
-- **Open.** `DESIGN.md:403`: it says a resume starts with no procedure; a resumed conversation may hold one, and
+- **Fixed** (93c8307). `DESIGN.md:403`: it says a resume starts with no procedure; a resumed conversation may hold one, and
   the hook forgets it on the switch away (finding 13; disclosed in part as HK-084).
 
 ## Refuted
@@ -72,7 +72,7 @@ class and the check shows more. No skeptic tried these minors.
 ## Not covered
 
 - Every live-session check, under the machine's guard (HK-080 holds the owner's).
-- A failure inside the compaction hook itself (HK-090).
+- A failure inside the compaction hook itself (HK-090): odd input was tried in the kit and the compaction goes ahead; the hook and the new fork hook pass a failure on (93c8307, a9068f0).
 - The second round's records pass (f91e940) beyond its backlog rows: each edit re-read against what holds.
 - The name and word searches over the branch, which use lists the check did not have; the controller ran them
   before the push.
@@ -80,6 +80,6 @@ class and the check shows more. No skeptic tried these minors.
 
 ## Left behind
 
-- The Node specs' fixture folders in the user's temp folder (HK-089).
+- The Node specs' fixture folders in the user's temp folder (HK-089): the specs remove theirs since 8067f64; the older ones are the owner's to delete.
 - The procedures lens loaded the plugin-authoring skill, which wrote the engine's types into the temp folder
   and created this session's empty folder under the user's dev-mods folder, as in the second check.

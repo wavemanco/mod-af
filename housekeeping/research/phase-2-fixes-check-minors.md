@@ -93,7 +93,7 @@ by its records pass, and one by the history rewrite of 2026-11-11.
 
 ## Git (HK-075)
 
-- **Open.** `hooks/core/history.ts:26`: a tree the clone does not hold reads as "not on main" (votes important, minor, minor); since the second round a treeless clone's walk stops first (2d174ee), which was not checked against this case.
+- **Fixed** (1c6522e). `hooks/core/history.ts:26`: a tree the clone does not hold reads as "not on main" (votes important, minor, minor); since the second round a treeless clone's walk stops first (2d174ee), and where main's head has no tree in the clone, check now stops and says so on both routes.
 - **Open.** `cli.ts:117`: a remote not named origin is never compared (votes minor, refuted minor, minor).
 - **Open.** `cli.ts:117; hooks/core/brief.ts:45`: the README's pull-request route prints a false "Local HEAD is N behind" (git-node, procedures, records, tests, together).
 - **Open.** `cli.ts:118`: a shallow clone's behind count is wrong after a `--depth` fetch.
