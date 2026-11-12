@@ -25,10 +25,17 @@ export const NO_FETCH = { GIT_NO_LAZY_FETCH: '1' }
 // and the file is not missing (a tied minor of the Phase 2 check); the tree alone answers it, no blob is read.
 export const blobArgs = (sha: string, path: string): string[] => ['git', 'rev-parse', '--verify', '--quiet', '--end-of-options', `${sha}:${path}`]
 // The stop names the cure, which the person runs (second check, finding 18: the owner's "Keep the stop, add next step").
-const arg = (p: string) => /^[\w./-]+$/.test(p) ? p : `"${p}"`
-export const unreadable = (s: Settings, sha: string, path: string, said: string): string =>
-  `cannot read ${path} at ${sha.slice(0, 7)}, which this clone does not hold: housekeeping never fetches (git said: ${said}). ` +
-  `To fetch the old files, run git backfill, or git log -p ${s.mainBranch} -- ${arg(s.files.backlog.path)} ${arg(s.files.playbook.path)}, then run this again.`
+// -m --first-parent fetches each version the walk reads, a merge's own included, on any checkout (HK-087); the
+// settings' names go into the command only when no shell can read them as more than a word (HK-087)
+const plain = (...names: string[]) => names.every(n => /^[\w./-]+$/.test(n))
+export const unreadable = (s: Settings, sha: string, path: string, said: string): string => {
+  const { mainBranch: m, files: { backlog: { path: b }, playbook: { path: p } } } = s
+  return `cannot read ${path} at ${sha.slice(0, 7)}, which this clone does not hold: housekeeping never fetches (git said: ${said}). ` +
+    (plain(m, b, p)
+      ? `To fetch the old versions, run git log -p -m --first-parent ${m} -- ${b} ${p}, then run this again.`
+      : 'To fetch the old versions, run git log -p -m --first-parent <main branch> -- <backlog> <playbook> with the settings\' names ' +
+        'quoted for your shell (one holds characters a shell may run, so they are not printed here), then run this again.')
+}
 // A history walk that git stops, in a treeless clone say, is a stop, never an empty history (second check, finding 11).
 export const historyUnread = (s: Settings, said: string): string =>
   `cannot read the history of ${s.files.backlog.path} and ${s.files.playbook.path} on ${s.mainBranch}: housekeeping never fetches (git said: ${said})`

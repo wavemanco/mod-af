@@ -461,7 +461,7 @@ test('in a shallow clone no history is walked, and check warns that the clone ho
   expect(walks(w)).toBe(0)
 })
 
-const CURE = 'To fetch the old files, run git backfill, or git log -p main -- backlog.md playbook.md, then run this again.'
+const CURE = 'To fetch the old versions, run git log -p -m --first-parent main -- backlog.md playbook.md, then run this again.'
 // a tied minor: in a blobless clone git show fetched, and a show that failed read as a missing file
 test('git runs with lazy fetching off, and a blob the clone does not hold is reported, not read as a missing file', async ($, on) => {
   const w: World = { blobless: true, argv: [], envs: [] }

@@ -26,6 +26,7 @@ function repo(branch = 'main'): string {
   return dir
 }
 const run = (...a: string[]) => spawnSync('node', [CLI, ...a], { encoding: 'utf8' })
+const CURE = 'To fetch the old versions, run git log -p -m --first-parent main -- backlog.md playbook.md, then run this again.'
 
 const LINE = '8 rows in all = 2 closed + 6 open; open = 2 land now + 1 small choice + 3 not now; 4 open in the backlog, 2 in the playbook'
 
@@ -113,9 +114,32 @@ test('in a blobless clone the command never fetches, and says which file it cann
   assert.match(c.stdout, new RegExp(`^housekeeping: cannot read backlog\\.md at ${first.slice(0, 7)}, which this clone does not hold: housekeeping never fetches`, 'm'))
   assert.equal(has(), false)
   // second check, finding 18, at the owner's "Keep the stop, add next step": the stop names the cure, and the cure works
-  const CURE = 'To fetch the old files, run git backfill, or git log -p main -- backlog.md playbook.md, then run this again.'
   assert.ok(c.stdout.includes(`). ${CURE}\n`), c.stdout)
+  execFileSync('git', ['log', '-p', '-m', '--first-parent', 'main', '--', 'backlog.md', 'playbook.md'], { cwd: clone, stdio: 'ignore' })
+  assert.equal(run('check', '--repo', clone).status, 0)
+})
+
+// the small check of the second round (HK-087): with merges on main, git log -p <main> fetched no merge's own version,
+// so the stop came back after its cure; git log -p -m --first-parent fetches every version the walk reads
+test('in a blobless clone with merges on main, the cure the stop names is enough', () => {
+  const dir = repo()
+  const B = join(dir, 'backlog.md')
+  const edit = (f: (t: string) => string, msg: string) => { writeFileSync(B, f(readFileSync(B, 'utf8'))); git(dir, 'commit', '-qam', msg) }
+  git(dir, 'checkout', '-q', '-b', 'a')
+  edit(t => '<!-- a -->\n' + t, 'a')
+  git(dir, 'checkout', '-q', '-b', 'b', 'main')
+  edit(t => t.replace('Tidy the build scripts', 'Tidy the build and test scripts'), 'b')
+  git(dir, 'checkout', '-q', 'main')
+  edit(t => t + '\n<!-- m -->\n', 'm')
+  git(dir, 'merge', '-q', '--no-ff', 'a', '-m', 'merge a')
+  git(dir, 'merge', '-q', '--no-ff', 'b', '-m', 'merge b')
+  const clone = mkdtempSync(join(tmpdir(), 'hk-cli-'))
+  execFileSync('git', ['clone', '-q', '--filter=blob:none', '-u', 'git -c uploadpack.allowFilter=true upload-pack', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
   execFileSync('git', ['log', '-p', 'main', '--', 'backlog.md', 'playbook.md'], { cwd: clone, stdio: 'ignore' })
+  const c = run('check', '--repo', clone)
+  assert.equal(c.status, 2, c.stdout + c.stderr) // the older cure left the first merge's version unfetched
+  assert.ok(c.stdout.includes(CURE), c.stdout)
+  execFileSync('git', ['log', '-p', '-m', '--first-parent', 'main', '--', 'backlog.md', 'playbook.md'], { cwd: clone, stdio: 'ignore' })
   assert.equal(run('check', '--repo', clone).status, 0)
 })
 

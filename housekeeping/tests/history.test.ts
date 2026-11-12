@@ -4,7 +4,7 @@ import { parseFiles } from '../hooks/core/parse.ts'
 import { computeFacts } from '../hooks/core/facts.ts'
 import { computeLanes } from '../hooks/core/lanes.ts'
 import { findingsFor } from '../hooks/core/findings.ts'
-import { headArgs, historyFrom, logArgs, parseLog, showArgs, snapshot } from '../hooks/core/history.ts'
+import { headArgs, historyFrom, logArgs, parseLog, showArgs, snapshot, unreadable } from '../hooks/core/history.ts'
 import * as small from './fixtures/small.ts'
 
 const s = parseSettings(small.settings).settings!
@@ -68,4 +68,17 @@ test('a stale where we are is a warning', () => {
 test('the log follows first parents only', () => {
   expect(logArgs(s)).toContain('--first-parent')
   expect(logArgs(s).indexOf('--first-parent')).toBeLessThan(logArgs(s).indexOf('--end-of-options'))
+})
+
+// the small check of the second round (HK-087): the cure line was built from the settings' branch and paths, so a
+// $(...) in one ran when the line was pasted; a name that is not plain now never goes into the command
+test('the blobless cure puts the settings\' names in its command only when they are plain', () => {
+  const cure = (x: typeof s) => { const m = unreadable(x, 'abcdef1234', 'backlog.md', 'x'); return m.slice(m.indexOf('To fetch')) }
+  expect(cure(s)).toBe('To fetch the old versions, run git log -p -m --first-parent main -- backlog.md playbook.md, then run this again.')
+  const PLACEHOLDERS = 'To fetch the old versions, run git log -p -m --first-parent <main branch> -- <backlog> <playbook> with the ' +
+    'settings\' names quoted for your shell (one holds characters a shell may run, so they are not printed here), then run this again.'
+  for (const bad of ['main$(touch${IFS}X)', 'main;id', 'main`id`'])
+    expect(cure({ ...s, mainBranch: bad })).toBe(PLACEHOLDERS)
+  for (const bad of ['docs/$(touch X).md', 'a b.md', "it's.md", 'x%PATH%.md', 'x&id.md'])
+    expect(cure({ ...s, files: { ...s.files, playbook: { ...s.files.playbook, path: bad } } })).toBe(PLACEHOLDERS)
 })

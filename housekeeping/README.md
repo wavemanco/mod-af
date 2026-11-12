@@ -39,7 +39,7 @@ node housekeeping/cli.ts survey [--repo <dir>] [--json] [--tracker <path>]... [-
 
 `check` exits 1 when it finds an error. The page it writes is byte-identical to the plugin's.
 
-In a blobless clone (`git clone --filter=blob:none`), `check`, `map` and the short view stop at the first old version of the two files that the clone does not hold, since housekeeping never fetches, and the stop names the cure: `git backfill`, or `git log -p <main branch> -- <backlog> <playbook>`, fetches them; then run it again.
+In a blobless clone (`git clone --filter=blob:none`), `check`, `map` and the short view stop at the first old version of the two files that the clone does not hold, since housekeeping never fetches, and the stop names the cure: `git log -p -m --first-parent <main branch> -- <backlog> <playbook>` fetches every version the history reads, merges included, whatever branch is checked out; then run it again. When a name in the settings holds anything but letters, digits, `_`, `.`, `/` or `-`, the message gives the command with placeholders and never puts that name in it.
 
 `check` reads the main branch, not the commit checked out, and says which branch it read when HEAD is on another. To check a pull request's own records, in CI for example, run it with a copy of the settings whose `mainBranch` is `HEAD`: `node housekeeping/cli.ts check --settings <copy>`.
 
