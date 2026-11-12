@@ -399,9 +399,13 @@ the agent: a hook that stops housekeeping's writes before approval is filed, not
 
 Once a survey or plan procedure has gone to the agent, each compaction of the main conversation is told to
 keep, word for word, the sentence that says where housekeeping is installed, and the approval rule, and to
-have the agent re-read the procedure whole before its next step (the second check's finding 13). A
-compaction with no procedure sent, or a subagent's own, goes on as it came, and none is ever skipped; a
-`/clear` or a resume starts with no procedure. What a real summary keeps is the owner's live check (HK-080).
+have the agent re-read the procedure whole before its next step (the second check's finding 13); after a
+survey with a file denied, it also says that the procedure's lines naming the Node command do not apply. A
+fork inherits the procedure, so its own compaction is told too; a compaction with no procedure sent, after a
+reply the site refused, or in another subagent's own, goes on as it came, and none is ever skipped, a failure
+in the hook included (HK-088, HK-090). After a `/clear` the conversation holds no procedure; after a resume
+the hook no longer knows of one the resumed conversation may hold (HK-084). What a real summary keeps is the
+owner's live check (HK-080).
 
 **`/housekeeping init`,** for a new repository: it creates both files with their definitions and empty
 tables, one path, the settings file and the `.gitignore` line.

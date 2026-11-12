@@ -388,7 +388,6 @@ test('prompt.context never awaits the walk: the view is being built, then the st
 // second check, finding 15: the store holds one view per repository, and a view stored on one branch was served on
 // another with the first one's line
 test('a view stored on one branch and served on another names the second', async ($, on) => {
-  let open!: () => void
   const w: World = { argv: [], branch: 'first' }
   world(on, w)
   on('prompt.context', (_, e) => ({ blocks: e.blocks }))
@@ -396,13 +395,14 @@ test('a view stored on one branch and served on another names the second', async
   await stored(w)
   const HEAD = '# Small: where we are (abcdef0, 2026-09-12)'
   expect(brief(await $.prompt.context({ blocks: [] })).startsWith(`${HEAD}\nOn branch first; the map shows main.\n`)).toBe(true)
-  Object.assign(w, { branch: 'second', gate: new Promise<void>(r => { open = r }) })
-  const stale = await late($.prompt.context({ blocks: [] }))
-  const text = stale === 'late' ? 'late' : brief(stale)
-  expect(text.startsWith(`Stored view of main at abcdef0, shown while a new one is built.\n${HEAD}\nOn branch second; the map shows main.\n`)).toBe(true)
+  // the branch is no longer in the stamp: a switch serves the same view with its own line, with no walk and no stale
+  // label, and two worktrees on two branches no longer rebuild at every prompt (HK-088)
+  const before = walks(w)
+  w.branch = 'second'
+  const text = brief(await $.prompt.context({ blocks: [] }))
+  expect(text.startsWith(`${HEAD}\nOn branch second; the map shows main.\n`)).toBe(true)
   expect(text).not.toContain('On branch first')
-  open()
-  await until(() => walks(w) === 2)
+  expect(walks(w)).toBe(before)
   w.branch = 'main' // back on main: no branch line
   expect(brief(await $.prompt.context({ blocks: [] }))).not.toContain('On branch')
 })
@@ -739,6 +739,64 @@ test('after a procedure, each compaction of the conversation is told to keep the
   expect(last).toMatch(DENIED_WHERE)
   expect(told.at(-1)).toContain(`this sentence: ${last} Keep`)
   expect(told.at(-1)).not.toContain(where)
+  // the file it is sent back to holds the Node lines the denied context had cut (HK-088)
+  expect(told.at(-1)).toContain("In this session the procedures' lines that name cli.ts do not apply: the survey's re-run is the person's /housekeeping survey.")
+  expect(told[0]).not.toContain('do not apply')
+})
+
+// the small check of the second round (HK-088, HK-090)
+test('a procedure whose reply the site refuses is not recorded, so a compaction goes on as it came', async ($, on) => {
+  world(on, { tracked: { ...TRACKED }, badPrompt: true })
+  const told = compacts(on)
+  await $.session.start(START)
+  await run($, 'plan')
+  await $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine' })
+  expect(told).toEqual(['mine'])
+})
+
+test("a fork's own compaction is told too, since it inherits the procedure; another subagent's is not", async ($, on) => {
+  world(on, { tracked: { ...TRACKED } })
+  const told = compacts(on)
+  const forks: unknown[] = []
+  on('agent.spawn', (_: unknown, e: { fork: boolean }) => { forks.push(e.fork); return { model: 'm', agentId: e.fork ? 'f1' : 'a1' } })
+  await $.session.start(START)
+  await run($, 'plan')
+  await ($ as any).agent.spawn({ prompt: 'x', subagentType: 'fork', fork: true })
+  await ($ as any).agent.spawn({ prompt: 'x', subagentType: 'general-purpose', fork: false })
+  expect(forks).toEqual([true, false])
+  await $.session.compact({ trigger: 'auto', messages: MSGS, agentId: 'f1' })
+  await $.session.compact({ trigger: 'auto', messages: MSGS, agentId: 'a1' })
+  expect(told[0]).toContain(APPROVAL)
+  expect(told[1]).toBeUndefined()
+})
+
+test('a compaction with odd input still goes ahead (HK-090)', async ($, on) => {
+  world(on, { tracked: { ...TRACKED } })
+  const told = compacts(on)
+  await $.session.start(START)
+  await run($, 'plan')
+  for (const e of [{ instructions: '' }, { agentId: '' }, { instructions: 42 }])
+    expect((await $.session.compact({ trigger: 'manual', messages: MSGS, ...e } as never)).skip).toBeUndefined()
+  expect(told.length).toBe(3)
+})
+
+test('a rebuild that fails is said at the next prompt, with its first line, and is not walked again (HK-088)', async ($, on) => {
+  const w: World = { argv: [] }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await stored(w)
+  Object.assign(w, { mainSha: 'f'.repeat(40), logFail: 'fatal: unable to read tree (0ff1621)\n' })
+  w.argv!.length = 0
+  let text = ''
+  for (let i = 0; i < 100 && !text.includes('could not be built'); i++) {
+    text = brief(await $.prompt.context({ blocks: [] }))
+    await new Promise(r => setTimeout(r, 5))
+  }
+  expect(text.startsWith('Stored view of main at abcdef0; a new one could not be built: ')).toBe(true)
+  expect(text).toContain('fatal: unable to read tree (0ff1621)')
+  brief(await $.prompt.context({ blocks: [] }))
+  expect(walks(w)).toBe(1)
 })
 
 test('with no procedure sent, after a failed one, in a subagent\'s compaction or after /clear, a compaction goes on as it came', async ($, on) => {
