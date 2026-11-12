@@ -83,3 +83,47 @@ class and the check shows more. No skeptic tried these minors.
 - The Node specs' fixture folders in the user's temp folder (HK-089): the specs remove theirs since 8067f64; the older ones are the owner's to delete.
 - The procedures lens loaded the plugin-authoring skill, which wrote the engine's types into the temp folder
   and created this session's empty folder under the user's dev-mods folder, as in the second check.
+
+## The narrow check of the pass (HK-091)
+
+The owner chose a narrow check of the pass that fixed HK-087 to HK-090 ("Yes, narrow check", 2026-11-12). It ran
+at beb5015 over `daf9264..beb5015`: three lenses (privacy, hooks, survey), each in its own clone, and one skeptic
+per serious finding, with a cap of 10 agents. It used 4, in 21 minutes, and ran no live session. It found 12, all
+minor once the skeptic rated the one important finding down. The controller reproduced the six marked "the pass's own".
+
+What held, among others: the scan stays linear on every long input tried, 1 MB included; the older PGP label is
+refused or masked on every surface; the reference repository gives byte-identical output at the base and the tip;
+every gating hook has a .catch; a full run of the Node specs leaves nothing in the temp folder.
+
+- **Open** (the pass's own). `hooks/core/privacy.ts:39`: the widening steps one UTF-16 unit at a time, so an
+  astral letter stops it, and text more than 64 characters left of the @ shows unmasked past it. Fix: step by
+  code point.
+- **Open** (the pass's own). `hooks/core/privacy.ts:39`: the widening now masks non-ASCII words written straight
+  before an address (CJK, Thai, an accented letter), which the pattern never counts as the local part. Fix: after
+  widening, step forward to the first ASCII local-part character.
+- **Open** (the pass's own). `hooks/register.tsx:278`: after `/housekeeping plan` with a file denied, or in a
+  subfolder session, compactions are told the procedures' lines naming `cli.ts` do not apply, though plan's are
+  sent whole (rated important by its lens, minor by its skeptic). Fix: test the survey's own recorded sentence and
+  name only the survey.
+- **Open** (the pass's own). `hooks/register.tsx:105`: a retry started at a prompt returns before its rejection
+  handler is attached, and a load that rejects records no failure, so it walks at every prompt. Fix: catch where
+  the build is made, and record a rejection as a failure.
+- **Open.** `hooks/register.tsx:318`: a fork's compaction is built from what the main conversation was handed
+  later, not what the fork inherited. Fix: keep each fork's own copy of the record.
+- **Open.** `hooks/register.tsx:318`: a fork spawned inside a subagent or teammate is told the main conversation's
+  procedure. Fix: record a fork only when its parent is the main conversation or a recorded fork.
+- **Open.** `hooks/register.tsx:78`: two worktrees whose settings differ still rebuild at every prompt and are
+  served each other's view as the stand-in; older than the pass, but its commit claimed worktrees rebuild nothing.
+  Fix: key the stored view by the settings too.
+- **Open** (the pass's own). `hooks/core/survey.ts:156`: a script's `./` loses its reader when any tracked file of
+  the same name sits beside the script, and is not kept as a possible use. Fix: keep the single file-relative
+  target for prose only, and credit the top fold for code.
+- **Open** (the pass's own). `hooks/core/parse.ts:95`: a fenced example row table in a section read for rows is a
+  false fence warning, and init's "How this file is kept", where plan.md asks for the row format, is such a
+  section. Fix: warn only where the fence is a stray, or have init and plan.md set that section aside.
+- **Open.** `hooks/core/markdown.ts:53`: a stray opener between the rows of an open table still hides the rows
+  after it with no warning; older than the pass.
+- **Open.** `DESIGN.md:366`: says unsafe paths are marked wherever the inventory names them; Skipped, references
+  and guide lines are not. Fix: mark them, or narrow the sentence.
+- **Fixed** (this records pass). `BACKLOG.md`, HK-075: said twelve Git minors were open and the treeless case
+  unchecked.
