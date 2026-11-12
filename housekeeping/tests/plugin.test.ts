@@ -41,6 +41,7 @@ type World = {
   pub?: object
   tracked?: Record<string, string> // the survey's files, by path under /w
   denied?: string[] // tracked paths the person's Read rules deny
+  asked?: string[] // tracked paths the engine answers with an ask and no rule, as it does outside the session's folder
   lsFail?: boolean // git ls-files exits 128
   lsCut?: boolean // git ls-files output is cut short
   reads?: string[] // every path fs.read was asked for
@@ -121,8 +122,10 @@ function world(on: On, w: World = {}) {
     return { value: undefined }
   })
   // the person's Read rules, as the engine's permission decision gives them
-  on('tool.check', { tool: 'Read' }, (_, e) =>
-    ({ decision: w.denied?.includes(under(String((e.input as { file_path?: string }).file_path))) ? 'deny' : 'allow' }))
+  on('tool.check', { tool: 'Read' }, (_, e) => {
+    const p = under(String((e.input as { file_path?: string }).file_path))
+    return { decision: w.denied?.includes(p) ? 'deny' : w.asked?.includes(p) ? 'ask' : 'allow' }
+  })
   on('tool.call', { tool: 'Read' }, (_, e) => { calls.push({ tool: 'Read', file_path: e.file_path }); return { result: 'x' } as never })
   on('tool.call', { tool: 'Write' }, (_, e) => { calls.push({ tool: 'Write', file_path: e.file_path }); return { result: 'ok' } as never })
   on('tool.call', { tool: 'Artifact' }, (_, e) => {
@@ -656,6 +659,25 @@ test('the survey reads no file the Read rules deny, names none, and counts them 
   expect(all.text).toContain("0 files read, 0 candidates: no file reached the survey's score of 3")
   expect(all.text).not.toContain('nothing to move')
   expect(all.context.at(-1)).toContain('\nFiles not read: 4 denied by Read rules.\n')
+})
+
+// second check, finding 4: in a session started in a subfolder the top's deny rules are not in force, and the engine
+// answers a file outside that folder with an ask and no rule, which the survey read as allowed
+test('in a subfolder session an ask with no rule for a file outside the folder is not read, is counted, and the reply says to start at the top', async ($, on) => {
+  const w: World = { start: '/w/docs', top: '/w', reads: [], asked: ['secret.md', 'docs/notes.md'], tracked: {
+    'docs/todo.md': TRACKED['docs/todo.md'], 'docs/notes.md': 'TODO: x\n', 'secret.md': '## S-1 hidden one\n## S-2 hidden two\n' } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'survey')
+  expect(w.reads!.filter(p => p.includes('secret'))).toEqual([])
+  expect(w.reads).toContain('/w/docs/notes.md') // inside the session's folder an ask is read, as before
+  expect(r.context.at(-1)).toContain('\nFiles not read: 1 denied by Read rules.\n')
+  expect(r.context.join('\n')).not.toContain('hidden')
+  expect(r.text).toBe('housekeeping survey: 2 files read, 1 candidates\n1 files outside the folder this session started in were not read, ' +
+    "since the repository's Read rules are not in force here: start the session at the top of the repository, /w, to survey them.\n" +
+    'The agent carries out the survey procedure on your next message, for example "go ahead".')
+  w.start = '/w' // from the top, the same ask is read
+  expect((await run($, 'survey')).text).toBe('housekeeping survey: 3 files read, 2 candidates\nThe agent carries out the survey procedure on your next message, for example "go ahead".')
 })
 
 // finding 7: a failed listing or a limit read as "nothing to move", and the reply gave no sign of the stop

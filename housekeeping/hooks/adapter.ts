@@ -123,9 +123,12 @@ export async function writePage($: Dollar, root: string, path: string, html: str
 // The survey's reader: the tracked files, under collect's rules. GIT_OPTIONAL_LOCKS=0: the survey writes nothing,
 // not even git's index refresh. Each file is first put to the person's Read rules, which the survey obeys (the
 // owner, 2026-11-04: "Obey the deny rules"); a check that fails counts as a deny.
-// The person's --tracker and --not-tracker paths come back checked, for the inventory.
+// The person's --tracker and --not-tracker paths come back checked, for the inventory. outside: the files counted as
+// denied because the engine answered an ask with no rule for a file outside the session's folder: the rules of the
+// repository's top are not in force in a session started below it (second check, finding 4: the owner's "Treat 'ask'
+// as refused").
 export async function readTracked($: Dollar, root: string, named = { tracker: [] as string[], notTracker: [] as string[] }):
-  Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number; named: { tracker: string[]; notTracker: string[] } } | { error: string }> {
+  Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number; outside: number; named: { tracker: string[]; notTracker: string[] } } | { error: string }> {
   const r = await $.process.run(['git', 'ls-files', '-z'], { cwd: root, timeoutMs: TIMEOUT, env: { GIT_OPTIONAL_LOCKS: '0' } })
   // as the Node command says it; a survey that could not list is no survey (finding 7)
   if (r.exitCode !== 0) return { error: `housekeeping: cannot list the tracked files in ${root}: git said: ${r.stderr.split('\n')[0].trim()}` }
@@ -133,10 +136,14 @@ export async function readTracked($: Dollar, root: string, named = { tracker: []
   paths.pop() // the empty tail after the last NUL, or the entry the cut left half written
   const n = checkNamed(paths, named.tracker, named.notTracker)
   if ('error' in n) return { error: `housekeeping: ${n.error} (paths are from the top of ${root})` }
+  const start = `${fold(await $.session.root())}/`
+  let outside = 0
+  const allow = (p: string) => $.tool.check({ tool: 'Read', input: { file_path: `${root}/${p}` } }).then(v =>
+    v.decision === 'ask' && !v.rule && !fold(`${root}/${p}`).startsWith(start) ? (outside++, false) : v.decision !== 'deny', () => false)
   const got = await collect(paths,
     p => $.fs.stat(`${root}/${p}`).then(s => ({ file: s.kind === 'file' && !s.isLink, size: s.size }), () => null),
     p => $.fs.read(`${root}/${p}`).catch(() => null),
-    { first: n.tracker, allow: p => $.tool.check({ tool: 'Read', input: { file_path: `${root}/${p}` } }).then(v => v.decision !== 'deny', () => false) })
+    { first: n.tracker, allow })
   if (r.isStdoutTruncated) got.skipped.push({ path: root, why: CUT_LIST })
-  return { ...got, named: n }
+  return { ...got, outside, named: n }
 }

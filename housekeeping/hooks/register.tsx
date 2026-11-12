@@ -160,9 +160,12 @@ async function procedure($: EngineInterface, arg: 'survey' | 'plan', named?: { t
     : ': no tracked files, nothing to move; /housekeeping init sets up the pair'
   const stops = notRead(inv, true)
   const stopped = stops.length ? `; a limit stopped the reading: ${stops.join(', ')}` : ''
+  // second check, finding 4: a session started below the top cannot apply the top's Read rules
+  const outside = t.outside ? `\n${t.outside} files outside the folder this session started in were not read, since the repository's ` +
+    `Read rules are not in force here: start the session at the top of the repository, ${root}, to survey them.` : ''
   // the command starts no agent turn, so the reply says what comes next (the owner, 2026-11-04: "Say what's next")
   const next = `The agent carries out the ${arg} procedure on your next message, for example "go ahead".`
-  return { text: `housekeeping ${arg}: ${inv.files} files read, ${inv.candidates.length} candidates${none}${stopped}\n${next}`, context }
+  return { text: `housekeeping ${arg}: ${inv.files} files read, ${inv.candidates.length} candidates${none}${stopped}${outside}\n${next}`, context }
 }
 
 // survey's --tracker and --not-tracker, each repeatable, a path in double quotes when it holds a space; null when
