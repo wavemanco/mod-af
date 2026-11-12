@@ -1,5 +1,5 @@
 import type { EngineInterface, Register } from 'claude-code'
-import { PAGE, readInput, readTracked, repoKey, writeFile, writePage } from './adapter.ts'
+import { commonDir, PAGE, readInput, readTracked, repoKey, writeFile, writePage } from './adapter.ts'
 import { behind, brief, onBranch } from './core/brief.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
@@ -67,11 +67,11 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   const text = await $.fs.read(file)
   const main = parseSettings(text).settings?.mainBranch
   if (!main) return null
-  // one call: the common git dir (the repository's key), main's commit, then the branch
-  const r = await $.process.run(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir', main, '--abbrev-ref', 'HEAD'], { cwd: root, timeoutMs: 10_000 })
+  // one call: the common git dir (the repository's key, as repoKey reads it), main's commit, then the branch
+  const r = await $.process.run(['git', 'rev-parse', '--git-common-dir', main, '--abbrev-ref', 'HEAD'], { cwd: root, timeoutMs: 10_000 })
   const [dir, sha, branch] = r.stdout.split('\n').map(x => x.trim())
   const remote = (await $.process.run(['git', 'rev-parse', '--verify', '--quiet', `refs/remotes/origin/${main}`], { cwd: root, timeoutMs: 10_000 }).catch(() => null))?.stdout.trim() ?? ''
-  const key = `brief:${dir}`, stamp = [sha, remote, branch, text].join('\n')
+  const key = `brief:${commonDir(root, dir)}`, stamp = [sha, remote, branch, text].join('\n')
   const keep = r.exitCode === 0 && !!sha // main resolves, so the view can be stored
   const hit = keep ? (await $.store.get(key)) as (View & { sha: string; stamp: string }) | undefined : undefined
   if (hit?.stamp === stamp) return { brief: hit.brief, status: hit.status }

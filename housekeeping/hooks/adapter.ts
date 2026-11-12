@@ -67,9 +67,13 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
   return { input: { settings, files, head, snapshots }, branch, behindRemote, findings }
 }
 
+// The repository's key: its common git dir. Asked with no --path-format, which a git before 2.31 echoes, so the answer
+// may be relative to root, as it is at the top (second check, finding 7); a current git's keys stay as they were.
+export const commonDir = (root: string, dir: string): string => /^([A-Za-z]:)?[\\/]/.test(dir) ? dir : `${root}/${dir}`
+
 export async function repoKey($: Dollar, root: string): Promise<string> {
-  const r = await $.process.run(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'], { cwd: root, timeoutMs: TIMEOUT })
-  return r.exitCode === 0 && r.stdout.trim() ? r.stdout.trim() : root
+  const r = await $.process.run(['git', 'rev-parse', '--git-common-dir'], { cwd: root, timeoutMs: TIMEOUT })
+  return r.exitCode === 0 && r.stdout.trim() ? commonDir(root, r.stdout.trim()) : root
 }
 
 // null on success, else the deny or error text. The Read comes first so the Write tool accepts an overwrite.

@@ -42,6 +42,7 @@ type World = {
   tracked?: Record<string, string> // the survey's files, by path under /w
   denied?: string[] // tracked paths the person's Read rules deny
   asked?: string[] // tracked paths the engine answers with an ask and no rule, as it does outside the session's folder
+  oldGit?: boolean // git rev-parse echoes --path-format, as a git before 2.31 does
   lsFail?: boolean // git ls-files exits 128
   lsCut?: boolean // git ls-files output is cut short
   reads?: string[] // every path fs.read was asked for
@@ -98,8 +99,12 @@ function world(on: On, w: World = {}) {
     if (a === 'rev-parse' && b === '--is-shallow-repository') return ok(w.shallow ? 'true\n' : 'false\n')
     if (a === 'rev-parse' && b === '--show-toplevel') return w.top ? ok(w.top + '\n') : ok('', 128)
     if (a === 'rev-parse' && b === '--verify') return w.remoteSha ? ok(w.remoteSha + '\n') : ok('', 1)
-    // with more arguments: the common dir, then main's commit, then the branch
-    if (a === 'rev-parse' && b === '--path-format=absolute') return ok(e.argv.length > 4 ? `/w/.git\n${w.mainSha ?? SHA}\nmain\n` : '/w/.git\n')
+    // the common dir, relative at the top as git gives it with no --path-format, absolute with it, and a git before
+    // 2.31 (oldGit) echoes the flag it does not know; with --abbrev-ref, then main's commit and the branch
+    if (a === 'rev-parse' && e.argv.includes('--git-common-dir')) {
+      const dir = !e.argv.includes('--path-format=absolute') ? '.git' : w.oldGit ? '--path-format=absolute\n.git' : `${posix(String(e.init?.cwd))}/.git`
+      return ok(e.argv.includes('--abbrev-ref') ? `${dir}\n${w.mainSha ?? SHA}\n${w.branch ?? 'main'}\n` : `${dir}\n`)
+    }
     return ok('', 1)
   })
   on('store.get', (_, e) => ({ value: stored[e.key] }))
@@ -465,6 +470,24 @@ test('a session started in a sub-folder reads the top of the git tree (HK-030)',
   const r = await run($, 'check')
   expect(r.exitCode).toBe(0)
   expect(w.paths!.every(p => p === '/w/.housekeeping.json')).toBe(true)
+})
+
+// second check, finding 7: a git before 2.31 echoed --path-format, so every repository had one store key, and one's
+// short view reached another's agent and its map published over the other's page
+test('on a git that echoes an unknown --path-format, two repositories keep their own views and Route Map links', async ($, on) => {
+  const w: World = { oldGit: true, start: '/a', top: '/a', argv: [], stats: { '/a': { isLink: false, realPath: '/a' }, '/b': { isLink: false, realPath: '/b' } } }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await until(() => 'brief:/a/.git' in w.stored!)
+  expect((await run($, 'map')).exitCode ?? 0).toBe(0)
+  Object.assign(w, { start: '/b', top: '/b' })
+  await $.prompt.context({ blocks: [] })
+  await until(() => 'brief:/b/.git' in w.stored!)
+  expect((await run($, 'map')).exitCode ?? 0).toBe(0)
+  expect(Object.keys(w.stored!).sort()).toEqual(['brief:/a/.git', 'brief:/b/.git', 'repo:/a/.git', 'repo:/b/.git'])
+  expect(w.calls!.filter(c => c.tool === 'Artifact').map(c => [c.action, c.url])).toEqual([['publish', undefined], ['publish', undefined]])
+  expect(w.argv!.some(a => a.includes('--path-format=absolute'))).toBe(false)
 })
 
 test('a command that throws still replies, with exit code 1 (HK-031)', async ($, on) => {
