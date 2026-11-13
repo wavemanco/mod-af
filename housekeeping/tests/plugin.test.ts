@@ -57,6 +57,7 @@ type World = {
   settings?: string // .housekeeping.json, small.ts's by default
   gate?: Promise<void> // the history walk's git log waits for it: a slow repository
   badPrompt?: boolean // a procedure file reads as a number, so the command's reply is one the site refuses
+  registered?: { description?: string; argumentHint?: string } // what session start registered the command with
 }
 
 // the engine may hand a hook a Windows-style path
@@ -72,7 +73,7 @@ function world(on: On, w: World = {}) {
   const files = (): Record<string, string> => ({ 'backlog.md': w.backlog ?? small.backlog, 'playbook.md': small.playbook })
   const stored = (w.stored ??= {})
   const calls = (w.calls ??= [])
-  on('command.register', (_, e) => ({ value: { command: e.name } }))
+  on('command.register', (_, e) => { w.registered = { description: e.description, argumentHint: e.argumentHint }; return { value: { command: e.name } } })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.cwd', () => ({ value: '/w' }))
   on('session.root', () => ({ value: w.start ?? '/w' }))
@@ -611,6 +612,34 @@ test('a command hook that fails is answered by its .catch, with exit 1 and the N
   const r = await run($, 'survey').catch((err: unknown) => ({ text: String(err), exitCode: undefined }))
   expect(r.exitCode).toBe(1)
   expect(r.text).toMatch(/^housekeeping: \/housekeeping survey failed in the hook \(.+\); run node .+\/cli\.ts survey in the repository instead, which has no time limit$/)
+})
+
+// Phase 3: each slash command is named in the usage line, the description and the argument hint; each later task
+// adds its own
+const COMMANDS = ['map', 'map new', 'check', 'init', 'survey', 'plan']
+const named = (text: string | undefined, name: string) => new RegExp(`(^|[^a-z])${name}([^a-z]|$)`).test(text ?? '')
+
+test('each slash command is named in the usage line, the description and the argument hint', async ($, on) => {
+  const w: World = {}
+  world(on, w)
+  await $.session.start(START)
+  const usage = (await run($, 'nope')).text
+  expect(usage).toMatch(/^housekeeping: \[/)
+  for (const name of COMMANDS)
+    expect([name, named(usage, name), named(w.registered?.description, name), named(w.registered?.argumentHint, name)]).toEqual([name, true, true, true])
+})
+
+// the hook failing outside its own promise stands in for one past its 10 s, as above: a run with no presentation
+// fails before the command does anything
+test('the reply of a hook that fails names each command\'s Node form', async ($, on) => {
+  world(on, { tracked: { ...TRACKED } })
+  await $.session.start(START)
+  for (const [args, node] of [['', 'brief'], ['map', 'map'], ['map new', 'map'], ['check', 'check'], ['survey', 'survey'], ['plan', 'survey']]) {
+    const r = await $.command.run({ command: 'housekeeping', args, origin: { kind: 'composer' } } as never) as { text: string; exitCode?: number }
+    expect([args, r.exitCode]).toEqual([args, 1])
+    expect(r.text).toMatch(new RegExp(`^housekeeping: /housekeeping${args ? ` ${args}` : ''} failed in the hook \\(.+\\); ` +
+      `run node .+/cli\\.ts ${node} in the repository instead, which has no time limit$`))
+  }
 })
 
 test('a failed publish still says the partition line and the page path (HK-032)', async ($, on) => {

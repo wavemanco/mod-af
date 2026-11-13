@@ -205,6 +205,18 @@ test('check names the branch it read when HEAD is elsewhere, and map and check s
   assert.doesNotMatch(run('check', '--repo', dir).stdout, /On branch|behind/)
 })
 
+// Phase 3: the Node command's list holds each command that has a Node form; each later task adds its own
+test('the usage names map, check, brief and survey, and each of them runs', () => {
+  const usage = run()
+  assert.equal(usage.status, 2)
+  const dir = repo()
+  for (const cmd of ['map', 'check', 'brief', 'survey']) {
+    assert.match(usage.stderr, new RegExp(`[<|\\s]${cmd}[>|\\s]`), cmd)
+    const r = run(cmd, '--repo', dir, ...(cmd === 'map' ? ['--out', join(dir, 'm.html')] : []))
+    assert.equal(r.status, 0, cmd + r.stdout + r.stderr)
+  }
+})
+
 test('check exits 0 on a sound repository', () => {
   assert.equal(run('check', '--repo', repo()).status, 0)
 })

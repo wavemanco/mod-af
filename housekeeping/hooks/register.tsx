@@ -353,7 +353,7 @@ export const register: Register = on => {
   const sent = new Map<string, Sent>()
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init, survey, plan.', argumentHint: '[map|map new|check|init|survey [--tracker <path>] [--not-tracker <path>]|plan]' })
+    await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, map new, check, init, survey, plan.', argumentHint: '[map|map new|check|init|survey [--tracker <path>] [--not-tracker <path>]|plan]' })
     const got = await next(e)
     // not awaited: a slow repository must not hold up the session
     cachedView($, builds).then(v => { if (v) $.ui.status(v.status) }).catch(() => {})
