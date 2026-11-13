@@ -38,8 +38,9 @@ function allowed(email: string): boolean {
 // point, so a letter outside the BMP does not stop it (HK-091). Words written straight before an address, with no
 // space, are masked with it: a few letters of prose too many rather than an address's first letters on show (the
 // automated security review of 324aea5, over the narrow check's wish to keep them)
-// an apostrophe too (o'brien@): the pattern starts after it, the widening must not stop at it (HK-092)
-const LOCAL = /[\p{L}\p{M}0-9._%+'-]/u
+// an apostrophe too, straight or typographic (o'brien@, o’brien@): the pattern starts after it, the widening must not
+// stop at it (HK-092, HK-093)
+const LOCAL = /[\p{L}\p{M}0-9._%+'’-]/u
 function emails(text: string): { start: number; end: number }[] {
   const out: { start: number; end: number }[] = []
   for (const m of text.matchAll(EMAIL)) {
@@ -65,15 +66,13 @@ export function scanPrivacy(text: string): PrivacyHit[] {
   return hits.sort((a, b) => a.index - b.index)
 }
 
-// The text with each hit masked as its sample is. For commit subjects, which cannot be edited.
+// The text with each hit masked as its sample is. For commit subjects, which cannot be edited. Every mask is made on
+// the original text and their starred places are joined, so no mask runs on another's output and one hit cannot keep
+// another from its mask (HK-093: an address widened into a webhook secret left the secret's start on show).
 export function maskPrivacy(text: string): string {
-  let out = '', at = 0
-  for (const { start, end } of emails(text)) {
-    const m = text.slice(start, end)
-    out += text.slice(at, start) + (allowed(m) ? m : mask(m))
-    at = end
-  }
-  out += text.slice(at)
-  for (const re of KEYS) out = out.replace(re, mask)
-  return out
+  const u = text.split('')
+  const star = (from: number, m: string) => { const k = mask(m); for (let i = 0; i < k.length; i++) if (k[i] === '*') u[from + i] = '*' }
+  for (const { start, end } of emails(text)) { const m = text.slice(start, end); if (!allowed(m)) star(start, m) }
+  for (const re of KEYS) for (const m of text.matchAll(re)) star(m.index, m[0])
+  return u.join('')
 }

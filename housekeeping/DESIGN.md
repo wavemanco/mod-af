@@ -252,9 +252,11 @@ the settings that is not plain stays out of that command (the second check's fin
     private key blocks, PGP's included, under its older SECRET KEY label too. An address's domain may hold non-ASCII
     letters, and so may its local part once it holds one ASCII letter, digit or sign: `josé@` is found. The pattern
     reads at most the last 64 characters of a local part, so a long run of letters is scanned in linear time, and
-    the mask covers the whole local part, out to the first character that cannot be in one (a space, a sign
-    other than `. _ % + - '`, a symbol or a format character), so words joined to an address by a letter, a
-    digit or one of those signs are masked with it (HK-088, HK-091, HK-092).
+    the mask widens over what the widening takes, letters, marks, ASCII digits and `. _ % + - '` and `’`, to the
+    first character that is none of these, so words joined to an address by one of them are masked with it, and
+    an address whose local part holds another sign (`&`, `=`, `/`) shows the part before that sign. Addresses
+    and keys are masked on the original text and their masks joined, so one cannot keep another from its mask
+    (HK-088, HK-091, HK-092, HK-093).
   - What passes: a password, a key of any other shape, a percent-encoded address (the owner's choice,
     2026-11-04), an address whose local part holds no ASCII letter, digit or sign, one wholly in CJK
     for example: it has the shape of an at-name written right after CJK text, which must build. So do an

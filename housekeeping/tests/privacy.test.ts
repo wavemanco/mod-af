@@ -104,4 +104,10 @@ test('a long run of mixed letters is scanned in linear time, and a 64-letter loc
   expect(maskPrivacy("cc: anne-marie.o'neil@corp.io")).toBe(`cc: an${'*'.repeat(21)}io`)
   expect(maskPrivacy(' é\u{2000B}jane@corp.io')).toBe(` é${'*'.repeat(12)}io`)
   expect(maskPrivacy('x 𝐚𝐛c@corp.io')).toBe(`x 𝐚${'*'.repeat(9)}io`) // the head is one whole letter of two units
+  // the closing round (HK-093): a typographic apostrophe, and a secret an address's widening reached into
+  expect(maskPrivacy('cc: jane.o’neil@corp.io')).toBe(`cc: ja${'*'.repeat(15)}io`)
+  const secret = 'whsec_abcdefghij/' + 'Q'.repeat(24)
+  const both = maskPrivacy(`x '${secret}''jane@corp.io'`)
+  expect([both.includes('abcdefghij'), both.includes('QQQ'), scanPrivacy(both)]).toEqual([false, false, []])
+  expect(both.length).toBe(`x '${secret}''jane@corp.io'`.length)
 })
