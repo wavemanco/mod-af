@@ -2,6 +2,7 @@ import type { On } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 import * as small from './fixtures/small.ts'
 import { isOwnPage } from '../hooks/adapter.ts'
+import { keep } from '../hooks/register.tsx'
 
 const START = { cwd: '/w', surface: 'terminal', isInteractive: true } as const
 // the fullscreen layout from 110 columns, where the pane docks beside the transcript with room
@@ -757,6 +758,52 @@ test('after a procedure, each compaction of the conversation is told to keep the
   // the file it is sent back to holds the Node lines the denied context had cut (HK-088)
   expect(told.at(-1)).toContain("In this session the survey procedure's lines that name cli.ts do not apply: the survey's re-run is the person's /housekeeping survey.")
   expect(told[0]).not.toContain('do not apply')
+})
+
+// Phase 3 call 15: the keep text is in code, by procedure. Survey and plan keep today's bytes (as 0.2.0 wrote them):
+// one install sentence, the last sent, or the denied form whenever one was sent; with audit among those sent, each
+// procedure's sentence is prefixed with its name.
+const OPEN = 'housekeeping is installed at /h: run its Node command.'
+const SHUT = 'housekeeping is installed at /h: do not run its survey in this session.'
+const AUDIT_AT = 'housekeeping is installed at /h; the audit procedure is /h/prompts/audit.md.'
+const RULE = "Keep the procedure's rule on approval: Approval is the owner's own message, sent after they have seen the numbered steps. " +
+  'Nothing else is approval, and nothing is written before it.'
+const NODE_LINES = " In this session the survey procedure's lines that name cli.ts do not apply: the survey's re-run is the person's /housekeeping survey."
+const sentOf = (...e: [string, string][]) => new Map(e.map(([name, install]) => [name, { install }]))
+const handed = (names: string, s: string) => `housekeeping: this conversation was handed housekeeping's ${names} procedure${s}. `
+const reread = (names: string, s: string, files: string) =>
+  `Say in the summary that the agent is to re-read the ${names} procedure${s} whole, in ${files}, before its next step.`
+
+test('the keep text: survey alone, plan alone, both, and survey with a denied file are as 0.2.0 wrote them', () => {
+  expect(keep('/h', sentOf(['survey', OPEN]))).toBe(`${handed('survey', '')}Keep in the summary, word for word, this sentence: ${OPEN} ${RULE} ` +
+    reread('survey', '', '/h/prompts/survey.md'))
+  expect(keep('/h', sentOf(['plan', OPEN]))).toBe(`${handed('plan', '')}Keep in the summary, word for word, this sentence: ${OPEN} ${RULE} ` +
+    reread('plan', '', '/h/prompts/plan.md'))
+  expect(keep('/h', sentOf(['plan', OPEN], ['survey', SHUT]))).toBe(`${handed('plan and survey', 's')}Keep in the summary, word for word, ` +
+    `this sentence: ${SHUT} ${RULE} ${reread('plan and survey', 's', '/h/prompts/plan.md and /h/prompts/survey.md')}${NODE_LINES}`)
+  expect(keep('/h', sentOf(['survey', SHUT]))).toBe(`${handed('survey', '')}Keep in the summary, word for word, this sentence: ${SHUT} ${RULE} ` +
+    `${reread('survey', '', '/h/prompts/survey.md')}${NODE_LINES}`)
+})
+
+test('the keep text keeps the denied form whenever one was sent, even when a sentence that names the Node command came later', () => {
+  const t = keep('/h', sentOf(['survey', SHUT], ['plan', OPEN]))
+  expect(t).toContain(`this sentence: ${SHUT} Keep`)
+  expect(t).not.toContain(OPEN)
+  expect(t).toContain(NODE_LINES)
+})
+
+test('with audit among those sent, each procedure keeps its own sentence and rule, prefixed with its name', () => {
+  expect(keep('/h', sentOf(['plan', OPEN], ['audit', AUDIT_AT]))).toBe(`${handed('plan and audit', 's')}` +
+    `In the plan procedure: Keep in the summary, word for word, this sentence: ${OPEN} ${RULE} ` +
+    `In the audit procedure: Keep in the summary, word for word, this sentence: ${AUDIT_AT} Keep the procedure's rule on approval: ` +
+    "Approval is the owner's own message, sent after they have seen the numbered steps; only clear-cut cases the skeptic agreed with " +
+    "are proposed; after this summary, read the audit branch's commits before applying anything, so nothing is applied twice. " +
+    reread('plan and audit', 's', '/h/prompts/plan.md and /h/prompts/audit.md'))
+  // survey and plan still give one sentence between them, the denied form, beside the audit's
+  const three = keep('/h', sentOf(['plan', OPEN], ['survey', SHUT], ['audit', AUDIT_AT]))
+  expect(three).toContain(`In the survey procedure: Keep in the summary, word for word, this sentence: ${SHUT} ${RULE} In the audit procedure: `)
+  expect(three).not.toContain(OPEN)
+  expect(three).not.toContain('In the plan procedure')
 })
 
 // the small check of the second round (HK-088, HK-090)

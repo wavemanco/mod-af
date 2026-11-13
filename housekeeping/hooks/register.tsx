@@ -300,17 +300,31 @@ async function command($: EngineInterface, arg: string, show: (brief: string) =>
   }
 }
 
+// Each procedure's rule on approval, which a compaction keeps word for word (Phase 3 call 15): survey's and plan's as
+// 0.2.0 wrote them, which the owner's sitting tests (HK-080, call 12). owed has none, so it is never recorded.
+const RULE = "Approval is the owner's own message, sent after they have seen the numbered steps. Nothing else is approval, and " +
+  'nothing is written before it.'
+const KEEP: Record<string, string> = { survey: RULE, plan: RULE,
+  audit: "Approval is the owner's own message, sent after they have seen the numbered steps; only clear-cut cases the skeptic " +
+    "agreed with are proposed; after this summary, read the audit branch's commits before applying anything, so nothing is applied twice." }
+const DENIED = /do not run its survey in this session/
+type Sent = { install: string }
+
 // What a compaction's summary is told once a procedure went to the agent (second check, finding 13): the procedure
 // and the install line are hidden messages its summary could drop, and with them the approval and apply rules.
-function keep(home: string, sent: Map<string, string>): string {
-  const names = [...sent.keys()], files = names.map(n => `${home}/prompts/${n}.md`), said = [...sent.values()].at(-1)!
-  return `housekeeping: this conversation was handed housekeeping's ${names.join(' and ')} procedure${names.length > 1 ? 's' : ''}. ` +
-    `Keep in the summary, word for word, this sentence: ${said} Keep the procedure's rule on approval: ` +
-    "Approval is the owner's own message, sent after they have seen the numbered steps. Nothing else is approval, and nothing " +
-    `is written before it. Say in the summary that the agent is to re-read the ${names.join(' and ')} procedure${names.length > 1 ? 's' : ''} ` +
-    `whole, in ${files.join(' and ')}, before its next step.` +
+export function keep(home: string, sent: Map<string, Sent>): string {
+  const all = [...sent], names = all.map(([n]) => n), files = names.map(n => `${home}/prompts/${n}.md`), s = names.length > 1 ? 's' : ''
+  // survey and plan keep one install sentence between them: the last sent, or the denied form whenever one was sent, so
+  // a later one that names the Node command never stands beside it (call 15); audit keeps its own
+  const pair = all.filter(([n]) => n !== 'audit')
+  const kept = [pair.findLast(([, x]) => DENIED.test(x.install)) ?? pair.at(-1), all.find(([n]) => n === 'audit')]
+    .filter((x): x is [string, Sent] => x !== undefined)
+  const one = ([n, x]: [string, Sent]) => `${kept.length > 1 ? `In the ${n} procedure: ` : ''}Keep in the summary, word for word, ` +
+    `this sentence: ${x.install} Keep the procedure's rule on approval: ${KEEP[n]}`
+  return `housekeeping: this conversation was handed housekeeping's ${names.join(' and ')} procedure${s}. ${kept.map(one).join(' ')} ` +
+    `Say in the summary that the agent is to re-read the ${names.join(' and ')} procedure${s} whole, in ${files.join(' and ')}, before its next step.` +
     // the survey's file holds the Node lines its denied context had cut (HK-088); plan's are sent whole (HK-091)
-    (/do not run its survey in this session/.test(sent.get('survey') ?? '') ? " In this session the survey procedure's lines " +
+    (DENIED.test(sent.get('survey')?.install ?? '') ? " In this session the survey procedure's lines " +
       "that name cli.ts do not apply: the survey's re-run is the person's /housekeeping survey." : '')
 }
 
@@ -318,7 +332,7 @@ export const register: Register = on => {
   let view = 'housekeeping: run /housekeeping to build the short view.'
   const builds: Builds = { running: new Map(), failed: new Map() }
   // the procedures sent in this conversation, each with its install sentence (second check, finding 13)
-  const sent = new Map<string, string>()
+  const sent = new Map<string, Sent>()
 
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, check, init, survey, plan.', argumentHint: '[map|map new|check|init|survey [--tracker <path>] [--not-tracker <path>]|plan]' })
@@ -334,8 +348,9 @@ export const register: Register = on => {
     const r = await command($, e.args.trim(), b => { view = b }, room).catch(err => ({ text: `housekeeping: ${err instanceof Error ? err.message : String(err)}`, exitCode: 1 } as { text: string; exitCode?: number; context?: string[] }))
     // only a procedure comes with context: the procedure, then the sentence that says where housekeeping lives
     const name = e.args.trim().split(/\s/)[0]
-    // the last one sent is last, with the sentence that stands; only a reply the site can take is recorded (HK-088)
-    if (r.context?.every(c => typeof c === 'string')) { sent.delete(name); sent.set(name, r.context[1]) }
+    // the last one sent is last, with the sentence that stands; only a reply the site can take is recorded (HK-088), and
+    // only a procedure with a rule to keep
+    if (Object.hasOwn(KEEP, name) && r.context?.every(c => typeof c === 'string')) { sent.delete(name); sent.set(name, { install: r.context[1] }) }
     return r
   }).catch(($, e, next) => {
     // the hook failed outside its own promise, past its 10 s budget above all: a reply still, exit 1, and the Node
@@ -349,7 +364,7 @@ export const register: Register = on => {
   // a fork inherits its parent's conversation, procedure and all, so its own compaction is told what it inherited: a
   // copy of the main conversation's record, or of its parent fork's; a fork of another subagent inherits none (HK-088,
   // HK-091)
-  const forks = new Map<string, Map<string, string>>()
+  const forks = new Map<string, Map<string, Sent>>()
   on('agent.spawn', async ($, e, next) => {
     const got = await next(e)
     const from = e.parentAgentId ? forks.get(e.parentAgentId) : sent

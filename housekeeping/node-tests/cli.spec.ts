@@ -2,6 +2,7 @@
 import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -319,6 +320,15 @@ test('the survey procedure without its Node lines names no Node command and send
 })
 
 const PLAN = () => readFileSync(join(import.meta.dirname, '..', 'prompts', 'plan.md'), 'utf8')
+
+// Phase 3 call 12: the survey and plan procedures stay as the fix rounds shipped them, so the owner's sitting (HK-080)
+// still tests them; the hashes are of their text at b14fdcf, line endings as committed
+test('the survey and plan procedures are byte for byte as at b14fdcf', () => {
+  const hash = (name: string) => createHash('sha256')
+    .update(readFileSync(join(import.meta.dirname, '..', 'prompts', `${name}.md`), 'utf8').replaceAll('\r\n', '\n')).digest('hex')
+  assert.equal(hash('survey'), '3592c447588457fecfea4fac5ab4f496f544d5b7ffd2f7ca9b2ae101e675cb78')
+  assert.equal(hash('plan'), 'a05bb2e51507ae7e7f0078c57274e91ffa9573f6ce1bd1c678b94f5579ab70f6')
+})
 
 // second check, finding 2: a guide-file rule, commits on the branch or a where-we-are stood in for approval
 test('the plan procedure: approval is the owner\'s own message after the numbered steps, and nothing a repository holds is', () => {
