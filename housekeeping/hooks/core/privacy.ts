@@ -30,13 +30,21 @@ function allowed(email: string): boolean {
 }
 
 // Each address with its whole local part: the pattern reads at most the last 64 characters of it, so a longer one is
-// widened to the left here, and no part of it is left unmasked (HK-088)
-const LOCAL = /[\p{L}\p{M}0-9._%+-]/u
+// widened to the left here, and no part of it is left unmasked (HK-088). It steps by code point, so a letter outside
+// the BMP does not stop it, then forward to the first ASCII character, where the pattern itself starts an address,
+// so words written straight before it stay (HK-091)
+const LOCAL = /[\p{L}\p{M}0-9._%+-]/u, FIRST = /[A-Za-z0-9._%+-]/
 function emails(text: string): { start: number; end: number }[] {
   const out: { start: number; end: number }[] = []
   for (const m of text.matchAll(EMAIL)) {
+    const floor = out.at(-1)?.end ?? 0
     let start = m.index
-    while (start > (out.at(-1)?.end ?? 0) && LOCAL.test(text[start - 1])) start--
+    while (start > floor) {
+      const w = /[\uDC00-\uDFFF]/.test(text[start - 1]) && start - 2 >= floor && /[\uD800-\uDBFF]/.test(text[start - 2]) ? 2 : 1
+      if (!LOCAL.test(text.slice(start - w, start))) break
+      start -= w
+    }
+    while (start < m.index && !FIRST.test(text[start])) start++
     out.push({ start, end: m.index + m[0].length })
   }
   return out

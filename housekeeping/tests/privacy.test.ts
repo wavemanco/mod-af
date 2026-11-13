@@ -94,4 +94,9 @@ test('a long run of mixed letters is scanned in linear time, and a 64-letter loc
   const long = 'b'.repeat(36) + 'a'.repeat(64)
   expect(maskPrivacy(`write to ${long}@corp.io today`)).toBe(`write to bb${'*'.repeat(long.length + 8 - 4)}io today`)
   expect(scanPrivacy(`write to ${long}@corp.io today`)[0].index).toBe(9)
+  // the narrow check (HK-091): a letter outside the BMP stopped the widening, and words before an address were masked
+  const astral = `zq${'r'.repeat(18)}\u{2000B}${'a'.repeat(70)}`
+  expect(maskPrivacy(`write to ${astral}@corp.io today`)).toBe(`write to zq${'*'.repeat(astral.length + 8 - 4)}io today`)
+  expect(maskPrivacy('请联系jane@corp.io的回复')).toBe('请联系ja***********回复') // the domain's letters run on, as before the pass
+  expect(maskPrivacy('écrire à émile@corp.io')).toBe('écrire à émi********io')
 })
