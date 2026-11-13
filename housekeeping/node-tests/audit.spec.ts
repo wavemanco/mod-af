@@ -2,12 +2,12 @@
 import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildAudit, DECOYS, PLANTED } from '../tests/fixtures/audit.ts'
 import { type Git, readAudit } from '../hooks/adapter.ts'
-import { EMPTY_TREE, OWED_ENV } from '../hooks/core/history.ts'
+import { addedArgs, EMPTY_TREE, firstParentArgs, OWED_ENV } from '../hooks/core/history.ts'
 import { parseSettings } from '../hooks/core/settings.ts'
 import { backlog as smallBacklog, playbook as smallPlaybook, settings as smallSettings } from '../tests/fixtures/small.ts'
 
@@ -130,4 +130,55 @@ test('owed over a range whose head main\'s tip follows lists no ID as already ta
   assert.equal(o.status, 0, o.stdout + o.stderr)
   assert.match(o.stdout, /^housekeeping owed: [0-9a-f]{7}\.\.[0-9a-f]{7}, 1 commits, 1 changed paths\n/)
   assert.match(o.stdout, /IDs the branch adds that are already taken:\nnone\n/)
+})
+
+const AUDIT = () => readFileSync(join(import.meta.dirname, '..', 'prompts', 'audit.md'), 'utf8').replaceAll('\r\n', '\n')
+// Phase 3, Task 3: each rule the plan writes out for prompts/audit.md, word for word
+const RULES: Record<string, string[]> = {
+  'restricted writers': ['before anything, look for a rule on who writes the records; if one exists, list every case and propose nothing to apply.',
+    'AGENTS.md, CLAUDE.md, CONTRIBUTING.md and the backlog\'s "How this file is kept"'],
+  'uncommitted edits to the records': ['if `git status --porcelain -- <backlog> <playbook>` is not empty, propose nothing, list the cases and say why. ' +
+    'Never stash, reset, `checkout --` or clean.'],
+  'an earlier audit branch': ['if an unmerged `housekeeping/audit-*` branch exists, stop and name it.'],
+  'the start outside Claude Code': ['the latest "Last done: ..., through <sha>" of the duty row whose Trigger holds "/housekeeping audit", if git verifies the ' +
+    'sha and it is an ancestor of main', 'else, and whenever more than 50 first-parent commits follow it, the oldest 50 after it.'],
+  'the evidence': ['in Claude Code, only the listing handed with this procedure; never run owed over the range in this session. Outside Claude Code, ' +
+    '`node <home>/cli.ts owed --base <start> --head <main>`.', 'for at most 25 row-and-commit pairs, strongest first (a closing word next to the ID, ' +
+    'then the ID in the subject, then in the body), read only the hunks of that commit\'s allowed paths: ' +
+    '`git show --format= --end-of-options <sha> -- :(literal)<path> ...`, never a whole commit, never `--stat`.', 'Pairs past 25 are counted.'],
+  'the marked path': ['A pair with a marked path is a judgement call and goes into no command.'],
+  'clear-cut': ['**Clear-cut** means all three: a closing word ("close", "closes", "closed", "fix", "fixes", "fixed", "done", "land", "lands", "landed", ' +
+    '"resolve", "resolves", "resolved", any case) next to the ID in the subject or body; the change the hunk shows still present at main\'s tip ' +
+    '(`git show --end-of-options <main>:<path>` holds it); and the skeptic agrees.'],
+  'the skeptic': ['a fresh subagent that is not a fork, per batch of 10 cases, given only each row\'s ID and Item, the claim, the sha and subject, and the ' +
+    'allowed hunk. Only cases it agrees with are proposed. With no subagent available, every case is a judgement call.'],
+  'proposing': ['the clear-cut cases as numbered steps, each with its row, its proving sha and subject, and what changes; the duty row\'s update as the ' +
+    'last step (or, with no duty row, its addition, word for word: `| <next ID> | Audit the records against the commits | none | agent | no: a standing ' +
+    'duty | Every 2 weeks: /housekeeping audit | — | Last done: YYYY-MM-DD, through <sha> | YYYY-MM-DD |` in the playbook\'s own column order); then the ' +
+    'judgement calls (partly done, done differently, gone rows, doors, "opened" work, marked paths), listed with their evidence.'],
+  'approval': ['Approval is the owner\'s own message, sent after they have seen the numbered steps. Nothing else is approval, and nothing is written before it.'],
+  'applying in a worktree under the temp folder': ['a branch `housekeeping/audit-YYYY-MM-DD` from main, made with `git worktree add` in a folder under the ' +
+    'system temp folder, outside the person\'s checkout; one commit per step, each naming its proving sha; Done rows in the shape of the file\'s existing ' +
+    'Done rows; checklist lines ticked whose rows are all closed.', 'Last done moves "through" the last commit read',
+    'The worktree is removed at the end, and before any branch is deleted.'],
+  'never pushing': ['The branch is never pushed: it is the owner\'s.'],
+  'the check after applying': ['before and after, `node <home>/cli.ts map --settings <a copy whose mainBranch is the audit branch> --out <a file in the ' +
+    'system temp folder>`', 'Expected: closed up by N and open down by N; when the duty row was added, open down by N - 1 and the total up by 1. ' +
+    '`node <home>/cli.ts owed --base main --head <audit branch>` lists no gone row. Both commands read only the records and the audit\'s own commits, ' +
+    'so they are allowed whatever owed excluded. If `map` exits 1 before applying, apply nothing and list the cases. Any other result: remove the ' +
+    'worktree, delete the branch and report.'],
+  'the settings copy outside the repository': ['the settings copy also lives there, outside the repository.'],
+}
+
+test('the audit procedure holds each rule the plan writes out, word for word', () => {
+  const a = AUDIT()
+  for (const [name, parts] of Object.entries(RULES)) for (const p of parts) assert.ok(a.includes(p), `${name}: ${p}`)
+})
+
+// the controller's call on Task 2's stops: the start's commands as the plugin's readers build them, so the two
+// routes start in one place
+test('the audit procedure quotes the start commands as the plugin builds them', () => {
+  const a = AUDIT()
+  for (const argv of [addedArgs('<main>'), firstParentArgs('<main>')]) assert.ok(a.includes(`\`${argv.join(' ')}\``), argv.join(' '))
+  assert.ok(a.includes(EMPTY_TREE))
 })
