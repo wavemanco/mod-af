@@ -211,6 +211,17 @@ async function nudge($: EngineInterface): Promise<void> {
   await $.store.set(key, head)
 }
 
+// At session start (Phase 3, Task 4): where a Route Map link is stored and the records on main changed since the commit
+// it was published at, one line in the transcript says so; with no link stored, nothing is read
+async function staleMap($: EngineInterface): Promise<void> {
+  const at = await settingsAt($)
+  if (!at) return
+  const { root, s } = at
+  const known = (await $.store.get(`repo:${await repoKey($, root)}`)) as { url?: unknown; sha?: unknown } | undefined
+  if (!known?.url || typeof known.sha !== 'string' || (await quietDiff($, root, s, known.sha, s.mainBranch)).exitCode !== 1) return
+  $.ui.log(maskPrivacy(`The Route Map is older than the records on ${s.mainBranch}: /housekeeping map publishes it.`))
+}
+
 // The records card, from the settings alone: none where there is no settings file, or one that does not parse
 async function records($: EngineInterface): Promise<string | null> {
   const file = `${await repoRoot($)}/${SETTINGS}`
@@ -484,8 +495,9 @@ export const register: Register = (on, options) => {
     await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, map new, check, init, survey, plan, owed, audit.',
       argumentHint: '[map|map new|check|init|survey [--tracker <path>] [--not-tracker <path>]|plan|owed [--base <ref>] [--head <ref>]|audit]' })
     const got = await next(e)
-    // not awaited: a slow repository must not hold up the session
+    // not awaited: a slow repository must not hold up the session, nor the stale-map check the first prompt
     cachedView($, builds).then(v => { if (v) $.ui.status(v.status) }).catch(() => {})
+    if (automatic) staleMap($).catch(() => {})
     return got
   })
 

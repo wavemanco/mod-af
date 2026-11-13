@@ -73,6 +73,7 @@ type World = {
   since?: number // rev-list --count from it to HEAD
   dirty?: string // git status --porcelain on the records
   suggested?: string[] // each prompt.suggest text
+  logs?: { text: string; to: string }[] // each ui.log line, with where it goes
 }
 
 // the engine may hand a hook a Windows-style path
@@ -171,6 +172,7 @@ function world(on: On, w: World = {}) {
   })
   on('store.delete', (_, e) => { delete stored[e.key]; return { value: undefined } })
   on('prompt.suggest', (_, e) => { w.suggested?.push(e.text); return { isShown: true } })
+  on('ui.log', (_, e) => { w.logs?.push({ text: e.text, to: e.to }); return { value: undefined } })
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('tool.list', () => ({ value: w.noArtifact ? [{ name: 'Write', description: '', mcp: false }] : [{ name: 'Write', description: '', mcp: false }, { name: 'Artifact', description: '', mcp: false }] }))
   on('ui.open', () => ({ value: { isPlaced: w.placed !== false } }))
@@ -1659,13 +1661,16 @@ test('the shell hook runs the command once when the command throws beneath it, o
   expect(w.ran).toEqual(['git commit -m a', 'git commit -m b', 'git commit -m c'])
 })
 
-test('with automatic off, a git commit makes no git call and adds no line, and a turn end suggests nothing; the records card and the compaction paragraph stay', { options: { automatic: 'off' } }, async ($, on) => {
-  const w: World = { argv: [], status: [], ran: [] }
+test('with automatic off, a git commit makes no git call and adds no line, a turn end suggests nothing, and a stale map is not said; the records card and the compaction paragraph stay', { options: { automatic: 'off' } }, async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [], logs: [], stored: { ...KNOWN }, changed: true }
   world(on, w)
   const told = compacts(on)
   on('prompt.context', (_, e) => ({ blocks: e.blocks }))
   await $.session.start(START)
   await settled(w) // the short view is still built, so this world answers git
+  await new Promise(r => setTimeout(r, 50))
+  expect(quiet(w)).toEqual([])
+  expect(w.logs).toEqual([])
   expect(records(await $.prompt.context({ blocks: [] }))).toBe(CARD)
   await $.session.compact({ trigger: 'auto', messages: MSGS })
   expect(told).toEqual([UNFILED])
@@ -1738,6 +1743,39 @@ test('no suggestion with uncommitted edits to the records, fewer than three comm
   await ended($) // the same HEAD, now clean and three commits on
   await until(() => w.suggested!.length > 1)
   expect(w.suggested).toEqual(['/loose-ends', '/loose-ends'])
+})
+
+// Phase 3, Task 4: at session start, a stored Route Map link older than the records on main is said in the transcript
+const STALE = 'The Route Map is older than the records on main: /housekeeping map publishes it.'
+const said = (w: World) => w.logs!.filter(l => l.to === 'transcript').map(l => l.text)
+
+test('at session start, a stored Route Map link older than the records on main is said in one transcript line; none when the records match it', async ($, on) => {
+  const w: World = { argv: [], logs: [], stored: { ...KNOWN }, changed: true }
+  world(on, w)
+  await $.session.start(START)
+  await until(() => said(w).length > 0)
+  expect(said(w)).toEqual([STALE])
+  expect(quiet(w)).toEqual([['git', 'diff', '--quiet', '--no-ext-diff', '--end-of-options', SHA, 'main', '--', ':(literal)backlog.md', ':(literal)playbook.md']])
+  Object.assign(w, { changed: false, logs: [] })
+  await $.session.start(START)
+  await until(() => quiet(w).length === 2)
+  await new Promise(r => setTimeout(r, 50))
+  expect(said(w)).toEqual([])
+})
+
+test('no stale-map line and no look at the records when no Route Map link is stored', async ($, on) => {
+  const w: World = { argv: [], logs: [], stored: { ...KNOWN }, changed: true }
+  world(on, w)
+  await $.session.start(START)
+  await until(() => said(w).length > 0)
+  expect(said(w)).toEqual([STALE])
+  delete w.stored!['repo:/w/.git']
+  w.logs = []
+  await $.session.start(START)
+  await stored(w)
+  await new Promise(r => setTimeout(r, 50))
+  expect(said(w)).toEqual([])
+  expect(quiet(w).length).toBe(1)
 })
 
 test("the suggestion's key leaves the Route Map link's untouched", async ($, on) => {
