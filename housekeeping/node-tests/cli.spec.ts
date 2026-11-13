@@ -9,6 +9,8 @@ import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { backlog, playbook, settings } from '../tests/fixtures/small.ts'
 import { withoutNode } from '../hooks/core/survey.ts'
+import { card } from '../hooks/core/card.ts'
+import { parseSettings } from '../hooks/core/settings.ts'
 
 const CLI = join(import.meta.dirname, '..', 'cli.ts')
 // this file's own git calls never run a git.exe that a fixture holds (finding 2), whatever shell started the run
@@ -212,6 +214,15 @@ test('brief prints the short view', () => {
   assert.equal(r.status, 0, r.stderr)
   assert.ok(r.stdout.startsWith('# Small: where we are'))
   assert.ok(r.stdout.length <= 8000)
+})
+
+// Phase 3 call 9: the records card, after the short view
+test('brief prints the records card after the short view', () => {
+  const r = run('brief', '--repo', repo())
+  assert.equal(r.status, 0, r.stderr)
+  const at = r.stdout.indexOf(`\n\n${card(parseSettings(settings).settings!)}\n`)
+  assert.ok(at > r.stdout.indexOf('warnings, '), r.stdout)
+  assert.ok(r.stdout.endsWith(`${card(parseSettings(settings).settings!)}\n`), r.stdout)
 })
 
 test('check exits 1 and map writes nothing after a column name is broken', () => {

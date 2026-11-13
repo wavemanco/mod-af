@@ -3,6 +3,8 @@ import { expect, test } from 'claude-code/testing'
 import * as small from './fixtures/small.ts'
 import { isOwnPage, readTracked } from '../hooks/adapter.ts'
 import { handPrompt, keep } from '../hooks/register.tsx'
+import { card } from '../hooks/core/card.ts'
+import { parseSettings } from '../hooks/core/settings.ts'
 
 const START = { cwd: '/w', surface: 'terminal', isInteractive: true } as const
 // the fullscreen layout from 110 columns, where the pane docks beside the transcript with room
@@ -39,7 +41,7 @@ type World = {
   start?: string
   top?: string
   paths?: string[]
-  failRead?: boolean
+  failRead?: boolean | (() => boolean) // fs.read throws, at every read or where the function says
   pub?: object
   tracked?: Record<string, string> // the survey's files, by path under /w
   denied?: string[] // tracked paths the person's Read rules deny
@@ -78,7 +80,7 @@ function world(on: On, w: World = {}) {
   on('fs.exists', (_, e) => (w.paths?.push(posix(e.path)), { value: w.hasSettings !== false && e.path.endsWith('.housekeeping.json') }))
   on('fs.read', (_, e) => {
     w.reads?.push(posix(e.path))
-    if (w.failRead) throw new Error('EIO')
+    if (typeof w.failRead === 'function' ? w.failRead() : w.failRead) throw new Error('EIO')
     const prompt = /\/prompts\/(survey|plan)\.md$/.exec(posix(e.path))
     if (prompt && w.badPrompt) return { value: 42 as never }
     return { value: prompt ? PROMPTS[prompt[1]] : w.tracked?.[under(e.path)] ?? w.settings ?? small.settings }
@@ -601,6 +603,54 @@ test('the URL comes from result.url, else the claude.ai link in the text (HK-036
     if (url) { expect(r.exitCode ?? 0).toBe(0); expect(r.text).toContain(url); expect(w.stored!['repo:/w/.git']).toEqual({ url, sha: SHA }) }
     else { expect(r.exitCode).toBe(1); expect(r.text).toContain('no URL') }
   }
+})
+
+// Phase 3 call 9: the records card, its own block after the short view, from the settings alone
+const CARD = card(parseSettings(small.settings).settings!)
+const names = (r: { blocks: { name: string }[] }) => r.blocks.map(b => b.name)
+const records = (r: { blocks: { name: string; text: string }[] }) => r.blocks.find(x => x.name === 'housekeeping-records')?.text
+
+test('the records card comes after the short view, also while the view is being built', async ($, on) => {
+  let open!: () => void
+  const w: World = { argv: [], gate: new Promise<void>(r => { open = r }) }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  const cold = await late($.prompt.context({ blocks: [{ name: 'currentDate', text: 'today' }] }))
+  expect(cold === 'late' ? 'late' : names(cold)).toEqual(['currentDate', 'housekeeping', 'housekeeping-records'])
+  expect(brief(cold as never)).toBe('housekeeping: the short view is being built and is not ready yet; /housekeeping shows it once it is.')
+  expect(records(cold as never)).toBe(CARD)
+  open()
+  await stored(w)
+  const warm = await $.prompt.context({ blocks: [] })
+  expect(names(warm)).toEqual(['housekeeping', 'housekeeping-records'])
+  expect(records(warm)).toBe(CARD)
+})
+
+test('no records card without a settings file', async ($, on) => {
+  const w: World = {}
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await stored(w)
+  expect(records(await $.prompt.context({ blocks: [] }))).toBe(CARD) // with one, there is a card
+  w.hasSettings = false
+  expect(names(await $.prompt.context({ blocks: [] }))).toEqual([])
+})
+
+test('a card that fails to build drops the card only, and the short view is served', async ($, on) => {
+  const w: World = {}
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await stored(w)
+  expect(names(await $.prompt.context({ blocks: [] }))).toEqual(['housekeeping', 'housekeeping-records'])
+  let n = 0
+  w.failRead = () => ++n === 2 // the view's read of the settings, then the card's, which fails
+  const r = await $.prompt.context({ blocks: [] })
+  expect(n).toBe(2)
+  expect(names(r)).toEqual(['housekeeping'])
+  expect(brief(r).startsWith('# Small: where we are')).toBe(true)
 })
 
 test('prompt.context adds nothing without a settings file', async ($, on) => {

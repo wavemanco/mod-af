@@ -1,6 +1,7 @@
 import type { EngineInterface, Register } from 'claude-code'
 import { commonDir, PAGE, readInput, readTracked, repoKey, writeFile, writePage } from './adapter.ts'
 import { behind, brief, onBranch, withBranch } from './core/brief.ts'
+import { card } from './core/card.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
 import { parseSettings } from './core/settings.ts'
@@ -146,7 +147,14 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
     : { brief: BUILDING, status: '' }
 }
 
-const GUIDE_LINE = 'At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.'
+// The records card, from the settings alone: none where there is no settings file, or one that does not parse
+async function records($: EngineInterface): Promise<string | null> {
+  const file = `${await repoRoot($)}/${SETTINGS}`
+  const s = (await $.fs.exists(file)) ? parseSettings(await $.fs.read(file)).settings : null
+  return s ? card(s) : null
+}
+
+const GUIDE_LINE ='At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.'
 
 // Never overwrites: an existing file is left as it is, except .gitignore and AGENTS.md, which get a line appended when it is missing.
 async function init($: EngineInterface): Promise<{ text: string; exitCode?: number }> {
@@ -399,6 +407,9 @@ export const register: Register = on => {
     const got = await next(e)
     // each one (the first, compaction, /clear) asks the cache, which never makes it wait on a walk (finding 20)
     const v = await cachedView($, builds, false).catch(() => null)
-    return v ? { ...got, blocks: [...got.blocks, { name: 'housekeeping', text: v.brief }] } : got
+    // the records card, after the view and outside its 8,000 characters; a failure drops the card only (call 9)
+    const c = await records($).catch(() => null)
+    return { ...got, blocks: [...got.blocks, ...(v ? [{ name: 'housekeeping', text: v.brief }] : []),
+      ...(c ? [{ name: 'housekeeping-records', text: c }] : [])] }
   })
 }

@@ -6,6 +6,7 @@ import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { build } from './hooks/core/index.ts'
 import { behind, brief, onBranch } from './hooks/core/brief.ts'
+import { card } from './hooks/core/card.ts'
 import { formatFindings } from './hooks/core/findings.ts'
 import { blobArgs, headArgs, historyUnread, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs,
   snapshot, treeArgs, treeless, unreadable } from './hooks/core/history.ts'
@@ -138,7 +139,8 @@ export async function main(argv: string[]): Promise<number> {
     console.log([result.partition, ...behind(behindRemote, main)].join('\n'))
     return 0
   }
-  console.log(brief(result.data, { today: new Date().toISOString().slice(0, 10), branch, behindRemote, main }))
+  // the records card after the view, as the plugin gives the agent both (Phase 3 call 9)
+  console.log(`${brief(result.data, { today: new Date().toISOString().slice(0, 10), branch, behindRemote, main })}\n\n${card(settings)}`)
   return 0
 }
 
