@@ -201,6 +201,20 @@ test('a fence that holds a table with the ID and Item columns is a warning at it
   expect(fence(lost)[0].message).toContain('a table with ID and Item columns')
   expect(fence(lost.replace('## Open', '## Plan to all clear'))).toEqual([])
   expect(fence(lost.replace('| ID | Item |', '| Name | Note |'))).toEqual([])
+  // the narrow check (HK-091): a stray opener between the rows of an open table hid the rows after it, unsaid
+  const between = '## Open\n\n| ID | Item |\n|---|---|\n| B-001 | one |\n```\n| B-002 | two |\n```\n'
+  expect(fence(between).map(f => [f.level, f.line])).toEqual([['warning', 6]])
+  expect(fence(between.replace('## Open', '## Plan to all clear'))).toEqual([])
+})
+
+test("init sets its format section aside, so a fenced example row there gives no fence warning (HK-091)", () => {
+  const files = initFiles('x', 'main')
+  const s0 = parseSettings(files.find(f => f.path === '.housekeeping.json')!.content).settings!
+  const b = files.find(f => f.path === 'docs/backlog.md')!.content
+    .replace('## How this file is kept\n', '## How this file is kept\n\n```markdown\n| ID | Item |\n|---|---|\n| B-1 | an example |\n```\n')
+  const p = parseFiles(s0, { backlog: b, playbook: files.find(f => f.path === 'docs/playbook.md')!.content })
+  expect(p.findings.filter(f => f.rule === 'fence')).toEqual([])
+  expect(p.rows).toEqual([])
 })
 
 // the tied minor on rows in a named section

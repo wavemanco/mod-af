@@ -252,7 +252,8 @@ the settings that is not plain stays out of that command (the second check's fin
     private key blocks, PGP's included, under its older SECRET KEY label too. An address's domain may hold non-ASCII
     letters, and so may its local part once it holds one ASCII letter, digit or sign: `josé@` is found. The pattern
     reads at most the last 64 characters of a local part, so a long run of letters is scanned in linear time, and
-    the mask covers the whole local part (HK-088).
+    the mask covers the whole local part, out to a space or punctuation, so words written straight before an
+    address, with no space, are masked with it (HK-088, HK-091).
   - What passes: a password, a key of any other shape, a percent-encoded address (the owner's choice,
     2026-11-04), an address whose local part holds no ASCII letter, digit or sign, one wholly in CJK
     for example: it has the shape of an at-name written right after CJK text, which must build. So do an
@@ -404,8 +405,9 @@ the agent: a hook that stops housekeeping's writes before approval is filed, not
 Once a survey or plan procedure has gone to the agent, each compaction of the main conversation is told to
 keep, word for word, the sentence that says where housekeeping is installed, and the approval rule, and to
 have the agent re-read the procedure whole before its next step (the second check's finding 13); after a
-survey with a file denied, it also says that the procedure's lines naming the Node command do not apply. A
-fork inherits the procedure, so its own compaction is told too; a compaction with no procedure sent, after a
+survey with a file denied, it also says that the survey procedure's lines naming the Node command do not apply. A
+fork inherits its parent's record, so its own compaction is told what it inherited, and a fork of another
+subagent inherits none (HK-091); a compaction with no procedure sent, after a
 reply the site refused, or in another subagent's own, goes on as it came, and none is ever skipped, a failure
 in the hook included (HK-088, HK-090). After a `/clear` the conversation holds no procedure; after a resume
 the hook no longer knows of one the resumed conversation may hold (HK-084). What a real summary keeps is the

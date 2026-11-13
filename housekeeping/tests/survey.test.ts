@@ -389,6 +389,22 @@ test('./ in a text file credits the file it names from its own folder only', () 
   expect(inv.references.filter(r => r.from === 'docs/notes.txt')).toEqual([{ target: 'docs/todo.md', from: 'docs/notes.txt', count: 1, machine: true }])
 })
 
+// the narrow check (HK-091)
+test("a script's ./ keeps its reader from the top when a file of the same name sits beside the script", () => {
+  const inv = inventory([{ path: 'work.md', text: '## W-1 one\n## W-2 two\n' }, { path: 'scripts/work.md', text: 'what the scripts do\n' },
+    { path: 'scripts/count.sh', text: '#!/bin/sh\ngrep -c "^## W-" ./work.md\n' }])
+  expect(inv.references).toEqual([{ target: 'work.md', from: 'scripts/count.sh', count: 1, machine: true }])
+})
+
+test('the shell mark is on skipped files, references and guide lines too', () => {
+  const inv = inventory([{ path: 'BACKLOG.md', text: BACKLOG }, { path: 'docs/run&go.sh', text: 'cat BACKLOG.md\n' },
+    { path: 'a;b/AGENTS.md', text: 'The backlog is BACKLOG.md.\n' }], [{ path: 'big$x.md', why: 'over 2 MB' }])
+  const text = formatInventory(inv), mark = ' (name it only through /housekeeping survey: a shell can read this path as commands)'
+  expect(text).toContain(`\nbig$x.md: over 2 MB${mark}\n`)
+  expect(text).toMatch(/ docs\/run&go\.sh \(machine\) \(name it only/)
+  expect(text).toContain(`a;b/AGENTS.md:1: The backlog is BACKLOG.md.${mark}`)
+})
+
 test('a path the shell can read as commands is marked as a candidate and in the answers line too', () => {
   const text = formatInventory(inventory([{ path: 'docs/b&x.md', text: BACKLOG }], [], { tracker: ['docs/b&x.md'] }))
   expect(text).toMatch(/ {2}docs\/b&x\.md: [^\n]*\(name it only through \/housekeeping survey: a shell can read this path as commands\)\n/)

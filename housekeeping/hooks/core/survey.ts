@@ -151,9 +151,9 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = [],
         if (!before) { for (const t of targets) hit(t, targets.length > 1 && name.includes('.'), !name.includes('.')); continue }
         const relative = /^\.\.?\//.test(before)
         const said = fold(relative ? `${f.path}/../${before}${name}` : before + name)
-        // a script, a workflow or a hook runs from the top, so its ./ and ../ are folded from there too, unless the fold
-        // from its own folder names a tracked file, which then stands alone (HK-088: one mention, one target)
-        const fromTop = relative && !MARKDOWN.test(f.path) && !known.has(said) ? fold(before + name) : said
+        // a script, a workflow or a hook runs from the top, so its ./ and ../ are folded from there too; prose that is
+        // not Markdown is read from its own folder, so there a fold that names a tracked file stands alone (HK-088, HK-091)
+        const fromTop = relative && !MARKDOWN.test(f.path) && !(isProse(baseOf(f.path), f.text) && known.has(said)) ? fold(before + name) : said
         const credited = targets.filter(t => t === said || t === fromTop || (!relative && ends(t, said)))
         for (const t of credited) hit(t)
         if (!credited.length && !known.has(said) && !known.has(fromTop)) for (const t of targets) hit(t, false, true)
@@ -241,7 +241,7 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
   const noise = (s: Skipped) => s.why === LOCK || s.why === BINARY
   if (inv.skipped.length) {
     lines.push('', '## Skipped')
-    for (const s of inv.skipped) if (!noise(s)) lines.push(`${s.path}: ${s.why}`)
+    for (const s of inv.skipped) if (!noise(s)) lines.push(`${s.path}: ${s.why}${unsafe(s.path)}`)
     const n = inv.skipped.filter(noise).length
     if (n) lines.push(`and ${n} more: lockfiles and binaries${json}`)
   }
@@ -251,9 +251,9 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
     const byTarget = new Map<string, Reference[]>()
     for (const r of inv.references) { const a = byTarget.get(r.target); if (a) a.push(r); else byTarget.set(r.target, [r]) }
     for (const [target, refs] of byTarget) {
-      lines.push(target)
+      lines.push(`${target}${unsafe(target)}`)
       for (const r of refs.slice(0, REFS))
-        lines.push(`${String(r.count).padStart(6)}  ${r.from}${r.machine ? ' (machine)' : ''}${r.ambiguous ? ' (ambiguous: a bare name several targets share)' : ''}${r.possible ? ' (possible use: a bare word, or a path that names no tracked file)' : ''}`)
+        lines.push(`${String(r.count).padStart(6)}  ${r.from}${r.machine ? ' (machine)' : ''}${r.ambiguous ? ' (ambiguous: a bare name several targets share)' : ''}${r.possible ? ' (possible use: a bare word, or a path that names no tracked file)' : ''}${unsafe(r.from)}`)
       const rest = refs.slice(REFS)
       // a possible use is no reader, so it is said apart from the machine count (HK-088)
       const possible = rest.filter(r => r.possible).length
@@ -265,7 +265,7 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
     lines.push('', '## What the guide files say')
     // whole in the --json output; "..." tells the reader the line goes on in its file
     for (const g of inv.guides)
-      lines.push(`${g.path}:${g.line}: ${g.text.length > GUIDE_CUT ? g.text.slice(0, GUIDE_CUT) + '...' : g.text}`)
+      lines.push(`${g.path}:${g.line}: ${g.text.length > GUIDE_CUT ? g.text.slice(0, GUIDE_CUT) + '...' : g.text}${unsafe(g.path)}`)
   }
 
   const text = lines.join('\n')

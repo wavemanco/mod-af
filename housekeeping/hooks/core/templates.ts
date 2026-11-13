@@ -37,7 +37,8 @@ export function initFiles(project: string, mainBranch: string): { path: string; 
   const done = (file: string) => ({ file, sectionPrefix: 'Done', idColumn: 0, landedColumn: 3, milestoneColumn: 2 })
   const settings = {
     version: 1, project, mainBranch,
-    files: { backlog: { path: 'docs/backlog.md' }, playbook: { path: 'docs/playbook.md' } },
+    // the format section is set aside, so a fenced example row there is no row and no fence warning (HK-091)
+    files: { backlog: { path: 'docs/backlog.md', skipSections: ['How this file is kept'] }, playbook: { path: 'docs/playbook.md' } },
     columns: { id: 'ID', item: 'Item', priority: 'Priority', milestone: 'Milestone', who: 'Who', landNow: 'Land now',
       triggerType: 'Trigger type', trigger: 'Trigger', waitsOn: 'Waits on', details: 'Details', filed: 'Filed' },
     ids: ['B-\\d+', 'P-\\d+'], // explicit prefixes: a looser pattern also matches UTF-8, ADR-0003, SHA-256
