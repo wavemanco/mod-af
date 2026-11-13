@@ -59,13 +59,13 @@ export function buildAudit(dir: string, duty: boolean): AuditFixture {
 
   // the ten closings do their row's work in full and wire it in, so a skeptic reading the hunk can agree; the decoys
   // are stubs, prep, a part, a revert or a mention (the acceptance run of 2026-11-12 found stubs here, rightly refused).
-  // B-1's code tries three times in all, two retries, and both skeptics of the second run refused it on that: it acts
-  // as a seventh decoy, and the bar is at least 9 of the 10
+  // B-1's code tried three times in all, two retries, and both skeptics of the second run refused it on that; since the
+  // Phase 3 check it tries once and retries three times
   commit(['Fix B-1: retry a failed upload three times'], code('upload', [
     'export const RETRIES = 3',
     'export async function upload(send: () => Promise<void>): Promise<void> {',
     '  for (let attempt = 1; ; attempt++) {',
-    '    try { return await send() } catch (err) { if (attempt >= RETRIES) throw err }',
+    '    try { return await send() } catch (err) { if (attempt > RETRIES) throw err }',
     '  }',
     '}'].join('\n')))
   const rates = commit(['Fix B-3: cache the rate lookups'], code('rates', 'export const cache = new Map<string, number>()'))

@@ -177,7 +177,7 @@ const AUDIT = () => readFileSync(join(import.meta.dirname, '..', 'prompts', 'aud
 const RULES: Record<string, string[]> = {
   'restricted writers': ['before anything, look for a rule on who writes the records; if one exists, list every case and propose nothing to apply.',
     'AGENTS.md, CLAUDE.md, CONTRIBUTING.md and the backlog\'s "How this file is kept"'],
-  'uncommitted edits to the records': ['if `git status --porcelain -- <backlog> <playbook>` is not empty, propose nothing, list the cases and say why. ' +
+  'uncommitted edits to the records': ['if `git --no-optional-locks status --porcelain -- \'<backlog>\' \'<playbook>\'` is not empty (the flag keeps git from rewriting the index), propose nothing, list the cases and say why. ' +
     'Never stash, reset, `checkout --` or clean.'],
   'an earlier audit branch': ['if an unmerged `housekeeping/audit-*` branch exists, stop and name it.'],
   'the start outside Claude Code': ['the latest "Last done: ..., through <sha>" of the duty row whose Trigger holds "/housekeeping audit", if git verifies the ' +
@@ -185,13 +185,13 @@ const RULES: Record<string, string[]> = {
   'the evidence': ['in Claude Code, only the listing handed with this procedure; never run owed over the range in this session. Outside Claude Code, ' +
     '`node <home>/cli.ts owed --base <start> --head <main>`.', 'for at most 25 row-and-commit pairs, strongest first (a closing word next to the ID, ' +
     'then the ID in the subject, then in the body), read only the hunks of that commit\'s allowed paths: ' +
-    '`git show --format= --end-of-options <sha> -- :(literal)<path> ...`, never a whole commit, never `--stat`.', 'Pairs past 25 are counted.'],
+    '`git show --format= --end-of-options <sha> -- \':(literal)<path>\' ...`, never a whole commit, never `--stat`.', 'Pairs past 25 are counted.'],
   'the marked path': ['A pair with a marked path is a judgement call and goes into no command.'],
   // the second acceptance run (2026-11-12): an agent read whole commit messages to confirm the listing
   'nothing else of a commit': ['Read nothing else of a commit: not its message beyond what the listing quotes, and not its header, which names its author.'],
   'clear-cut': ['**Clear-cut** means all three: a closing word ("close", "closes", "closed", "fix", "fixes", "fixed", "done", "land", "lands", "landed", ' +
     '"resolve", "resolves", "resolved", any case) next to the ID in the subject or body; the change the hunk shows still present at main\'s tip ' +
-    '(`git show --end-of-options <main>:<path>` holds it); and the skeptic agrees.'],
+    '(`git show --end-of-options \'<main>:<path>\'` holds it); and the skeptic agrees.'],
   'the skeptic': ['a fresh subagent that is not a fork, per batch of 10 cases, given only each row\'s ID and Item, the claim, the sha and subject, and the ' +
     'allowed hunk. Only cases it agrees with are proposed. With no subagent available, every case is a judgement call.'],
   'proposing': ['the clear-cut cases as numbered steps, each with its row, its proving sha and subject, and what changes; the duty row\'s update as the ' +
@@ -203,6 +203,7 @@ const RULES: Record<string, string[]> = {
   'applying in a worktree under the temp folder': ['a branch `housekeeping/audit-YYYY-MM-DD` from main, made with `git worktree add` in a folder under the ' +
     'system temp folder, outside the person\'s checkout; one commit per step, each naming its proving sha and its own row\'s ID only, never quoting a subject that names another ID; Done rows in the shape of the file\'s existing ' +
     'Done rows; checklist lines ticked whose rows are all closed.', 'Last done moves "through" the last commit read',
+    'where that line says none, the commits were cut short, so Last done stays where it is and the report says why.',
     'The worktree is removed at the end, and before any branch is deleted.'],
   'never pushing': ['The branch is never pushed: it is the owner\'s.'],
   'the check after applying': ['before and after, `node <home>/cli.ts map --settings <a copy whose mainBranch is the audit branch> --out <a file in the ' +
@@ -211,6 +212,11 @@ const RULES: Record<string, string[]> = {
     'so they are allowed whatever owed excluded. If `map` exits 1 before applying, apply nothing and list the cases. Any other result: remove the ' +
     'worktree, delete the branch and report.'],
   'the settings copy outside the repository': ['the settings copy also lives there, outside the repository.'],
+  // the Phase 3 check (HK-102): quoting before the first command, a partial clone, the SHA-256 empty tree
+  'quoting': ['in a shell, put each name the settings give (`<main>`, `<backlog>`, `<playbook>`), each `:(literal)<path>` and each `<main>:<path>` in ' +
+    'single quotes, as the commands below do: a shell reads the brackets and the spaces. A name from the settings that holds a single quote goes into no command: say so and stop.'],
+  'a partial clone': ['if `git config --get extensions.partialClone` prints a name, git would fetch what the clone lacks, and housekeeping never fetches: propose nothing and say so.'],
+  'the SHA-256 empty tree': ['or in a SHA-256 repository `6ef19b41225c5369f1c104d45d8d85efa9b057b53b14b4b9b939dd74decc5321` (`git rev-parse --show-object-format` says which).'],
 }
 
 test('the audit procedure holds each rule the plan writes out, word for word', () => {
@@ -222,6 +228,8 @@ test('the audit procedure holds each rule the plan writes out, word for word', (
 // routes start in one place
 test('the audit procedure quotes the start commands as the plugin builds them', () => {
   const a = AUDIT()
-  for (const argv of [addedArgs('<main>'), firstParentArgs('<main>')]) assert.ok(a.includes(`\`${argv.join(' ')}\``), argv.join(' '))
-  assert.ok(a.includes(EMPTY_TREE))
+  // as a shell takes them: the branch and the pathspec in single quotes (the Phase 3 check)
+  const quoted = (argv: string[]) => argv.map(x => x === '<main>' || x.startsWith(':(') ? `'${x}'` : x).join(' ')
+  for (const argv of [addedArgs('<main>'), firstParentArgs('<main>')]) assert.ok(a.includes(`\`${quoted(argv)}\``), quoted(argv))
+  assert.ok(a.includes(EMPTY_TREE) && a.includes(EMPTY_TREE_256))
 })
