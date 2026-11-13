@@ -410,9 +410,12 @@ keep, word for word, the sentence that says where housekeeping is installed, and
 have the agent re-read the procedure whole before its next step (the second check's finding 13); after a
 survey with a file denied, it also says that the survey procedure's lines naming the Node command do not apply. A
 fork inherits its parent's record, so its own compaction is told what it inherited, and a fork of another
-subagent inherits none (HK-091); a compaction with no procedure sent, after a
-reply the site refused, or in another subagent's own, goes on as it came, and none is ever skipped, a failure
-in the hook included (HK-088, HK-090). After a `/clear` the conversation holds no procedure; after a resume
+subagent inherits none (HK-091). Where `.housekeeping.json` exists, each compaction of the main conversation
+is also asked to keep what is not yet filed (3.10; Phase 3 call 6), in a paragraph after the procedure's and
+built apart from it, so a failure in either keeps the other; with no procedure sent, or after a reply the site
+refused, that paragraph is all it is told, and where the file does not exist it goes on as it came. A
+compaction in another subagent's own goes on as it came, and none is ever skipped, a failure in the hook
+included (HK-088, HK-090). After a `/clear` the conversation holds no procedure; after a resume
 the hook no longer knows of one the resumed conversation may hold (HK-084). What a real summary keeps is the
 owner's live check (HK-080).
 

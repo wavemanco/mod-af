@@ -17,6 +17,7 @@ const ok = (stdout: string, exitCode = 0, isStdoutTruncated = false) =>
 
 type World = {
   hasSettings?: boolean
+  existsFail?: boolean // fs.exists throws
   truncateShow?: boolean
   noArtifact?: boolean
   readError?: string
@@ -84,7 +85,11 @@ function world(on: On, w: World = {}) {
   on('session.cwd', () => ({ value: '/w' }))
   on('session.root', () => ({ value: w.start ?? '/w' }))
   on('clock.now', () => ({ value: Date.parse(w.now ?? '2026-09-12T10:00:00Z') }))
-  on('fs.exists', (_, e) => (w.paths?.push(posix(e.path)), { value: w.hasSettings !== false && e.path.endsWith('.housekeeping.json') }))
+  on('fs.exists', (_, e) => {
+    if (w.existsFail) throw new Error('EIO')
+    w.paths?.push(posix(e.path))
+    return { value: w.hasSettings !== false && e.path.endsWith('.housekeeping.json') }
+  })
   on('fs.read', (_, e) => {
     w.reads?.push(posix(e.path))
     if (typeof w.failRead === 'function' ? w.failRead() : w.failRead) throw new Error('EIO')
@@ -1000,13 +1005,68 @@ test("with no tree of main's head in the clone, check stops and says so, never t
     'Checking out the main branch fetches it; then run this again.')
 })
 
-test('a procedure whose reply the site refuses is not recorded, so a compaction goes on as it came', async ($, on) => {
+// Phase 3 call 6: where the settings file exists, the main conversation's summary is asked to keep what is not yet filed
+const UNFILED = 'housekeeping: keep in the summary, under the heading "Not yet filed into the backlog or playbook", one line per item ' +
+  "of this conversation not yet written into the backlog or the playbook (each deferral, action item and decision), the owner's " +
+  'decisions word for word; at most 40 lines, then "and N more: run /loose-ends".'
+const PLUS = (t: string) => `${t}\n\n${UNFILED}`
+
+// changed on purpose in Phase 3 (call 6): it went on as it came; now it is told only the unfiled paragraph
+test('a procedure whose reply the site refuses is not recorded, so a compaction is told only to keep what is not yet filed', async ($, on) => {
   world(on, { tracked: { ...TRACKED }, badPrompt: true })
   const told = compacts(on)
   await $.session.start(START)
   await run($, 'plan')
   await $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine' })
-  expect(told).toEqual(['mine'])
+  expect(told).toEqual([PLUS('mine')])
+})
+
+test('the compaction paragraph goes to the main conversation on every trigger where the settings file exists; where it does not, the event goes on as it came', async ($, on) => {
+  const w: World = {}
+  world(on, w)
+  const told = compacts(on)
+  await $.session.start(START)
+  for (const trigger of ['manual', 'auto', 'plugin', 'precompute'] as const)
+    expect((await $.session.compact({ trigger, messages: MSGS })).skip).toBeUndefined()
+  await $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine' })
+  expect(told).toEqual([UNFILED, UNFILED, UNFILED, UNFILED, PLUS('mine')])
+  w.hasSettings = false
+  await $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine' })
+  await $.session.compact({ trigger: 'auto', messages: MSGS })
+  expect(told.slice(5)).toEqual(['mine', undefined])
+})
+
+test('the compaction paragraph follows the procedure paragraph in the main conversation only: a fork is told its procedure, another subagent nothing', async ($, on) => {
+  world(on, { tracked: { ...TRACKED } })
+  const told = compacts(on)
+  on('agent.spawn', (_: unknown, e: { fork: boolean }) => ({ model: 'm', agentId: e.fork ? 'f1' : 'a1' }))
+  await $.session.start(START)
+  await run($, 'plan')
+  await ($ as any).agent.spawn({ prompt: 'x', subagentType: 'fork', fork: true })
+  await ($ as any).agent.spawn({ prompt: 'x', subagentType: 'general-purpose', fork: false })
+  await $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine' })
+  await $.session.compact({ trigger: 'auto', messages: MSGS, agentId: 'f1' })
+  await $.session.compact({ trigger: 'auto', messages: MSGS, agentId: 'a1' })
+  expect(told[0]!.startsWith("mine\n\nhousekeeping: this conversation was handed housekeeping's plan procedure.")).toBe(true)
+  expect(told[0]!.endsWith(`before its next step.\n\n${UNFILED}`)).toBe(true)
+  expect(told[1]).toContain(APPROVAL)
+  expect(told[1]).not.toContain('Not yet filed')
+  expect(told[2]).toBeUndefined()
+})
+
+test('the procedure paragraph survives a throw in the compaction paragraph, and the compaction goes ahead', async ($, on) => {
+  const w: World = { tracked: { ...TRACKED } }
+  world(on, w)
+  const told = compacts(on)
+  await $.session.start(START)
+  await run($, 'plan')
+  await $.session.compact({ trigger: 'auto', messages: MSGS })
+  expect(told[0]).toContain(APPROVAL)
+  expect(told[0]).toContain(UNFILED)
+  w.existsFail = true // the new paragraph's look for the settings file throws
+  expect((await $.session.compact({ trigger: 'auto', messages: MSGS })).skip).toBeUndefined()
+  expect(told[1]).toContain(APPROVAL)
+  expect(told[1]).not.toContain('Not yet filed')
 })
 
 test("a fork's own compaction is told too, since it inherits the procedure; another subagent's is not", async ($, on) => {
@@ -1187,7 +1247,9 @@ test('a rebuild that fails is said at the next prompt, with its first line, and 
   expect(brief(await $.prompt.context({ blocks: [] }))).not.toContain('could not be built')
 })
 
-test('with no procedure sent, after a failed one, in a subagent\'s compaction or after /clear, a compaction goes on as it came', async ($, on) => {
+// changed on purpose in Phase 3 (call 6): the main conversation's compactions are told the unfiled paragraph where the
+// settings file exists, and go on as they came where it does not
+test('with no procedure sent, after a failed one or after /clear, a compaction is told only what is not yet filed, or nothing with no settings file; a subagent\'s goes on as it came', async ($, on) => {
   const w: World = { tracked: { ...TRACKED }, lsFail: true }
   world(on, w)
   const told = compacts(on)
@@ -1204,7 +1266,9 @@ test('with no procedure sent, after a failed one, in a subagent\'s compaction or
   await compact({ agentId: 'a1' }) // a subagent's own transcript never held it
   await $.session.end({ reason: 'clear', sessionId: 's1', resume: { id: 's1' } })
   await compact()
-  expect(told).toEqual(['mine', 'mine', 'mine', 'mine'])
+  w.hasSettings = false
+  await compact()
+  expect(told).toEqual([PLUS('mine'), PLUS('mine'), 'mine', PLUS('mine'), 'mine'])
 })
 
 // finding 3: the survey read past the person's Read deny rules, and its context carried the denied files' lines
@@ -1379,15 +1443,15 @@ test('owed exits 2 on a usage error and with no settings; a run that finished cl
   expect([none.exitCode, none.text]).toEqual([2, 'housekeeping: no .housekeeping.json here (run /housekeeping init)'])
 })
 
-// Task 1's note: owed has no keep text and is never recorded, so a compaction after it goes on as it came; plan, in
-// the same world, is recorded
-test('after /housekeeping owed a compaction goes on as it came; after plan, in the same world, it is told to keep', async ($, on) => {
+// Task 1's note: owed has no keep text and is never recorded, so a compaction after it is told no procedure (since Phase
+// 3 call 6, changed on purpose, only the unfiled paragraph); plan, in the same world, is recorded
+test('after /housekeeping owed a compaction is told no procedure; after plan, in the same world, it is told to keep', async ($, on) => {
   world(on, { backlog: OWED_BACKLOG, owed: OWED(), tracked: { ...TRACKED } })
   const told = compacts(on)
   await $.session.start(START)
   expect((await run($, 'owed')).text).toMatch(/^housekeeping owed: /)
   await $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine' })
-  expect(told).toEqual(['mine'])
+  expect(told).toEqual([PLUS('mine')])
   await run($, 'plan')
   await $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine' })
   expect(told[1]).toContain("housekeeping: this conversation was handed housekeeping's plan procedure.")

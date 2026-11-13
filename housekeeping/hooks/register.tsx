@@ -388,6 +388,13 @@ export function keep(home: string, sent: Map<string, Sent>): string {
       "that name cli.ts do not apply: the survey's re-run is the person's /housekeeping survey." : '')
 }
 
+// What the main conversation's summary is asked to keep where the settings file exists (Phase 3 call 6): what this
+// conversation has not yet filed, under its own heading, at most 40 lines, so it cannot crowd the summary out
+const UNFILED = 'housekeeping: keep in the summary, under the heading "Not yet filed into the backlog or playbook", one line per item ' +
+  "of this conversation not yet written into the backlog or the playbook (each deferral, action item and decision), the owner's " +
+  'decisions word for word; at most 40 lines, then "and N more: run /loose-ends".'
+const unfiledAt = async ($: EngineInterface): Promise<string> => ((await $.fs.exists(`${await repoRoot($)}/${SETTINGS}`)) ? UNFILED : '')
+
 // The reply of a command hook that failed outside its own promise, past its 10 s budget above all (finding 11): exit 1,
 // and the Node form to run, which has no time limit. owed's ignores the Read rules, so it is named only after a run
 // whose Read checks all finished with nothing excluded; otherwise the reply says to run the slash command again.
@@ -450,12 +457,17 @@ export const register: Register = on => {
     return got
   }).catch(($, e, next) => next(e)) // it gates every spawn: a failure here never stops one
 
-  // On every trigger, precompute too, the main conversation's summary and a fork's are told to keep them; with none
-  // sent, or in another subagent's own compaction, it goes on as it came. Never a skip: the compaction always runs,
-  // and a failure here passes it on as it came (HK-090).
-  on('session.compact', ($, e, next) => {
+  // On every trigger, precompute too, the main conversation's summary and a fork's are told to keep them; then the main
+  // conversation's, where the settings file exists, what is not yet filed (call 6). Each paragraph is built apart, so a
+  // failure in one keeps the other; with neither, or in another subagent's own compaction, it goes on as it came. Never
+  // a skip: the compaction always runs, and a failure here passes it on as it came (HK-090).
+  on('session.compact', async ($, e, next) => {
     const record = e.agentId ? forks.get(e.agentId) : sent
-    return record?.size ? next({ ...e, instructions: [e.instructions, keep($.plugin.root, record)].filter(Boolean).join('\n\n') }) : next(e)
+    let told = ''
+    try { told = record?.size ? keep($.plugin.root, record) : '' } catch { /* the unfiled paragraph still goes */ }
+    const unfiled = e.agentId ? '' : await unfiledAt($).catch(() => '')
+    const add = [told, unfiled].filter(Boolean)
+    return add.length ? next({ ...e, instructions: [e.instructions, ...add].filter(Boolean).join('\n\n') }) : next(e)
   }).catch(($, e, next) => next(e))
 
   // a /clear ends this conversation, and the next one holds no procedure; after a resume this hook no longer knows of
