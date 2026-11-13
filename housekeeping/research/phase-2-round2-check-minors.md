@@ -166,3 +166,35 @@ clean.
   the second's local part, so the second shows and a commit subject holding them refuses the page, which cannot
   be edited. Older than the round; the skeptic tied it to HK-070's first privacy minor, and the harm beyond its
   wording (an uneditable subject blocks the page) is noted there.
+
+## The re-check of the HK-092 round (HK-093)
+
+The owner chose a narrow re-check of the HK-092 commits ("Narrow re-check", 2026-11-13). It ran at ddd5b71 over
+`c9d6d1a..ddd5b71`: three lenses and one skeptic per serious finding, with a cap of 10 agents. It used 4, in 20
+minutes, and ran no live session. It found nine, all minor once the skeptic rated the one important finding down.
+The controller reproduced the four marked so and confirmed the hook ones by reading.
+
+What held, among others: masking never cuts a surrogate pair; quoted, possessive and elided addresses mask as
+DESIGN says; an entry of an older form is read as none; a resumed fork keeps its record; a code block after a
+table's last row gives no warning; the reference repository gives the same output at the base and the tip.
+
+- **Open** (reproduced). `hooks/core/privacy.ts:77`: the apostrophe lets the address widening walk back into a
+  webhook secret that holds a `/`, and keys are masked after addresses on the masked text, so the secret's start
+  reaches the page from a commit subject (rated important by its lens, minor by its skeptic; with a letter as the
+  joiner it was so before the round). Fix: mask keys at their places in the original text.
+- **Open** (reproduced). `hooks/core/privacy.ts:42`: a typographic apostrophe (U+2019) still stops the widening.
+  Fix: add it to the class.
+- **Open.** `DESIGN.md:255`: the sentence on what stops the widening speaks of local parts in general, which
+  allow more signs, and of digits, where only ASCII digits are taken. Fix: say what the pattern takes.
+- **Open.** `hooks/register.tsx:58`: with five or more settings texts in use at once, every prompt walks again.
+  Fix: raise the bound and name the limit.
+- **Open.** `hooks/register.tsx:109`: a stored entry whose order is not a list makes every build throw before its
+  write. Fix: read the old list only when it has the expected shape.
+- **Open.** `hooks/register.tsx:113`: a refused write is said as "could not be built" for a view that was built,
+  and the view is thrown away. Fix: keep and serve the built view with the reason.
+- **Open** (reproduced). `hooks/core/markdown.ts:57`: a stray opener after a row, then a blank line and more rows,
+  hides those rows with no warning, where the previous round warned. Fix: test the first line that is not blank.
+- **Open.** `hooks/core/parse.ts:100`: in a section that holds the row table, the advice to put the section in
+  skipSections would set its rows aside. Fix: give the advice only where it works, or drop it.
+- **Open.** `hooks/core/survey.ts:153`: a `../` written after a folder variable (`$(dirname "$0")/../`) still
+  credits the top file of that name. Fix: count such a mention as a possible use.
