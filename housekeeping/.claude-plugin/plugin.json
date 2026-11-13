@@ -2,5 +2,8 @@
   "name": "housekeeping",
   "version": "0.2.0",
   "description": "One place for a repository's pending work (a backlog and a playbook) and a Route Map made only from it.",
-  "dependencies": ["loose-ends", "route", "decide"]
+  "dependencies": ["loose-ends", "route", "decide"],
+  "userConfig": {
+    "automatic": { "type": "string", "title": "Automatic parts", "description": "on or off", "default": "on" }
+  }
 }

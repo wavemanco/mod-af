@@ -5,6 +5,7 @@ import { behind, brief, onBranch, withBranch, withDuties } from './core/brief.ts
 import { card } from './core/card.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
+import { maskPrivacy } from './core/privacy.ts'
 import { parseSettings } from './core/settings.ts'
 import { formatInventory, inventory, notRead, withoutNode } from './core/survey.ts'
 import { initFiles } from './core/templates.ts'
@@ -151,6 +152,40 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   build.catch(() => {}) // a failed rebuild leaves the stored view; the next ask tries again
   return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}, shown while a new one is built.\n${on(hit)}`, status: hit.status }
     : { brief: BUILDING, status: '' }
+}
+
+// The repository's top, its settings text and its settings; null where there is no settings file or it does not parse
+async function settingsAt($: EngineInterface): Promise<{ root: string; text: string; s: Settings } | null> {
+  const root = await repoRoot($), file = `${root}/${SETTINGS}`
+  if (!(await $.fs.exists(file))) return null
+  const text = await $.fs.read(file), s = parseSettings(text).settings
+  return s ? { root, text, s } : null
+}
+const recordsSpec = (s: Settings) => ['--', `:(literal)${s.files.backlog.path}`, `:(literal)${s.files.playbook.path}`]
+// exits 1 when the records differ between two commits, 0 when they do not
+const quietDiff = ($: EngineInterface, root: string, s: Settings, a: string, b: string) =>
+  $.process.run(['git', 'diff', '--quiet', '--no-ext-diff', '--end-of-options', a, b, ...recordsSpec(s)], { cwd: root, timeoutMs: 10_000, env: OWED_ENV })
+
+// After a commit, a merge or a pull on the Bash and PowerShell tools (Phase 3, Task 4): where main moved past the
+// stored view's commit and the records changed between the two, the view is rebuilt without waiting, the status line
+// follows when it lands, and the main loop is told in one line. got is the tool's result whatever happens after it.
+async function afterGit($: EngineInterface, builds: Builds, e: { command?: unknown; agentId?: string }, got: { result?: unknown; deny?: string; context?: readonly string[] }):
+  Promise<typeof got> {
+  const r = (got.result ?? {}) as { gitOperation?: unknown; backgroundTaskId?: unknown }
+  if (got.deny !== undefined || !(r.gitOperation || /\bgit\b/.test(String(e.command ?? ''))) || r.backgroundTaskId) return got
+  const at = await settingsAt($)
+  if (!at) return got
+  const { root, text, s } = at
+  const v = await $.process.run(['git', 'rev-parse', '--git-common-dir', s.mainBranch], { cwd: root, timeoutMs: 10_000 })
+  const [dir, sha] = v.stdout.split('\n').map(x => x.trim())
+  if (v.exitCode !== 0 || !sha) return got
+  const old = viewsOf(await $.store.get(`brief:${commonDir(root, dir)}`)).views[fnv(text)]?.sha
+  if (typeof old !== 'string' || old === sha || (await quietDiff($, root, s, old, sha)).exitCode !== 1) return got
+  // not awaited: the agent's next step never waits on the walk
+  cachedView($, builds).then(x => { if (x) $.ui.status(x.status) }).catch(() => {})
+  return e.agentId === undefined
+    ? { ...got, context: [...(got.context ?? []), maskPrivacy(`The records on ${s.mainBranch} changed at ${sha.slice(0, 7)}; /housekeeping shows the new view.`)] }
+    : got
 }
 
 // The records card, from the settings alone: none where there is no settings file, or one that does not parse
@@ -411,7 +446,10 @@ export function failedReply(home: string, args: string, why: string, owedClear: 
   return { text: `${said}run node ${home}/cli.ts ${as} in the repository instead, which has no time limit`, exitCode: 1 }
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  // Phase 3 call 8: "off" stops the after-commit rebuild and its line, the /loose-ends suggestion, the stale-map line
+  // and the debug lines; the compaction paragraph and the records card stay. "on" is the default.
+  const automatic = options?.automatic !== 'off'
   let view = 'housekeeping: run /housekeeping to build the short view.'
   const builds: Builds = { running: new Map(), failed: new Map() }
   // the procedures sent in this conversation, each with its install sentence (second check, finding 13)
@@ -473,6 +511,17 @@ export const register: Register = on => {
   // a /clear ends this conversation, and the next one holds no procedure; after a resume this hook no longer knows of
   // the one the resumed conversation may hold (HK-084)
   on('session.end', (_, e, next) => { sent.clear(); forks.clear(); return next(e) })
+
+  // the command runs once, first and outside the try; only the work after it is guarded, and a failure there returns
+  // the tool's own result. The .catch's next is replay-safe: it never runs the command again.
+  on('tool.call', { tool: ['Bash', 'PowerShell'] }, async ($, e, next) => {
+    const got = await next(e)
+    try {
+      return automatic ? await afterGit($, builds, e, got) : got
+    } catch {
+      return got
+    }
+  }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: 'housekeeping' }, ($, e) => {
     const { Markdown } = $.ui.resolve(e)

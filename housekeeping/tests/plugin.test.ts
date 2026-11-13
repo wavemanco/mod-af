@@ -65,6 +65,9 @@ type World = {
   owed?: { names: string; log: string; paths: string; diffs: Record<string, string>; cut?: string[] }
   // the audit's git: main's first-parent line, oldest first, and the commit on it that added the settings
   audit?: { line: string[]; added?: string }
+  changed?: boolean // git diff --quiet exits 1: the records differ between the two commits it is given
+  shell?: { gitOperation?: object; backgroundTaskId?: string; throws?: boolean } // what the Bash and PowerShell tools answer
+  ran?: string[] // each command the Bash and PowerShell tools ran
 }
 
 // the engine may hand a hook a Windows-style path
@@ -101,6 +104,7 @@ function world(on: On, w: World = {}) {
     w.argv?.push([...e.argv])
     w.envs?.push(e.init?.env)
     const [, a, b] = e.argv
+    if (a === 'diff' && e.argv.includes('--quiet')) return ok('', w.changed ? 1 : 0)
     if (w.audit && a === 'rev-list' && b === '--first-parent') return ok(w.audit.line.map(x => x + '\n').join(''))
     if (w.audit && a === 'log' && e.argv.includes('--diff-filter=A')) return ok(w.audit.added ? w.audit.added + '\n' : '')
     const o = w.owed
@@ -142,7 +146,9 @@ function world(on: On, w: World = {}) {
     // 2.31 (oldGit) echoes the flag it does not know; with --abbrev-ref, then main's commit and the branch
     if (a === 'rev-parse' && e.argv.includes('--git-common-dir')) {
       const dir = !e.argv.includes('--path-format=absolute') ? '.git' : w.oldGit ? '--path-format=absolute\n.git' : `${posix(String(e.init?.cwd))}/.git`
-      return ok(e.argv.includes('--abbrev-ref') ? `${dir}\n${w.mainSha ?? SHA}\n${w.branch ?? 'main'}\n` : `${dir}\n`)
+      if (e.argv.includes('--abbrev-ref')) return ok(`${dir}\n${w.mainSha ?? SHA}\n${w.branch ?? 'main'}\n`)
+      // then each revision named after it: main's commit
+      return ok([dir, ...e.argv.slice(e.argv.indexOf('--git-common-dir') + 1).map(() => w.mainSha ?? SHA)].map(x => `${x}\n`).join(''))
     }
     return ok('', 1)
   })
@@ -173,6 +179,13 @@ function world(on: On, w: World = {}) {
   on('tool.check', { tool: 'Read' }, (_, e) => {
     const p = under(String((e.input as { file_path?: string }).file_path))
     return { decision: w.denied?.includes(p) ? 'deny' : w.asked?.includes(p) ? 'ask' : 'allow' }
+  })
+  // the shell tools: the command is logged, and the result carries the world's gitOperation and backgroundTaskId
+  on('tool.call', { tool: ['Bash', 'PowerShell'] }, (_, e) => {
+    w.ran?.push(String(e.command))
+    const { throws, ...more } = w.shell ?? {}
+    if (throws) throw new Error('the shell failed')
+    return { result: { stdout: '', stderr: '', interrupted: false, ...more } } as never
   })
   on('tool.call', { tool: 'Read' }, (_, e) => { calls.push({ tool: 'Read', file_path: e.file_path }); return { result: 'x' } as never })
   on('tool.call', { tool: 'Write' }, (_, e) => { calls.push({ tool: 'Write', file_path: e.file_path }); return { result: 'ok' } as never })
@@ -1511,4 +1524,142 @@ test('/housekeeping audit with no settings, or a first-parent line git cannot re
   w.hasSettings = false
   const none = await run($, 'audit')
   expect([none.exitCode, none.text, none.context]).toEqual([2, 'housekeeping: no .housekeeping.json here (run /housekeeping init)', undefined])
+})
+
+// Phase 3, Task 4: after a commit, a merge or a pull on the Bash and PowerShell tools. main moves to NEW; the world says
+// whether the records changed between the stored view's commit and main's
+const shell = ($: any, command: string, more: object = {}) => $.tool.call({ tool: 'Bash', command, ...more })
+const NEW = 'f'.repeat(40), OTHER = 'e'.repeat(40)
+const CHANGED = `The records on main changed at ${NEW.slice(0, 7)}; /housekeeping shows the new view.`
+const quiet = (w: World) => w.argv!.filter(a => a[1] === 'diff' && a.includes('--quiet'))
+const RESULT = { stdout: '', stderr: '', interrupted: false }
+// session start's view stored and its status line shown, so what follows is the shell hook's
+const settled = async (w: World) => { await stored(w); await until(() => (w.status?.length ?? 0) > 0) }
+
+test('after a git commit that changes the records, the view is rebuilt without waiting, the status line follows it, and the main loop is told in one line', async ($, on) => {
+  let open!: () => void
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true, gate: new Promise<void>(r => { open = r }), status: [] })
+  const r = await late(shell($, 'git commit -m "B-001 done"'))
+  expect(r === 'late' ? 'late' : [r.result, r.context]).toEqual([RESULT, [CHANGED]]) // answered while the walk still waits
+  expect(w.ran).toEqual(['git commit -m "B-001 done"'])
+  expect(quiet(w)).toEqual([['git', 'diff', '--quiet', '--no-ext-diff', '--end-of-options', SHA, NEW, '--', ':(literal)backlog.md', ':(literal)playbook.md']])
+  expect(w.status).toEqual([])
+  open()
+  await stored(w, NEW)
+  await until(() => w.status!.length > 0)
+  expect(w.status!.at(-1)).toContain('land now')
+})
+
+test('in a subagent the view is rebuilt and the status line follows it, but no line is added; on the main loop it is', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true })
+  expect((await shell($, 'git commit -m a')).context).toEqual([CHANGED])
+  await stored(w, NEW)
+  await until(() => w.status!.length > 1)
+  Object.assign(w, { mainSha: OTHER, status: [] })
+  const sub = await shell($, 'git commit -m b', { agentId: 'a1' })
+  expect([sub.result, sub.context]).toEqual([RESULT, undefined])
+  await stored(w, OTHER)
+  await until(() => w.status!.length > 0)
+  expect(w.status!.at(-1)).toContain('land now')
+})
+
+test('no rebuild and no line when main moved but the records did not', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true })
+  expect((await shell($, 'git pull')).context).toEqual([CHANGED])
+  await stored(w, NEW)
+  const n = walks(w)
+  Object.assign(w, { mainSha: OTHER, changed: false })
+  expect((await shell($, 'git pull')).context).toBeUndefined()
+  expect(quiet(w).length).toBe(2)
+  await new Promise(r => setTimeout(r, 50))
+  expect(walks(w)).toBe(n)
+})
+
+test('no git call for a command without git, or one run in the background; a git command makes them', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  w.argv!.length = 0
+  await shell($, 'git status')
+  expect(w.argv!.length).toBeGreaterThan(0)
+  w.argv!.length = 0
+  await shell($, 'echo digits && ls')
+  w.shell = { backgroundTaskId: 'b1' }
+  await shell($, 'git commit -m x')
+  w.shell = { backgroundTaskId: 'b2', gitOperation: { commit: { sha: NEW, kind: 'committed' } } }
+  await shell($, 'git commit -m y')
+  expect(w.argv).toEqual([])
+  expect(w.ran!.length).toBe(4)
+})
+
+test('a git commit on PowerShell is seen as one on Bash', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true })
+  const r = await $.tool.call({ tool: 'PowerShell', command: 'git commit -m x' } as never) as { context?: string[] }
+  expect(r.context).toEqual([CHANGED])
+  await stored(w, NEW)
+})
+
+test('a merge is seen by its git operation alone, with no git in the command', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true, shell: { gitOperation: { branch: { ref: 'feature', action: 'merged' } } } })
+  expect((await shell($, 'gm feature')).context).toEqual([CHANGED])
+  await stored(w, NEW)
+  Object.assign(w, { mainSha: OTHER, shell: {} })
+  w.argv!.length = 0
+  expect((await shell($, 'gm feature')).context).toBeUndefined()
+  expect(w.argv).toEqual([])
+})
+
+test('the shell hook runs the command once when the command throws beneath it, or its own work throws after it', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true })
+  expect((await shell($, 'git commit -m a')).context).toEqual([CHANGED])
+  await stored(w, NEW)
+  Object.assign(w, { mainSha: OTHER, failRead: true }) // its read of the settings throws, after the command ran
+  const r = await shell($, 'git commit -m b')
+  expect([r.result, r.context]).toEqual([RESULT, undefined])
+  Object.assign(w, { failRead: false, shell: { throws: true } })
+  expect(await shell($, 'git commit -m c').then(() => 'resolved', () => 'rejected')).toBe('rejected')
+  expect(w.ran).toEqual(['git commit -m a', 'git commit -m b', 'git commit -m c'])
+})
+
+test('with automatic off, a git commit makes no git call and adds no line; the records card and the compaction paragraph stay', { options: { automatic: 'off' } }, async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  const told = compacts(on)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await settled(w) // the short view is still built, so this world answers git
+  expect(records(await $.prompt.context({ blocks: [] }))).toBe(CARD)
+  await $.session.compact({ trigger: 'auto', messages: MSGS })
+  expect(told).toEqual([UNFILED])
+  Object.assign(w, { mainSha: NEW, changed: true })
+  w.argv!.length = 0
+  const r = await shell($, 'git commit -m x')
+  expect([r.result, r.context]).toEqual([RESULT, undefined])
+  expect(w.argv).toEqual([])
+  expect(w.ran).toEqual(['git commit -m x'])
 })
