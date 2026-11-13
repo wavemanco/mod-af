@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { brief } from '../hooks/core/brief.ts'
+import { brief, dutyDue, withDuties } from '../hooks/core/brief.ts'
 import type { PageData } from '../hooks/core/types.ts'
 import { once, SMALL, smallData } from './fixtures/page-data.ts'
 import * as small from './fixtures/small.ts'
@@ -22,6 +22,14 @@ test('a duty is due by its last-done date and interval', () => {
   expect(duties('2026-11-03')).toContain('B-005')
   expect(duties('2026-10-15')).not.toContain('B-005')
   expect(brief(d, {})).not.toContain('Duties due:')
+})
+
+// Phase 3: a stored view has no duties line; when it is served, the line goes where brief puts it
+test('withDuties puts the day\'s duties line where brief puts it', () => {
+  const d = smallData(once(small.backlog, '| Whenever an agent picks it up. | — | **Why:** slow builds. |',
+    '| Every 30 days. | — | **Why:** slow builds. Last done: 2026-10-01 |'))
+  for (const today of ['2026-10-15', '2026-11-03']) expect(withDuties(brief(d, {}), d.duties, today)).toBe(brief(d, { today }))
+  expect([dutyDue('Every 30 days.', '2026-10-01', '2026-10-15'), dutyDue('Every 30 days.', '2026-10-01', '2026-11-03')]).toEqual([false, true])
 })
 
 // finding 25

@@ -26,11 +26,22 @@ export function realDay(day: string): boolean {
 const LAST_DONE = /Last done:(?:\*\*)?\s*(\d{4}-\d{2}-\d{2})/g
 export const lastDones = (details: string): string[] => [...details.matchAll(LAST_DONE)].map(m => m[1])
 
-function dutyDue(trigger: string, lastDone: string | null, today: string): boolean {
+export function dutyDue(trigger: string, lastDone: string | null, today: string): boolean {
   if (EVERY_SESSION.test(trigger)) return true
   const m = EVERY.exec(trigger)
   if (!m || !lastDone || !realDay(lastDone)) return false
   return addInterval(lastDone, m[1] ? Number(m[1]) : 1, m[2].toLowerCase()) <= today
+}
+
+const dutiesLine = (duties: PageData['duties'], today: string) =>
+  maskPrivacy(`Duties due: ${duties.filter(x => dutyDue(x.trigger, x.lastDone, today)).map(x => x.id).join(', ')}`)
+
+// A view built with no day has no duties line; one stored keeps its duty rows and gets the day's line here when it is
+// served, before its last line, where brief puts it, so a new day needs no rebuild (Phase 3, HK-035)
+export function withDuties(view: string, duties: PageData['duties'], today: string): string {
+  const lines = view.split('\n')
+  lines.splice(-1, 0, dutiesLine(duties, today))
+  return lines.join('\n')
 }
 
 // mask, then cut: a key or address cut short no longer has its shape, so the mask would miss it
@@ -73,9 +84,7 @@ export function brief(d: PageData, opts: { today?: string; branch?: string; behi
   out.push('Needs you:')
   for (const q of d.queue.slice(0, 5)) out.push(`${q.id} ${short(byId.get(q.id)?.item ?? '')} (before ${q.before ?? 'no milestone'}; holds up ${q.holdsUp})`)
   out.push(`Doors just opened: ${d.doors.join(', ')}`)
-  if (opts.today) {
-    out.push(`Duties due: ${d.duties.filter(x => dutyDue(x.trigger, x.lastDone, opts.today!)).map(x => x.id).join(', ')}`)
-  }
+  if (opts.today) out.push(dutiesLine(d.duties, opts.today))
   out.push(`${d.findings.filter(f => f.level === 'warning').length} warnings, ${d.findings.filter(f => f.level === 'error').length} errors: /housekeeping check`)
   // the short view stays in the person's session: a hit is masked, not blocked
   return withBranch(maskPrivacy(out.join('\n')), opts.branch, main)

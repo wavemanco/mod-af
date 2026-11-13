@@ -468,6 +468,45 @@ test('a new day with main unchanged does not walk the history again (HK-035)', a
   expect(walks(w)).toBe(1)
 })
 
+// Phase 3: the stored view keeps the duty rows, and "Duties due" is worked out when the view is served, as the branch
+// line is, so a new day shows the duties then due with no walk
+const DUTY = small.backlog.replace('| Whenever an agent picks it up. | — | **Why:** slow builds. |',
+  '| Every 30 days. | — | **Why:** slow builds. Last done: 2026-10-01 |')
+test('duties due are worked out when the view is served, so a day change shows them with no rebuild', async ($, on) => {
+  expect(DUTY).not.toBe(small.backlog)
+  const w: World = { argv: [], backlog: DUTY, now: '2026-10-15T10:00:00Z', placed: false }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await stored(w)
+  const due = (t: string) => t.split('\n').find(l => l.startsWith('Duties due:'))
+  expect(due(brief(await $.prompt.context({ blocks: [] })))).toBe('Duties due: ')
+  w.now = '2026-11-03T10:00:00Z'
+  const served = brief(await $.prompt.context({ blocks: [] }))
+  expect(due(served)).toBe('Duties due: B-005')
+  expect(walks(w)).toBe(1)
+  expect((await run($, '')).text).toBe(served) // as a view built that day gives it
+})
+
+test('a view stored before the view format was in the stamp is rebuilt once', async ($, on) => {
+  const w: World = { argv: [] }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await stored(w)
+  await $.prompt.context({ blocks: [] })
+  expect(walks(w)).toBe(1) // a view stored in this format is served as it is
+  // as 0.2.0 stored it: the stamp without the format, the day's duties written into the text, no duty rows
+  const k = kept(w)!, id = k.order![0], v = k.views![id] as { status?: string }
+  w.stored!['brief:/w/.git'] = { order: [id], views: { [id]: { sha: SHA, stamp: [SHA, '', small.settings].join('\n'),
+    brief: '# an old view\nDuties due: \n0 warnings', status: v.status } } }
+  await $.prompt.context({ blocks: [] })
+  await until(() => walks(w) === 2 && Array.isArray((entry(w) as { duties?: unknown })?.duties))
+  for (let i = 0; i < 3; i++) await $.prompt.context({ blocks: [] })
+  expect(walks(w)).toBe(2)
+  expect(brief(await $.prompt.context({ blocks: [] })).startsWith('# Small: where we are')).toBe(true)
+})
+
 // finding 13: a shallow clone's boundary reads as a root that touched every file
 test('in a shallow clone no history is walked, and check warns that the clone holds part of it', async ($, on) => {
   const w: World = { argv: [], shallow: true }

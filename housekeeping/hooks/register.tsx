@@ -1,13 +1,13 @@
 import type { EngineInterface, Register } from 'claude-code'
 import { commonDir, PAGE, readInput, readTracked, repoKey, writeFile, writePage } from './adapter.ts'
-import { behind, brief, onBranch, withBranch } from './core/brief.ts'
+import { behind, brief, onBranch, withBranch, withDuties } from './core/brief.ts'
 import { card } from './core/card.ts'
 import { formatFindings } from './core/findings.ts'
 import { build } from './core/index.ts'
 import { parseSettings } from './core/settings.ts'
 import { formatInventory, inventory, notRead, withoutNode } from './core/survey.ts'
 import { initFiles } from './core/templates.ts'
-import type { BuildOutput } from './core/types.ts'
+import type { BuildOutput, PageData } from './core/types.ts'
 
 // on: the lines that say which branch check read and whether local main is behind its remote copy (finding 12)
 type Loaded = { root: string; out: BuildOutput; sha: string; text: string; failed: boolean; project: string;
@@ -28,7 +28,7 @@ async function repoRoot($: EngineInterface): Promise<string> {
 }
 
 // Reads the repository and builds. The view may read the clock; the page may not. branchLine false: the view has no
-// branch line, for the store (second check, finding 15).
+// branch line and no duties line, for the store, which puts both in when it serves the view (second check, finding 15).
 async function load($: EngineInterface, branchLine = true): Promise<Loaded> {
   const root = await repoRoot($)
   const file = `${root}/${SETTINGS}`
@@ -38,7 +38,7 @@ async function load($: EngineInterface, branchLine = true): Promise<Loaded> {
   const findings = [...r.findings, ...out.findings]
   const today = new Date(await $.clock.now()).toISOString().slice(0, 10)
   const main = r.input.settings.mainBranch
-  out.brief = brief(out.data, { today, branch: branchLine ? r.branch : undefined, behindRemote: r.behindRemote, main })
+  out.brief = brief(out.data, { today: branchLine ? today : undefined, branch: branchLine ? r.branch : undefined, behindRemote: r.behindRemote, main })
   return { root, out, sha: r.input.head.sha, text: formatFindings(findings), failed: findings.some(f => f.level === 'error'), project: r.input.settings.project,
     on: { branch: onBranch(r.branch, main, 'check read').join(''), behind: behind(r.behindRemote, main) } }
 }
@@ -51,7 +51,8 @@ function statusLine(out: BuildOutput): string {
   return `${out.data.counts.yes} land now · ${out.data.counts.needYou} need you · next: ${where}`
 }
 
-type View = { brief: string; status: string }
+// duties: the duty rows a stored view keeps, so the day's are worked out when it is served
+type View = { brief: string; status: string; duties?: PageData['duties'] }
 // the rebuilds under way, by stamp: one walk however many ask; and the last that failed, with its first line, so a
 // prompt is told why and starts no second walk for it (HK-088)
 type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, { line: string; at: number; view?: View }> }
@@ -64,9 +65,12 @@ const VIEWS = 16
 const viewsOf = (v: unknown): Views => {
   const o = v as Partial<Views> | null | undefined
   const views = o && typeof o.views === 'object' && o.views && !Array.isArray(o.views) ? o.views : {}
-  const ok = (x: unknown): x is string => typeof x === 'string' && typeof views[x]?.stamp === 'string' && typeof views[x]?.brief === 'string'
+  const ok = (x: unknown): x is string => typeof x === 'string' && typeof views[x]?.stamp === 'string' && typeof views[x]?.brief === 'string' &&
+    Array.isArray(views[x]?.duties)
   return { order: Array.isArray(o?.order) ? o!.order.filter(ok) : [], views }
 }
+// the stored view's form, in its stamp: a new form rebuilds each stored view once (0.2.0's stamp had none)
+const VIEW_FORMAT = 'view 2'
 const RETRY_MS = 60_000 // a failed rebuild is tried again after this, so the cure the stop names takes effect
 // FNV-1a: a short name for a settings text, for the store key
 const fnv = (s: string): string => {
@@ -78,8 +82,8 @@ const fnv = (s: string): string => {
 const BUILDING = 'housekeeping: the short view is being built and is not ready yet; /housekeeping shows it once it is.'
 
 // The short view and the status line, kept in $.store by repository with what they were built from. While main's
-// commit, its remote copy's commit, the branch and the settings are as they were, a few git rev-parse calls are all they cost.
-// shortcut: the day is not in the stamp (HK-035), so "Duties due" is as of the day the view was built; it is rebuilt when main, its remote copy or the settings change; the branch line is put in when it is served (HK-088).
+// commit, its remote copy's commit and the settings are as they were, a few git rev-parse calls are all they cost. The
+// day is not in the stamp (HK-035): the branch line (HK-088) and "Duties due" (Phase 3) are put in when it is served.
 // wait false, for prompt.context (finding 20): the walk is never awaited, since its time would count against that
 // hook's budget; the last stored view stands in, labelled with its commit, while the rebuild runs, or with nothing
 // stored the view says it is being built.
@@ -96,14 +100,15 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   const remote = (await $.process.run(['git', 'rev-parse', '--verify', '--quiet', `refs/remotes/origin/${main}`], { cwd: root, timeoutMs: 10_000 }).catch(() => null))?.stdout.trim() ?? ''
   // a repository's views under one key, one per settings text, the latest VIEWS of them, so worktrees whose settings
   // differ keep theirs and the store stays bounded (HK-091, HK-092); an entry of an older form is read as none
-  const key = `brief:${commonDir(root, dir)}`, id = fnv(text), stamp = [sha, remote, text].join('\n')
+  const key = `brief:${commonDir(root, dir)}`, id = fnv(text), stamp = [VIEW_FORMAT, sha, remote, text].join('\n')
   const keep = r.exitCode === 0 && !!sha // main resolves, so the view can be stored
   const stored = keep ? viewsOf(await $.store.get(key)) : undefined
   const hit = stored?.order.includes(id) ? stored.views[id] : undefined
-  // stored with no branch line, served with this checkout's (second check, finding 15); with nothing to store (an
-  // unborn HEAD, say, whose rev-parse names no branch) the load's own line stands
-  const on = (view: string) => keep ? withBranch(view, branch, main) : view
-  if (hit?.stamp === stamp) return { brief: on(hit.brief), status: hit.status }
+  // stored with no branch line and no duties line, served with this checkout's branch (second check, finding 15) and
+  // the day's duties; with nothing to store (an unborn HEAD, say, whose rev-parse names no branch) the load's own lines stand
+  const today = new Date(await $.clock.now()).toISOString().slice(0, 10)
+  const on = (v: View) => keep ? withBranch(v.duties ? withDuties(v.brief, v.duties, today) : v.brief, branch, main) : v.brief
+  if (hit?.stamp === stamp) return { brief: on(hit), status: hit.status }
   const fresh = async () => {
     // a load that rejects (git past its time, a store that fails) is a failure too, said and retried as one (HK-091)
     const l = await load($, !keep).catch(err => ({ error: `housekeeping: ${err instanceof Error ? err.message : String(err)}` }))
@@ -112,7 +117,7 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
       return null
     }
     builds.failed.delete(stamp)
-    const v = { brief: l.out.brief, status: statusLine(l.out) }
+    const v = { brief: l.out.brief, status: statusLine(l.out), duties: l.out.data.duties }
     if (keep) {
       // shortcut: two builds at once for two settings texts each write over the other's list, so one view is lost and
       // built again at its next prompt; fine while such builds are rare, a lock per key if they are not
@@ -125,7 +130,7 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
         .then(() => null, (err: unknown) => err instanceof Error ? err.message : String(err))
       if (refused) builds.failed.set(stamp, { line: `the short view was built but could not be stored: ${refused}`, at: await $.clock.now(), view: v })
     }
-    return { ...v, brief: on(v.brief) }
+    return { ...v, brief: on(v) }
   }
   if (!keep) return fresh() // nothing to store or serve: main does not resolve, so the load stops before any walk
   // a recent failure is said, with no walk; one older than RETRY_MS is said while it is tried again
@@ -137,13 +142,13 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
     build.catch(() => {}) // handled where it is made: a prompt may return before it settles (HK-091)
     builds.running.set(stamp, build)
   }
-  if (!wait && failed?.view) return { brief: `housekeeping: ${failed.line}\n${on(failed.view.brief)}`, status: failed.view.status }
-  if (!wait && failed) return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}; a new one could not be built: ${failed.line}\n${on(hit.brief)}`, status: hit.status }
+  if (!wait && failed?.view) return { brief: `housekeeping: ${failed.line}\n${on(failed.view)}`, status: failed.view.status }
+  if (!wait && failed) return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}; a new one could not be built: ${failed.line}\n${on(hit)}`, status: hit.status }
     : { brief: `housekeeping: the short view could not be built: ${failed.line}`, status: '' }
   if (!build) return null
   if (wait) return build
   build.catch(() => {}) // a failed rebuild leaves the stored view; the next ask tries again
-  return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}, shown while a new one is built.\n${on(hit.brief)}`, status: hit.status }
+  return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}, shown while a new one is built.\n${on(hit)}`, status: hit.status }
     : { brief: BUILDING, status: '' }
 }
 
