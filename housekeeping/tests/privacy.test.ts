@@ -97,6 +97,7 @@ test('a long run of mixed letters is scanned in linear time, and a 64-letter loc
   // the narrow check (HK-091): a letter outside the BMP stopped the widening, and words before an address were masked
   const astral = `zq${'r'.repeat(18)}\u{2000B}${'a'.repeat(70)}`
   expect(maskPrivacy(`write to ${astral}@corp.io today`)).toBe(`write to zq${'*'.repeat(astral.length + 8 - 4)}io today`)
-  expect(maskPrivacy('请联系jane@corp.io的回复')).toBe('请联系ja***********回复') // the domain's letters run on, as before the pass
-  expect(maskPrivacy('écrire à émile@corp.io')).toBe('écrire à émi********io')
+  // words written straight before an address are masked with it, and an address's non-ASCII first letters are never shown
+  expect(maskPrivacy('请联系jane@corp.io的回复')).toBe('请联**************回复')
+  expect(maskPrivacy('écrire à éva@corp.io')).toBe('écrire à év*******io')
 })
