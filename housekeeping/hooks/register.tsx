@@ -166,60 +166,81 @@ const recordsSpec = (s: Settings) => ['--', `:(literal)${s.files.backlog.path}`,
 const quietDiff = ($: EngineInterface, root: string, s: Settings, a: string, b: string) =>
   $.process.run(['git', 'diff', '--quiet', '--no-ext-diff', '--end-of-options', a, b, ...recordsSpec(s)], { cwd: root, timeoutMs: 10_000, env: OWED_ENV })
 
-// After a commit, a merge or a pull on the Bash and PowerShell tools (Phase 3, Task 4): where main moved past the
-// stored view's commit and the records changed between the two, the view is rebuilt without waiting, the status line
-// follows when it lands, and the main loop is told in one line. got is the tool's result whatever happens after it.
-async function afterGit($: EngineInterface, builds: Builds, e: { command?: unknown; agentId?: string }, got: { result?: unknown; deny?: string; context?: readonly string[] }):
-  Promise<typeof got> {
-  const r = (got.result ?? {}) as { gitOperation?: unknown; backgroundTaskId?: unknown }
-  if (got.deny !== undefined || !(r.gitOperation || /\bgit\b/.test(String(e.command ?? ''))) || r.backgroundTaskId) return got
+// Phase 3 call 16: one masked line per automatic firing, to the debug log alone: the hook, its outcome (with a
+// 7-character sha and counts where it has them) and its milliseconds; never a row's text or a path
+async function debug($: EngineInterface, hook: string, outcome: string, t0: number): Promise<void> {
+  $.ui.log(maskPrivacy(`housekeeping ${hook}: ${outcome} (${(await $.clock.now()) - t0} ms)`), { to: 'debug' })
+}
+// an automatic part run in the background, its outcome put in the debug log; whatever fails in it stays in it, so it
+// never costs the hook that started it
+const fired = ($: EngineInterface, hook: string, work: () => Promise<string>): void => {
+  (async () => { const t0 = await $.clock.now(); await debug($, hook, await work(), t0) })().catch(() => {})
+}
+const at7 = (sha: string) => sha.slice(0, 7)
+
+// After a commit, a merge or a pull on the Bash and PowerShell tools (Phase 3, Task 4), for a git command that ran in the
+// foreground: where main moved past the stored view's commit and the records changed between the two, the view is
+// rebuilt without waiting, the status line follows when it lands, and the main loop is told in one line. It answers the
+// tool's result, with that line or as it came, and its outcome.
+async function afterGit($: EngineInterface, builds: Builds, e: { agentId?: string }, got: { result?: unknown; context?: readonly string[] }):
+  Promise<[typeof got, string]> {
+  if (((got.result ?? {}) as { backgroundTaskId?: unknown }).backgroundTaskId) return [got, 'run in the background, nothing read']
   const at = await settingsAt($)
-  if (!at) return got
+  if (!at) return [got, 'no settings file']
   const { root, text, s } = at
   const v = await $.process.run(['git', 'rev-parse', '--git-common-dir', s.mainBranch], { cwd: root, timeoutMs: 10_000 })
   const [dir, sha] = v.stdout.split('\n').map(x => x.trim())
-  if (v.exitCode !== 0 || !sha) return got
+  if (v.exitCode !== 0 || !sha) return [got, 'main does not resolve']
   const old = viewsOf(await $.store.get(`brief:${commonDir(root, dir)}`)).views[fnv(text)]?.sha
-  if (typeof old !== 'string' || old === sha || (await quietDiff($, root, s, old, sha)).exitCode !== 1) return got
+  if (typeof old !== 'string') return [got, `main at ${at7(sha)}, no stored view`]
+  if (old === sha) return [got, `main at ${at7(sha)}, as the stored view`]
+  const d = (await quietDiff($, root, s, old, sha)).exitCode
+  if (d !== 1) return [got, `main at ${at7(sha)}, ${d === 0 ? `the records unchanged since ${at7(old)}` : `git diff exited ${d}`}`]
   // not awaited: the agent's next step never waits on the walk
   cachedView($, builds).then(x => { if (x) $.ui.status(x.status) }).catch(() => {})
+  const said = `main at ${at7(sha)}, the records changed since ${at7(old)}: rebuilding`
   return e.agentId === undefined
-    ? { ...got, context: [...(got.context ?? []), maskPrivacy(`The records on ${s.mainBranch} changed at ${sha.slice(0, 7)}; /housekeeping shows the new view.`)] }
-    : got
+    ? [{ ...got, context: [...(got.context ?? []), maskPrivacy(`The records on ${s.mainBranch} changed at ${at7(sha)}; /housekeeping shows the new view.`)] }, `${said}, line added`]
+    : [got, `${said}, in a subagent: no line`]
 }
 
 // At the main loop's turn end (Phase 3 call 5): /loose-ends is suggested once per HEAD, when three or more commits follow
 // the last one that touched the records and neither file has uncommitted edits. The HEAD it was last suggested at is
 // kept under its own key, nudge:<repository key>, beside the Route Map link's repo:<repository key>.
-async function nudge($: EngineInterface): Promise<void> {
+async function nudge($: EngineInterface): Promise<string> {
   const at = await settingsAt($)
-  if (!at) return
+  if (!at) return 'no settings file'
   const { root, s } = at
   const git = (argv: string[]) => $.process.run(['git', ...argv], { cwd: root, timeoutMs: 10_000, env: OWED_ENV })
   const h = await git(['rev-parse', '--git-common-dir', 'HEAD'])
   const [dir, head] = h.stdout.split('\n').map(x => x.trim())
-  if (h.exitCode !== 0 || !head) return
+  if (h.exitCode !== 0 || !head) return 'HEAD does not resolve'
   const key = `nudge:${commonDir(root, dir)}`
-  if ((await $.store.get(key)) === head) return
+  if ((await $.store.get(key)) === head) return `already suggested at ${at7(head)}`
   const st = await git(['status', '--porcelain', ...recordsSpec(s)])
-  if (st.exitCode !== 0 || st.stdout.trim()) return
+  if (st.exitCode !== 0 || st.stdout.trim()) return `${at7(head)}, ${st.exitCode ? `git status exited ${st.exitCode}` : 'the records have uncommitted edits'}`
   const last = await git(['log', '-1', '--no-show-signature', '--format=%H', '--end-of-options', 'HEAD', ...recordsSpec(s)])
-  if (last.exitCode !== 0) return
+  if (last.exitCode !== 0) return `${at7(head)}, git log exited ${last.exitCode}`
   const n = await git(['rev-list', '--count', '--end-of-options', last.stdout.trim() ? `${last.stdout.trim()}..HEAD` : 'HEAD', '--'])
-  if (n.exitCode !== 0 || !(Number(n.stdout.trim()) >= 3)) return
+  const since = Number(n.stdout.trim())
+  if (n.exitCode !== 0 || !(since >= 3)) return `${at7(head)}, ${n.exitCode ? `git rev-list exited ${n.exitCode}` : `${since} commits since the records, fewer than 3`}`
   $.prompt.suggest({ text: '/loose-ends' }).catch(() => {}) // not awaited (call 5)
   await $.store.set(key, head)
+  return `/loose-ends suggested at ${at7(head)}, ${since} commits since the records`
 }
 
 // At session start (Phase 3, Task 4): where a Route Map link is stored and the records on main changed since the commit
 // it was published at, one line in the transcript says so; with no link stored, nothing is read
-async function staleMap($: EngineInterface): Promise<void> {
+async function staleMap($: EngineInterface): Promise<string> {
   const at = await settingsAt($)
-  if (!at) return
+  if (!at) return 'no settings file'
   const { root, s } = at
   const known = (await $.store.get(`repo:${await repoKey($, root)}`)) as { url?: unknown; sha?: unknown } | undefined
-  if (!known?.url || typeof known.sha !== 'string' || (await quietDiff($, root, s, known.sha, s.mainBranch)).exitCode !== 1) return
+  if (!known?.url || typeof known.sha !== 'string') return 'no Route Map link stored'
+  const d = (await quietDiff($, root, s, known.sha, s.mainBranch)).exitCode
+  if (d !== 1) return d === 0 ? `the Route Map at ${at7(known.sha)} matches the records` : `git diff exited ${d}`
   $.ui.log(maskPrivacy(`The Route Map is older than the records on ${s.mainBranch}: /housekeeping map publishes it.`))
+  return `the Route Map at ${at7(known.sha)} is older than the records: line added`
 }
 
 // The records card, from the settings alone: none where there is no settings file, or one that does not parse
@@ -497,7 +518,7 @@ export const register: Register = (on, options) => {
     const got = await next(e)
     // not awaited: a slow repository must not hold up the session, nor the stale-map check the first prompt
     cachedView($, builds).then(v => { if (v) $.ui.status(v.status) }).catch(() => {})
-    if (automatic) staleMap($).catch(() => {})
+    if (automatic) fired($, 'session start', () => staleMap($))
     return got
   })
 
@@ -540,6 +561,8 @@ export const register: Register = (on, options) => {
     try { told = record?.size ? keep($.plugin.root, record) : '' } catch { /* the unfiled paragraph still goes */ }
     const unfiled = e.agentId ? '' : await unfiledAt($).catch(() => '')
     const add = [told, unfiled].filter(Boolean)
+    if (automatic) fired($, 'compaction', async () => `${e.agentId ? 'a subagent' : 'the main conversation'}, ` +
+      `${told ? `the procedure paragraph for ${record!.size}` : 'no procedure paragraph'}, ${unfiled ? 'the unfiled paragraph' : 'no unfiled paragraph'}`)
     return add.length ? next({ ...e, instructions: [e.instructions, ...add].filter(Boolean).join('\n\n') }) : next(e)
   }).catch(($, e, next) => next(e))
 
@@ -552,7 +575,11 @@ export const register: Register = (on, options) => {
   on('tool.call', { tool: ['Bash', 'PowerShell'] }, async ($, e, next) => {
     const got = await next(e)
     try {
-      return automatic ? await afterGit($, builds, e, got) : got
+      if (!automatic || got.deny !== undefined || !((got.result as { gitOperation?: unknown } | undefined)?.gitOperation || /\bgit\b/.test(String(e.command ?? '')))) return got
+      const t0 = await $.clock.now()
+      const [out, said] = await afterGit($, builds, e, got)
+      debug($, `${e.tool} call`, said, t0).catch(() => {})
+      return out
     } catch {
       return got
     }
@@ -561,7 +588,7 @@ export const register: Register = (on, options) => {
   // the main loop's answered turns only; not awaited, so the turn's end never waits on git
   on('turn.complete', async ($, e, next) => {
     const got = await next(e)
-    if (automatic && e.agentId === undefined && e.reason === 'answer') nudge($).catch(() => {})
+    if (automatic && e.agentId === undefined && e.reason === 'answer') fired($, 'turn end', () => nudge($))
     return got
   }).catch(($, e, next) => next(e))
 

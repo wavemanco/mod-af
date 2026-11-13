@@ -1683,6 +1683,59 @@ test('with automatic off, a git commit makes no git call and adds no line, a tur
   expect(w.argv).toEqual([])
   expect(w.ran).toEqual(['git commit -m x'])
   expect(w.suggested).toEqual([])
+  expect(w.logs).toEqual([]) // nor any debug line
+})
+
+// Phase 3 call 16: one masked line per automatic firing, to the debug log alone
+const debugs = (w: World) => w.logs!.filter(l => l.to === 'debug').map(l => l.text)
+
+test('each automatic firing puts one line in the debug log alone: the hook, its outcome, its sha and counts, and its milliseconds, with no path or row text', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [], logs: [], suggested: [], stored: { ...KNOWN }, changed: true, since: 3, lastRecords: SHORT }
+  world(on, w)
+  compacts(on)
+  await $.session.start(START)
+  await settled(w)
+  await until(() => debugs(w).length > 0)
+  expect(debugs(w)).toEqual(['housekeeping session start: the Route Map at abcdef0 is older than the records: line added (0 ms)'])
+  w.mainSha = NEW
+  await shell($, 'ls -la') // no git: not a firing
+  await shell($, 'git commit -m x')
+  await until(() => debugs(w).length > 1)
+  await ended($)
+  await until(() => debugs(w).length > 2)
+  await $.session.compact({ trigger: 'auto', messages: MSGS })
+  await until(() => debugs(w).length > 3)
+  expect(debugs(w).slice(1)).toEqual([
+    'housekeeping Bash call: main at fffffff, the records changed since abcdef0: rebuilding, line added (0 ms)',
+    'housekeeping turn end: /loose-ends suggested at abcdef0, 3 commits since the records (0 ms)',
+    'housekeeping compaction: the main conversation, no procedure paragraph, the unfiled paragraph (0 ms)',
+  ])
+  for (const t of debugs(w)) for (const no of ['/w', 'backlog.md', 'Rate-limit']) expect([no, t.includes(no)]).toEqual([no, false])
+})
+
+test('a firing that does nothing says why in the debug log, so a skip is told from work done', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [], logs: [], suggested: [], since: 3 }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  await until(() => debugs(w).length > 0)
+  await shell($, 'git status')
+  await until(() => debugs(w).length > 1)
+  w.shell = { backgroundTaskId: 'b1' }
+  await shell($, 'git fetch')
+  await until(() => debugs(w).length > 2)
+  w.shell = {}
+  await ended($)
+  await until(() => debugs(w).length > 3)
+  await ended($)
+  await until(() => debugs(w).length > 4)
+  expect(debugs(w)).toEqual([
+    'housekeeping session start: no Route Map link stored (0 ms)',
+    'housekeeping Bash call: main at abcdef0, as the stored view (0 ms)',
+    'housekeeping Bash call: run in the background, nothing read (0 ms)',
+    'housekeeping turn end: /loose-ends suggested at abcdef0, 3 commits since the records (0 ms)',
+    'housekeeping turn end: already suggested at abcdef0 (0 ms)',
+  ])
 })
 
 // Phase 3 call 5: at the main loop's turn end, /loose-ends once per HEAD, after three commits past the last one that
