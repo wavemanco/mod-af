@@ -38,3 +38,7 @@ its place and whether the second round settled it, are in
 
 The small check of the second round, what held, and its confirmed findings and parked minors are in
 [phase-2-round2-check-minors.md](phase-2-round2-check-minors.md).
+
+Phase 3's brainstorm, by seven read-only Elephant-Goldfish lenses and a synthesis, is
+[phase-3-concepts-brief.md](phase-3-concepts-brief.md); the plan built from it is
+[../plans/2026-11-13-phase-3.md](../plans/2026-11-13-phase-3.md).
