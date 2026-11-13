@@ -21,6 +21,12 @@ export const showArgs = (sha: string, path: string): string[] => ['git', 'show',
 
 // git runs with lazy fetching off: a partial clone is never fetched into (DESIGN 3.4: "never fetches")
 export const NO_FETCH = { GIT_NO_LAZY_FETCH: '1' }
+
+// the audit's start (Phase 3 call 2): main's first-parent line, oldest first, and the commit on it that added the
+// settings (a merge that brought them in, where they came from a branch)
+export const firstParentArgs = (main: string): string[] => ['git', 'rev-list', '--first-parent', '--reverse', '--end-of-options', main, '--']
+export const addedArgs = (main: string): string[] =>
+  ['git', 'log', '--first-parent', '--diff-filter=A', '-1', '--no-show-signature', '--format=%H', '--end-of-options', main, '--', ':(literal).housekeeping.json']
 // After a failed show: exits 0 when the commit's tree names the path, so its blob is one this clone does not hold
 // and the file is not missing (a tied minor of the Phase 2 check); the tree alone answers it, no blob is read.
 export const blobArgs = (sha: string, path: string): string[] => ['git', 'rev-parse', '--verify', '--quiet', '--end-of-options', `${sha}:${path}`]
