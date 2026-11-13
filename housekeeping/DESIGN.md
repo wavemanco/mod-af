@@ -188,7 +188,9 @@ link: the publish target and the cadence. The plugin's per-person store holds th
 repository's shared git folder (`git rev-parse --git-common-dir`), so that all worktrees of one repository
 share them. It asks with no `--path-format`, which a git before 2.31 does not know, and resolves a relative
 answer against the repository's top, so two repositories never share a key (the second check's finding 7).
-The cadence's default comes from the plugin's own settings.
+The cadence is not built (3.7; Phase 3 call 7). The `/loose-ends` suggestion (3.10) keeps the HEAD it was last
+made at under a key of its own, `nudge:<repository key>`, beside the Route Map link's `repo:<repository key>`, so
+neither touches the other (Phase 3 call 5).
 
 ### 3.4 The generator: one core, three callers
 
@@ -304,13 +306,25 @@ The short view comes from the same core and runs to about 2,000 tokens at most:
 **How it appears:**
 - a one-line status, such as `3 land now · 2 need you · next: <milestone>, 28 stops`;
 - a Markdown pane when `/housekeeping` runs with no argument (panes cannot show HTML);
-- given to the agent as context at session start and again after the conversation is compressed. After a
-  commit, an updated view rides on that tool call's result, because the session-start context block cannot
-  be changed once sent. The context never waits for the history walk, whose time would count against its
-  hook's budget: while the view is rebuilt it carries the last stored view, labelled with its commit, or with
+- given to the agent as context at session start and again after the conversation is compressed. The
+  session-start context block cannot be changed once sent, so after a git command on the Bash or PowerShell
+  tool that leaves the records on main changed since the stored view's commit, the view is rebuilt without
+  waiting, the status line follows it, and one line rides on that tool call's result, on the main loop only:
+  "The records on <main> changed at <sha7>; /housekeeping shows the new view." (Phase 3, Task 4). The
+  context never waits for the history walk, whose time would count against its hook's budget: while the view is rebuilt it carries the last stored view, labelled with its commit, or with
   nothing stored says the view is being built (finding 20 of the Phase 2 check). The view is stored without
   its branch line, and the current checkout's line is put in each time it is served, so a view stored on one
   branch names the branch it is served on (the second check's finding 15).
+
+**The records card** (Phase 3 call 9). Wherever a settings file exists, the agent also gets, as its own context
+block `housekeeping-records` after the short view and outside its 8,000 characters, a card built from the
+settings alone and masked: the two files with the commit test, the columns, the ID patterns, the decisions
+folder and the not-doing table (or "none set"), and the filing lines word for word: take the next ID after
+the highest in both files, a trigger is a step, a dropped item goes to the not-doing table, a decision updates
+the row it settles, find rows with Grep and read only those lines, and after committing ask for
+`/housekeeping check`. It is served also while the view is built, and a failure building it drops the card
+only. `node cli.ts brief` prints it after the view. [`INTEGRATION.md`](INTEGRATION.md) says what it tells
+`loose-ends`, `route` and `decide`.
 
 **For agents outside Claude Code:** `init` and `plan` add one line to the repository's agent guide (its
 AGENTS.md or equivalent): at session start, run `node <plugin>/cli.ts brief`, or read the page.
@@ -319,15 +333,17 @@ The short view is a view of the files, never a store of its own.
 
 ### 3.7 Publishing and cadence
 
-**The person picks a cadence at setup:**
-- after each commit on main that changes the two files (the default, as the reference repository does);
-- at session start, when main has moved since the last publish;
-- only when asked.
+**Publishing happens when the person runs `/housekeeping map`** (Phase 3 call 7). The pick of a cadence at
+setup that this section planned is not built: neither publishing after each commit on main that changes the
+two files (the planned default, as the reference repository does) nor at session start when main has moved
+since the last publish. A plugin's own `$.tool.call` opens no permission dialog (the engine's types), so a
+publish the plugin started on its own would happen with no consent but a setting. What is left is the third
+choice, only when asked. Publishing at turn end is a backlog row. In its place, at session start, where a Route Map link is stored and the records on main changed since the
+commit it was published at, one line in the transcript, not sent to the model, says "The Route Map is older
+than the records on <main>: /housekeeping map publishes it." (3.10).
 
 **Mechanics:**
-- **After a commit,** the hook only rebuilds the page file, which shows no permission dialog. Publishing
-  happens at the end of that turn, through a queued step, or through `/housekeeping map`. So the person
-  is present when Claude Code asks permission to publish.
+- **After a commit,** the hook rebuilds the short view, not the page, and publishes nothing (3.6).
 - **Each session's first publish** reads the artifact first, as the Artifact tool requires.
 - **The page file** lives in `.housekeeping/` inside the repository; `init` adds that folder to
   `.gitignore`.
@@ -427,18 +443,48 @@ tables, one path, the settings file and the `.gitignore` line.
 - **`/housekeeping check`,** and the Node command `check`, which exits non-zero for CI: the settings, the
   errors, the warnings and the recommendations from 3.4. It is the reference repository's format test made
   general, with no test framework needed.
-- **`/housekeeping audit`** is a procedure, modelled on the status audit test repository A ran on its own
-  backlog:
-  - for each open row, find commits that name its ID, check they are on main, and read the change;
-  - hand each proposed change of status to an independent skeptic;
-  - apply the clear-cut cases on a branch, each with the commit that proves it: a row plainly done moves to
-    Done, and a checklist line whose rows are all closed gets ticked;
-  - list the judgement calls (partly done, done differently) for the owner.
-- **`/housekeeping owed [base]`** works from the merge base to the branch. It lists:
-  - the rows whose Trigger names a file the branch touches, or a code name on a changed line outside the
-    records (the reference repository's fired-triggers script does this part);
-  - the rows the branch's commits name by ID;
-  - the checklist lines that name those rows.
+- **`/housekeeping audit`** is a procedure, `prompts/audit.md`, modelled on the status audit test repository A
+  ran on its own backlog. It proposes, and applies only after the owner's approval (Phase 3 call 3, which
+  changes this section's "apply the clear-cut cases on a branch"):
+  - **its range** (call 2): from the latest "Last done: YYYY-MM-DD, through <sha>" of the playbook duty row
+    whose Trigger holds "/housekeeping audit", where the sha is one commit of main's first-parent line; else
+    from the commit that added `.housekeeping.json`; else from the root; at most 50 first-parent commits after
+    the start, the last of them the commit Last done then moves through. `auditStart` in `hooks/core/owed.ts`
+    works it out, with no git of its own, and the slash command hands the procedure with `owed`'s listing over
+    that range, read under the person's Read rules;
+  - **before anything:** where a rule says who writes the records (in AGENTS.md, CLAUDE.md, CONTRIBUTING.md or
+    the backlog's "How this file is kept"), or either file has uncommitted edits, it proposes nothing and lists
+    every case (call 11); an unmerged `housekeeping/audit-*` branch from before stops it;
+  - for at most 25 row-and-commit pairs from the listing, strongest first, read only the hunks of the commit's
+    allowed paths; a pair with a path a shell can read as commands is a judgement call;
+  - a case is clear-cut when a closing word is next to the ID, the change is still at main's tip, and a
+    skeptic, a fresh subagent that is not a fork, agrees; with no subagent available, every case is a
+    judgement call;
+  - propose the clear-cut cases as numbered steps, each with the commit that proves it (a row plainly done
+    moves to Done, and a checklist line whose rows are all closed gets ticked), the duty row's update or its
+    addition last; then list the judgement calls (partly done, done differently, gone rows, doors, "opened"
+    work, marked paths). Nothing is written before the owner's own message approving the steps;
+  - after approval, apply them on a branch `housekeeping/audit-YYYY-MM-DD`, made with `git worktree add` in a
+    folder under the system temp folder, one commit per step; the branch is never pushed, and the worktree is
+    removed at the end. `map` before and after, on a settings copy outside the repository, checks the counts.
+- **`/housekeeping owed [--base <ref>] [--head <ref>]`**, and `node cli.ts owed` with the same options, works
+  from the merge base of main (or of `--base`) with HEAD (or `--head`) to that head. It is a pure function of
+  what git gives for the base and the head, with no clock, so CI's output for one commit never changes by the
+  day (Phase 3 call 1; duties due stay in the short view). It lists:
+  - the rows whose Trigger names a changed path, or a code name on a changed line outside the records and the
+    settings file, by FORMAT's code-name rule, with the token and where it matched; duty rows are left out
+    (the reference repository's fired-triggers script does this part, and the comparison with it is a backlog
+    row, call 13);
+  - the rows the commits name by ID, in the subject or the body with trailers dropped, each with the commit's
+    sha and subject and whether a closing word is next to the ID, and each such commit's paths that the Read
+    rules allow;
+  - the checklist lines that name those rows;
+  - the rows gone over the range, the rows already settled, apart, and the IDs the branch adds that main's tip
+    or the base already holds;
+  - the range's last commit.
+  It never shows a line's text, an author or a trailer, and its output is masked. The slash command puts every
+  changed path, both sides of a rename, to the person's Read rules: a denied path is counted, never read or
+  named. The Node command ignores the Read rules.
 
 ### 3.10 Working with `loose-ends`, `route` and `decide`
 
@@ -467,42 +513,64 @@ In a repository with `.housekeeping.json`:
   `plan` write.
 - **Phase 0 checks this works:** in a fixture repository, the unchanged `/loose-ends` files rows in the
   format into the right file, and the unchanged `/route` reads the map's data.
-- **If that falls short,** housekeeping adds a note to their command's transcript rows, a route that does
-  not depend on the order between plugins. It still makes no edit to their code.
+- **The channel is the context alone** (Phase 3 call 9): the records card (3.6) names the two files, the
+  columns, the ID patterns, the decisions folder and the not-doing table, with the filing lines;
+  [`INTEGRATION.md`](INTEGRATION.md) says what each of the three gets from it. Phase 0 found that housekeeping,
+  listing the three as dependencies, could also add a note to their commands' results. That is not built: the
+  hook order rests on one engine build, and the three are being reworked. A backlog row waits on the owner's
+  sitting showing that the card falls short. It still makes no edit to their code.
 - **Any edit to the three** would be a separate choice for the owner, made later.
 
 **Automatic parts** (Claude Code only):
-- **Before the conversation is compressed,** on every kind of compression, the plugin tells the summarizer
-  to keep, word for word, every deferral, action item and decision not yet filed. Then, at the end of that
-  turn, it gives the agent the short view again and suggests `/loose-ends`.
-- **After a commit,** seen on both the Bash and the PowerShell tools: if `git diff-tree` shows the commit
-  touched the two files, it rebuilds the page and publishes it per the cadence (3.7). After several commits
-  with no filing, it suggests `/loose-ends`.
+- **Before the conversation is compressed,** on every kind of compression, where `.housekeeping.json`
+  exists, the main conversation's summarizer is asked to keep, under the heading "Not yet filed into the
+  backlog or playbook", one line per deferral, action item and decision of the conversation not yet written
+  into the two files, the owner's decisions word for word, at most 40 lines, then "and N more: run
+  /loose-ends" (Phase 3 call 6). It is asked, not made: what a real summary keeps is the owner's live check
+  ([`research/live-checks.md`](research/live-checks.md)). Where a procedure was handed, its paragraph comes
+  first (3.8); with more than one sent, survey and plan keep one install sentence between them, and when audit
+  is among them each procedure's sentence is prefixed "In the <name> procedure:" (call 15). The short view
+  and the card come with the context built after the compaction (live check 6 tries it on an automatic
+  one); no suggestion follows it, since no reliable sign of a compaction reaches the plugin (call 5).
+- **At the main loop's turn end,** `/loose-ends` is suggested in the prompt box, once per HEAD, when three
+  or more commits follow the last one that touched the records and neither file has uncommitted edits
+  (call 5; the HEAD is kept as 3.3 says).
+- **After a git command,** seen on both the Bash and the PowerShell tools, a commit, a merge or a pull run in
+  the foreground: where `git diff --quiet` on the two files finds the records on main changed since the
+  stored view's commit, the view is rebuilt without waiting, the status line follows, and the main loop is told
+  in one line (3.6). Nothing is published (3.7).
 - **At session start:**
   - it registers the command;
   - it shows the status line;
-  - it gives the agent the short view;
-  - it lists the duties that are due;
-  - it checks whether the map is stale. This check runs without holding up the first prompt.
+  - it gives the agent the short view and the records card;
+  - it lists the duties that are due, in the short view, worked out when the view is served;
+  - it checks whether the map is stale, without holding up the first prompt (3.7).
+- **A switch** (call 8): the plugin's one `userConfig` field, `automatic`, "on" by default. "off" stops the
+  after-commit rebuild and its line, the `/loose-ends` suggestion, the stale-map line and the debug lines; the
+  compaction paragraph and the records card stay. A change reloads the plugin, which forgets the procedures
+  sent.
+- **Debug lines** (call 16): each automatic firing puts one masked line in the debug log alone, with the
+  hook, its outcome, a 7-character sha and counts where it has them, and its milliseconds; never a row's text
+  or a path.
 - **At session end** a plugin gets only 1.5 seconds, too short for the agent to file anything. The
   owner's choice (2026-11-03) combines four things:
-  - compression keeps unfiled items (above);
-  - nudges after commits (above);
+  - compression is asked to keep unfiled items (above);
+  - nudges after commits, now the suggestion at the turn's end (above);
   - the person's own `/loose-ends` before leaving;
-  - a catch-up at the next session's start.
-
-  For the catch-up, the session-end hook does one quick write: the ending session's id, and whether any
-  turn came after the last filing. At the next session's start, if one did, the plugin offers to file what
-  that session left by reading its transcript. It is a suggestion, not an automatic run. Reading an old
-  transcript is Claude Code-specific, and Phase 0 checks it.
+  - a catch-up at the next session's start, which is not built in Phase 3 (call 4; section 10): what the
+    engine allows covers only sessions whose end hook ran, which the nudges already reach, while sessions that
+    end abruptly, the owner's reason for it, get nothing. It is a backlog row.
 - **Not built: filing after every commit.** It would spend tokens on every commit and land filing edits
   between the person's own commits. The README says so (the owner asked that it does).
 
 ### 3.11 Procedures any agent can follow
 
-Every procedure (`survey`, `plan`, `audit`, filing and `owed`) also ships as a `prompt.md`. Each runs
-without Claude Code, with the Node command for the computed parts, as this repository's "two formats"
-pattern does. Only the automatic parts (hooks, pane and status line) are tied to Claude Code.
+The procedures `survey`, `plan` and `audit` also ship as prompt files (`prompts/survey.md`, `prompts/plan.md`,
+`prompts/audit.md`). Each runs without Claude Code, pasted into any chat, with the Node command for the
+computed parts, as this repository's "two formats" pattern does. `owed` is no procedure: its Node form,
+`node cli.ts owed`, is the form any agent can run. Filing is loose-ends' own prompt
+([`INTEGRATION.md`](INTEGRATION.md)). Only the automatic parts (hooks, pane and status line) are tied to
+Claude Code.
 
 ## 4. Exclusions
 
@@ -671,6 +739,42 @@ named limit.
 - **Clean and documented:** `claude plugin validate` and the type check are clean, and the README and the
   marketplace entry are written.
 
+**How each Phase 3 bar is measured, and who takes it** (the Phase 3 plan's completion criteria):
+- **`audit`:** at least 9 of 10 planted done rows found and no wrong change applied, on both of the audit's
+  acceptance fixtures (one with the audit's duty row, one without), by a fresh subagent that follows
+  `prompts/audit.md` with the Node commands only. The controller takes it after Task 3; on a real repository
+  it is the owner's, at the sitting (`research/live-checks.md`, check 15). The first run found 2 and 3 of the
+  10: the fixture's closings were stubs, and the skeptic rightly refused them, so the fixture was rebuilt
+  (9608adc). The second run found 9 of the 10 on both fixtures, proposed no decoy, and wrote nothing before
+  approval, which the controller checked in both repositories. After one approving message the nine applied
+  exactly, one commit per step, and `map`'s counts moved as predicted: with the duty row, closed up 9 and open
+  down 9; without it, closed up 9, open down 8 and the total up 1, the duty row added. `owed` after applying
+  listed no gone row, the worktrees were removed, and nothing was pushed. Both skeptics refused the tenth on a
+  real off-by-one in the fixture's code. The bar is met on both fixtures.
+- **`owed`:** its named tests, taken by the gate (`tests/owed.test.ts`, the owed tests in
+  `tests/plugin.test.ts` and `node-tests/cli.spec.ts`). The comparison with the reference repository's
+  fired-triggers script waits on its backlog row (call 13).
+- **The plugin's tests,** taken by the gate: the summarizer's instructions (the compaction tests, procedure
+  paragraph and unfiled paragraph), commit handling on both shells ("a git commit on PowerShell is seen as one
+  on Bash"), the stale-map check, duties due ("duties due are worked out when the view is served") and the
+  status line. The automatic parts' live behaviour is the owner's, at the sitting (checks 6 to 10 and 14).
+- **The three plugins** (`/loose-ends`, `/route` and `/decide` in a repository with the pair): the owner's, at
+  the sitting (checks 11 to 13).
+- **Without Claude Code** (call 17): met for `survey` in Phase 2's dry runs; for Phase 3 the bar is the audit's
+  acceptance run above, in which a fresh subagent followed `prompts/audit.md` with the Node commands only.
+- **The gate** (`claude plugin test`, the Node specs, `claude plugin validate`) passes after every task, taken
+  by each task's builder and by the controller. At the end of Task 5: 337 kit tests and 51 Node tests passed,
+  and validate passed with two warnings, no author and no icon.
+- **`check` on the reference repository,** with its settings copy, gives the same findings at b14fdcf (captured
+  before Task 1) and at the tip: run by the controller at the tip. If it cannot be read, the check is recorded
+  as not run, with the reason, and added to the owner's sitting.
+- **The name and word searches and the author and committer check** pass before every push: the controller.
+- **The type check:** no TypeScript compiler is installed and the plugin adds no npm dependencies, so it is
+  not run; `claude plugin validate` and the kit's module loads stand in, and a backlog row keeps it.
+- **The README** is written for Phase 3; the marketplace description is not edited before the owner's sitting,
+  and a backlog row keeps it.
+- **Phase 3 counts as done only after the owner's sitting;** the pull request waits for the owner.
+
 **The project is done when** the three phases are done, and every open item left is a row in this
 repository's backlog.
 
@@ -757,11 +861,13 @@ Only the "Chosen" column holds the owner's words, quoted exactly. The other colu
 6. **The page reads the local main** and never fetches.
 7. **The default cadence** is after each commit on main that changes the two files. The hook only
    rebuilds; publishing happens when the person is present. The "every N hours" option is dropped, because
-   it would raise permission dialogs with nobody there.
+   it would raise permission dialogs with nobody there. Changed by Phase 3 call 7 (below): no cadence is
+   built, and publishing stays with `/housekeeping map`.
 8. **The integration with the three plugins** works through the agent's context and the backlog's own "how
    this file is kept" section. Their code is not changed.
 9. **The audit applies clear-cut cases** on a branch, each with its proof, and lists only the judgement
-   calls (the owner's "housekeeping by default").
+   calls (the owner's "housekeeping by default"). Changed by Phase 3 call 3 (below): it proposes them, and
+   applies them on a branch only after the owner's approval.
 10. **Phases run back to back,** with a report at each end, and an adversarial check before each push of
     code.
 11. **Prior-art tools** keep their names in `research/`, as cited products, while the repositories we read
@@ -774,6 +880,49 @@ Only the "Chosen" column holds the owner's words, quoted exactly. The other colu
     are matched by their words, which the owner's live check should confirm.
 14. **Changed since with nothing stored** starts ten commits back, or at the oldest when there are fewer.
     This is the controller's ruling on the final check's open choice (finding 8), not the owner's.
+
+**Phase 3's calls** are the 17 of the Phase 3 plan's "Calls made for this phase"
+([`plans/2026-11-13-phase-3.md`](plans/2026-11-13-phase-3.md)), each Claude's at the owner's "deal with things
+autonomously" (2026-11-13), with the options rejected and why in the plan's table. Five change an earlier choice:
+
+- **Call 3, how the audit writes.** Earlier: 3.9's "apply the clear-cut cases on a branch", and item 9 above.
+  The call: the audit proposes the clear-cut closings and ticks as numbered steps, writes nothing before the
+  owner's own message approving them, under plan's approval rule, and then applies them on a branch. Gone rows,
+  doors just opened and "opened" work are listed, never proposed. Why: applying on its own, the only guard on
+  writes no one saw would be a count check the reviews found fragile, and the README promises that the plugin
+  never commits on its own.
+- **Call 4, the catch-up.** Earlier: the owner's choice of 2026-11-03 on filing at session end (section 9),
+  which includes a catch-up at the next session's start (3.10). The call: not built in Phase 3, and a backlog row. Why: what the engine
+  allows covers only sessions whose end hook ran, which the nudges already reach, while sessions that end
+  abruptly, the owner's reason for it, get nothing; reading a transcript passes the 4 MiB and 256 KB read
+  limits; and offering `claude --resume` risks two processes on one transcript.
+- **Call 5, the `/loose-ends` suggestion.** Earlier: 3.10's suggestion at the end of the turn after a
+  compaction. The call: at the main loop's turn end, once per HEAD, when three or more commits follow the last
+  one that touched the records and neither file has uncommitted edits. Why: no reliable sign of a compaction
+  reaches the plugin (HK-084).
+- **Call 6, how much a compaction keeps.** Earlier: 3.10's "every deferral, action item and decision not yet
+  filed", word for word. The call: the main conversation's summary is asked to keep, under the heading "Not
+  yet filed into the backlog or playbook", one line per item, the owner's decisions word for word, at most 40
+  lines, then "and N more: run /loose-ends". Why: everything word for word can crowd the summary out.
+- **Call 7, publishing at turn end.** Earlier: 3.7's cadence, and item 7 above, "after each commit on main".
+  The call: not built in Phase 3; publishing stays with `/housekeeping map`, which the person runs, and a
+  backlog row. Why: a plugin's own `$.tool.call` opens no permission dialog (the engine's types), so an
+  automatic publish would happen with no consent but a setting.
+
+The other twelve, one line each:
+- Call 1: what `owed` is (3.9).
+- Call 2: where the audit starts (3.9).
+- Call 8: one switch for the automatic parts, `automatic` (3.10).
+- Call 9: the channel to `loose-ends`, `route` and `decide` is the records card in the context only (3.10).
+- Call 10: init's Not doing table and decisions folder, for new repositories only.
+- Call 11: where a repository's rules restrict who writes the records, the audit proposes nothing to apply (3.9).
+- Call 12: survey's and plan's procedure files and keep text stay byte for byte, and HK-080's sitting takes Phase
+  3's live checks too.
+- Call 13: `owed`'s code-name rule is in FORMAT; the reference repository's script is a later comparison.
+- Call 14: the hook that stops writes before approval (HK-077) is not built.
+- Call 15: the keep text with more than one procedure sent (3.10).
+- Call 16: the debug lines (3.10).
+- Call 17: Phase 3's "without Claude Code" bar is the audit's acceptance run (section 7).
 
 ## 11. What the checks of draft 1 changed
 

@@ -34,6 +34,11 @@ command stops at the plugin that answers it, and a second plugin listening for i
 What we gained: housekeeping cannot add to `/loose-ends` or `/route` by hooking their commands. It adds a command of its
 own, or the change goes into the plugin's own procedure. Either edit waits for the owner's local work (last section).
 
+**Superseded by Phase 0** ([`phase-0-mechanics.md`](phase-0-mechanics.md), check 1): a plugin that lists another under
+`dependencies` has its hook on that plugin's command run outermost, so housekeeping could add a note to their commands'
+results with no edit to them. Phase 3 does not build it (call 9 of `../plans/2026-11-13-phase-3.md`): the records card in
+the agent's context is the only channel (`../INTEGRATION.md`).
+
 ## Plugin by plugin
 
 | Plugin | What it does | Housekeeping need it covers |
