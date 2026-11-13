@@ -68,6 +68,11 @@ type World = {
   changed?: boolean // git diff --quiet exits 1: the records differ between the two commits it is given
   shell?: { gitOperation?: object; backgroundTaskId?: string; throws?: boolean } // what the Bash and PowerShell tools answer
   ran?: string[] // each command the Bash and PowerShell tools ran
+  head?: string // HEAD's commit, SHA by default
+  lastRecords?: string // the last commit on HEAD that touched the records; none by default
+  since?: number // rev-list --count from it to HEAD
+  dirty?: string // git status --porcelain on the records
+  suggested?: string[] // each prompt.suggest text
 }
 
 // the engine may hand a hook a Windows-style path
@@ -107,6 +112,11 @@ function world(on: On, w: World = {}) {
     if (a === 'diff' && e.argv.includes('--quiet')) return ok('', w.changed ? 1 : 0)
     if (w.audit && a === 'rev-list' && b === '--first-parent') return ok(w.audit.line.map(x => x + '\n').join(''))
     if (w.audit && a === 'log' && e.argv.includes('--diff-filter=A')) return ok(w.audit.added ? w.audit.added + '\n' : '')
+    // the turn end's reads: the last commit that touched the records, the commits since, uncommitted edits to them
+    if (a === 'log' && e.argv.includes('--format=%H') && !e.argv.includes('--diff-filter=A') && !e.argv.includes('-z'))
+      return ok(w.lastRecords ? `${w.lastRecords}\n` : '')
+    if (a === 'rev-list' && b === '--count' && e.argv.includes('--end-of-options')) return ok(`${w.since ?? 0}\n`)
+    if (a === 'status') return ok(w.dirty ?? '')
     const o = w.owed
     if (o) {
       // HEAD and main resolve to SHA, their merge base is BASE, and main's tip is in the range
@@ -147,8 +157,9 @@ function world(on: On, w: World = {}) {
     if (a === 'rev-parse' && e.argv.includes('--git-common-dir')) {
       const dir = !e.argv.includes('--path-format=absolute') ? '.git' : w.oldGit ? '--path-format=absolute\n.git' : `${posix(String(e.init?.cwd))}/.git`
       if (e.argv.includes('--abbrev-ref')) return ok(`${dir}\n${w.mainSha ?? SHA}\n${w.branch ?? 'main'}\n`)
-      // then each revision named after it: main's commit
-      return ok([dir, ...e.argv.slice(e.argv.indexOf('--git-common-dir') + 1).map(() => w.mainSha ?? SHA)].map(x => `${x}\n`).join(''))
+      // then each revision named after it: HEAD's commit, or main's
+      return ok([dir, ...e.argv.slice(e.argv.indexOf('--git-common-dir') + 1).map(r => r === 'HEAD' ? w.head ?? SHA : w.mainSha ?? SHA)]
+        .map(x => `${x}\n`).join(''))
     }
     return ok('', 1)
   })
@@ -159,6 +170,8 @@ function world(on: On, w: World = {}) {
     return { value: undefined }
   })
   on('store.delete', (_, e) => { delete stored[e.key]; return { value: undefined } })
+  on('prompt.suggest', (_, e) => { w.suggested?.push(e.text); return { isShown: true } })
+  on('turn.complete', (_, e) => ({ text: e.answer }))
   on('tool.list', () => ({ value: w.noArtifact ? [{ name: 'Write', description: '', mcp: false }] : [{ name: 'Write', description: '', mcp: false }, { name: 'Artifact', description: '', mcp: false }] }))
   on('ui.open', () => ({ value: { isPlaced: w.placed !== false } }))
   on('ui.status', (_, e) => { w.status?.push(e.text); return { value: undefined } })
@@ -1646,7 +1659,7 @@ test('the shell hook runs the command once when the command throws beneath it, o
   expect(w.ran).toEqual(['git commit -m a', 'git commit -m b', 'git commit -m c'])
 })
 
-test('with automatic off, a git commit makes no git call and adds no line; the records card and the compaction paragraph stay', { options: { automatic: 'off' } }, async ($, on) => {
+test('with automatic off, a git commit makes no git call and adds no line, and a turn end suggests nothing; the records card and the compaction paragraph stay', { options: { automatic: 'off' } }, async ($, on) => {
   const w: World = { argv: [], status: [], ran: [] }
   world(on, w)
   const told = compacts(on)
@@ -1656,10 +1669,83 @@ test('with automatic off, a git commit makes no git call and adds no line; the r
   expect(records(await $.prompt.context({ blocks: [] }))).toBe(CARD)
   await $.session.compact({ trigger: 'auto', messages: MSGS })
   expect(told).toEqual([UNFILED])
-  Object.assign(w, { mainSha: NEW, changed: true })
+  Object.assign(w, { mainSha: NEW, changed: true, since: 5, suggested: [] })
   w.argv!.length = 0
   const r = await shell($, 'git commit -m x')
   expect([r.result, r.context]).toEqual([RESULT, undefined])
+  await ended($)
+  await new Promise(r => setTimeout(r, 50))
   expect(w.argv).toEqual([])
   expect(w.ran).toEqual(['git commit -m x'])
+  expect(w.suggested).toEqual([])
+})
+
+// Phase 3 call 5: at the main loop's turn end, /loose-ends once per HEAD, after three commits past the last one that
+// touched the records, with neither file edited and uncommitted
+const ended = ($: any, more: object = {}) => $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer', ...more })
+const counts = (w: World) => w.argv!.filter(a => a[1] === 'rev-list' && a[2] === '--count' && a.includes('--end-of-options'))
+const verbs = (w: World, verb: string) => w.argv!.filter(a => a[1] === verb).length
+// the turn end's read of HEAD, not the short view's (which names HEAD after --abbrev-ref)
+const heads = (w: World) => w.argv!.filter(a => a.includes('--git-common-dir') && a.at(-1) === 'HEAD' && !a.includes('--abbrev-ref')).length
+const SHORT = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+
+test("at the main loop's turn end /loose-ends is suggested once per HEAD, after three commits past the last one that touched the records", async ($, on) => {
+  const w: World = { argv: [], suggested: [], lastRecords: SHORT, since: 3 }
+  world(on, w)
+  await $.session.start(START)
+  expect((await ended($)).text).toBe('done')
+  await until(() => w.suggested!.length > 0)
+  expect(w.suggested).toEqual(['/loose-ends'])
+  expect(counts(w)).toEqual([['git', 'rev-list', '--count', '--end-of-options', `${SHORT}..HEAD`, '--']])
+  expect(w.stored!['nudge:/w/.git']).toBe(SHA)
+  await ended($) // the same HEAD: no second suggestion
+  await until(() => heads(w) === 2)
+  await new Promise(r => setTimeout(r, 50))
+  expect(w.suggested).toEqual(['/loose-ends'])
+  Object.assign(w, { head: NEW, lastRecords: undefined }) // a new HEAD, on a line no commit of the records is on
+  await ended($)
+  await until(() => w.suggested!.length > 1)
+  expect(w.suggested).toEqual(['/loose-ends', '/loose-ends'])
+  expect(counts(w).at(-1)).toEqual(['git', 'rev-list', '--count', '--end-of-options', 'HEAD', '--'])
+  expect(w.stored!['nudge:/w/.git']).toBe(NEW)
+})
+
+test('no suggestion with uncommitted edits to the records, fewer than three commits, in a subagent or after an aborted turn', async ($, on) => {
+  const w: World = { argv: [], suggested: [], lastRecords: SHORT, since: 3, envs: [] }
+  world(on, w)
+  await $.session.start(START)
+  await ended($)
+  await until(() => w.suggested!.length > 0)
+  expect(w.suggested).toEqual(['/loose-ends'])
+  const status = w.argv!.findIndex(a => a[1] === 'status')
+  expect(w.argv![status]).toEqual(['git', 'status', '--porcelain', '--', ':(literal)backlog.md', ':(literal)playbook.md'])
+  expect(w.envs![status]).toEqual({ GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' })
+  // the suggestion runs after the turn's end: each turn's reads are waited for before the world changes
+  Object.assign(w, { head: NEW, dirty: ' M backlog.md\n' })
+  await ended($)
+  await until(() => verbs(w, 'status') === 2)
+  w.dirty = ''
+  w.since = 2
+  await ended($)
+  await until(() => counts(w).length === 2)
+  w.since = 3
+  const before = w.argv!.length
+  await ended($, { agentId: 'a1' })
+  await ended($, { reason: 'aborted', isAborted: true })
+  await new Promise(r => setTimeout(r, 50))
+  expect(w.argv!.length).toBe(before) // neither reads anything
+  expect(w.suggested).toEqual(['/loose-ends'])
+  await ended($) // the same HEAD, now clean and three commits on
+  await until(() => w.suggested!.length > 1)
+  expect(w.suggested).toEqual(['/loose-ends', '/loose-ends'])
+})
+
+test("the suggestion's key leaves the Route Map link's untouched", async ($, on) => {
+  const w: World = { argv: [], suggested: [], since: 3, stored: { ...KNOWN } }
+  world(on, w)
+  await $.session.start(START)
+  await ended($)
+  await until(() => w.suggested!.length > 0)
+  expect(w.stored!['nudge:/w/.git']).toBe(SHA)
+  expect(w.stored!['repo:/w/.git']).toEqual(KNOWN['repo:/w/.git'])
 })

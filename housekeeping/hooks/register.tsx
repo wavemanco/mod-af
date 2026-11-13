@@ -188,6 +188,29 @@ async function afterGit($: EngineInterface, builds: Builds, e: { command?: unkno
     : got
 }
 
+// At the main loop's turn end (Phase 3 call 5): /loose-ends is suggested once per HEAD, when three or more commits follow
+// the last one that touched the records and neither file has uncommitted edits. The HEAD it was last suggested at is
+// kept under its own key, nudge:<repository key>, beside the Route Map link's repo:<repository key>.
+async function nudge($: EngineInterface): Promise<void> {
+  const at = await settingsAt($)
+  if (!at) return
+  const { root, s } = at
+  const git = (argv: string[]) => $.process.run(['git', ...argv], { cwd: root, timeoutMs: 10_000, env: OWED_ENV })
+  const h = await git(['rev-parse', '--git-common-dir', 'HEAD'])
+  const [dir, head] = h.stdout.split('\n').map(x => x.trim())
+  if (h.exitCode !== 0 || !head) return
+  const key = `nudge:${commonDir(root, dir)}`
+  if ((await $.store.get(key)) === head) return
+  const st = await git(['status', '--porcelain', ...recordsSpec(s)])
+  if (st.exitCode !== 0 || st.stdout.trim()) return
+  const last = await git(['log', '-1', '--no-show-signature', '--format=%H', '--end-of-options', 'HEAD', ...recordsSpec(s)])
+  if (last.exitCode !== 0) return
+  const n = await git(['rev-list', '--count', '--end-of-options', last.stdout.trim() ? `${last.stdout.trim()}..HEAD` : 'HEAD', '--'])
+  if (n.exitCode !== 0 || !(Number(n.stdout.trim()) >= 3)) return
+  $.prompt.suggest({ text: '/loose-ends' }).catch(() => {}) // not awaited (call 5)
+  await $.store.set(key, head)
+}
+
 // The records card, from the settings alone: none where there is no settings file, or one that does not parse
 async function records($: EngineInterface): Promise<string | null> {
   const file = `${await repoRoot($)}/${SETTINGS}`
@@ -521,6 +544,13 @@ export const register: Register = (on, options) => {
     } catch {
       return got
     }
+  }).catch(($, e, next) => next(e))
+
+  // the main loop's answered turns only; not awaited, so the turn's end never waits on git
+  on('turn.complete', async ($, e, next) => {
+    const got = await next(e)
+    if (automatic && e.agentId === undefined && e.reason === 'answer') nudge($).catch(() => {})
+    return got
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: 'housekeeping' }, ($, e) => {
