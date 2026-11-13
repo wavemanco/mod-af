@@ -853,6 +853,8 @@ Only the "Chosen" column holds the owner's words, quoted exactly. The other colu
 | 2026-11-12 | A lone ID table (second check, finding 17) | "Widen the suspects (Recommended)" | A 50-row ID table with lowercase statuses scored 2 and got "Suspects: none", and beside a thin candidate the agent never named it in 5 of 9 runs. The scored signs below 3 (ID headings, ID tables, status words) are now suspect reasons in a prose file; the 15-name cap and `--json` stay as they are (3.8) | "Keep the design, file it": `--tracker` would stay the only remedy, and only for a person who already knows the file | More suspects for the person to answer: in the check's trial on the reference repository they went from 2 to 8. Past 15 the rest are a count, cut in path order (a parked minor) |
 | 2026-11-12 | A blobless clone (second check, finding 18) | "Keep the stop, add next step (Recommended)" | In a blobless clone `check`, `map` and the short view stop at the first old version of the two files that the clone does not hold, since housekeeping never fetches, and the message named no way on. It now names the cure on both routes, `git log -p -m --first-parent` over the two files on main, and the README says so (3.4). The first wording, `git backfill` or `git log -p`, did not cure a main with merges and put the settings' names into a line to paste, so after the small check of 2026-11-12 it was corrected (HK-087) | "Treat it like a shallow clone": no history would be read and `check` would only warn, so the page would lose its history in a clone that one command can complete | A later pull with two record commits can bring the stop back, and the cure is run again. A treeless clone stops on the walk itself, with git's first line (finding 11) |
 
+| 2026-11-13 | Phase 3's calls | "the calls you made are fine by me for now." | The owner read calls 1 to 7 and their implications, and asked for them in one document, "in case we want to change anything back (maybe the harness changes shape or we change consent posture - for example)" | Going back to the earlier choices that calls 3 to 7 replaced | [`CALLS.md`](CALLS.md): each call's earlier choice, why it was set aside, and when to revisit it |
+
 ## 10. Calls Claude made, for the owner to check
 
 1. **The five fields kept true:** Milestone, Who, Land now, Trigger and Waits on. Other columns are
@@ -888,7 +890,9 @@ Only the "Chosen" column holds the owner's words, quoted exactly. The other colu
 
 **Phase 3's calls** are the 17 of the Phase 3 plan's "Calls made for this phase"
 ([`plans/2026-11-13-phase-3.md`](plans/2026-11-13-phase-3.md)), each Claude's at the owner's "deal with things
-autonomously" (2026-11-13), with the options rejected and why in the plan's table. Five change an earlier choice:
+autonomously" (2026-11-13), with the options rejected and why in the plan's table. The owner kept them on
+2026-11-13 ("the calls you made are fine by me for now."). [`CALLS.md`](CALLS.md) sets out calls 1 to 7 with the
+earlier choice each replaced, why, and when to revisit it. Five change an earlier choice:
 
 - **Call 3, how the audit writes.** Earlier: 3.9's "apply the clear-cut cases on a branch", and item 9 above.
   The call: the audit proposes the clear-cut closings and ticks as numbered steps, writes nothing before the

@@ -112,4 +112,4 @@ An automatic filing run after every commit was not built. The owner's reason: it
 
 ## More
 
-[`DESIGN.md`](./DESIGN.md) is the record of the design and its decisions; [`research/`](./research/README.md) holds the distilled research and the Phase 1 and Phase 2 results. [`INTEGRATION.md`](./INTEGRATION.md) says how `loose-ends`, `route` and `decide` work beside housekeeping, and [`research/live-checks.md`](./research/live-checks.md) lists the checks only a live session can make.
+[`DESIGN.md`](./DESIGN.md) is the record of the design and its decisions; [`CALLS.md`](./CALLS.md) holds the calls Claude made in Phase 3, each with the earlier choice it replaced and when to revisit it; [`research/`](./research/README.md) holds the distilled research and the Phase 1 and Phase 2 results. [`INTEGRATION.md`](./INTEGRATION.md) says how `loose-ends`, `route` and `decide` work beside housekeeping, and [`research/live-checks.md`](./research/live-checks.md) lists the checks only a live session can make.
