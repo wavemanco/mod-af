@@ -27,20 +27,26 @@ export const NO_FETCH = { GIT_NO_LAZY_FETCH: '1' }
 export const OWED_ENV = { GIT_OPTIONAL_LOCKS: '0', ...NO_FETCH }
 export const mergeBaseArgs = (a: string, b: string): string[] => ['git', 'merge-base', '--end-of-options', a, b]
 export const ancestorArgs = (a: string, b: string): string[] => ['git', 'merge-base', '--is-ancestor', '--end-of-options', a, b]
+// git's empty tree, where an audit from the root starts (Task 3): no merge base, the diffs compare it with the head and
+// the logs read all the head holds. shortcut: a SHA-1 repository's; a SHA-256 one names another empty tree, so an
+// audit from its root fails at git, said; take git hash-object -t tree of nothing if one is asked for
+export const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+const diffSpan = (base: string, head: string) => base === EMPTY_TREE ? [base, head] : [`${base}...${head}`]
+const logSpan = (base: string, head: string) => base === EMPTY_TREE ? [head] : [`${base}..${head}`]
 // the range's changed paths, both sides of a rename
 export const namesArgs = (base: string, head: string): string[] =>
-  ['git', 'diff', '--name-status', '-M', '-z', '--no-color', '--end-of-options', `${base}...${head}`, '--']
+  ['git', 'diff', '--name-status', '-M', '-z', '--no-color', '--end-of-options', ...diffSpan(base, head), '--']
 // every commit of the range, merged branches' too: the subject and the body; no author is asked for
 export const commitsArgs = (base: string, head: string): string[] =>
-  ['git', 'log', '-z', '--no-show-signature', '--no-color', '--format=%H%x09%s%x00%b', '--end-of-options', `${base}..${head}`, '--']
+  ['git', 'log', '-z', '--no-show-signature', '--no-color', '--format=%H%x09%s%x00%b', '--end-of-options', ...logSpan(base, head), '--']
 // each commit's changed paths
 export const pathsArgs = (base: string, head: string): string[] =>
-  ['git', 'log', '-z', '--name-status', '-M', '--no-show-signature', '--no-color', '--format=%H', '--end-of-options', `${base}..${head}`, '--']
+  ['git', 'log', '-z', '--name-status', '-M', '--no-show-signature', '--no-color', '--format=%H', '--end-of-options', ...logSpan(base, head), '--']
 // the added and removed lines of the paths named: no external diff or textconv runs a program, the prefixes are fixed
 // whatever the settings say, and a name is quoted only where git must
 export const hunksArgs = (base: string, head: string, paths: string[]): string[] =>
   ['git', '-c', 'core.quotePath=false', 'diff', '-U0', '-M', '--no-color', '--no-ext-diff', '--no-textconv', '--src-prefix=a/', '--dst-prefix=b/',
-    '--end-of-options', `${base}...${head}`, '--', ...paths.map(p => `:(literal)${p}`)]
+    '--end-of-options', ...diffSpan(base, head), '--', ...paths.map(p => `:(literal)${p}`)]
 
 // the audit's start (Phase 3 call 2): main's first-parent line, oldest first, and the commit on it that added the
 // settings (a merge that brought them in, where they came from a branch)

@@ -2,10 +2,14 @@
 import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildAudit, DECOYS, PLANTED } from '../tests/fixtures/audit.ts'
+import { type Git, readAudit } from '../hooks/adapter.ts'
+import { EMPTY_TREE, OWED_ENV } from '../hooks/core/history.ts'
+import { parseSettings } from '../hooks/core/settings.ts'
+import { backlog as smallBacklog, playbook as smallPlaybook, settings as smallSettings } from '../tests/fixtures/small.ts'
 
 const CLI = join(import.meta.dirname, '..', 'cli.ts')
 process.env.NoDefaultCurrentDirectoryInExePath = '1'
@@ -68,4 +72,62 @@ for (const duty of [true, false]) test(`the audit fixture ${duty ? 'with' : 'wit
   // the checklist: one line whose rows are all planted, one that names a decoy
   assert.match(backlog, /^- \[ \] Ship the uploads: B-1 and B-2\.$/m)
   assert.match(backlog, /^- \[ \] Ship the reports: B-10 and B-16\.$/m)
+})
+
+// the plugin route's git, as a child process here, with owed's environment
+const gitOf = (dir: string): Git => async args => {
+  const c = spawnSync('git', args, { cwd: dir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: { ...process.env, ...OWED_ENV } })
+  return { exitCode: c.status ?? 1, stdout: c.stdout ?? '', stderr: c.stderr ?? '', isStdoutTruncated: false }
+}
+const fixtureSettings = (dir: string) => parseSettings(git(dir, 'show', 'main:.housekeeping.json')).settings!
+
+// Phase 3 call 2 over real git: the reader runs firstParentArgs and addedArgs, reads the duty row at main's tip and
+// hands auditStart's range to owed
+for (const duty of [true, false]) test(`the audit's reader ${duty ? 'starts at the duty row\'s Last done' : 'starts at the commit that added the settings'} and lists owed over that range`, async () => {
+  const f = buildAudit(tmp(), duty), tip = git(f.dir, 'rev-parse', 'main')
+  const r = await readAudit(gitOf(f.dir), fixtureSettings(f.dir))
+  assert.ok('text' in r, JSON.stringify(r))
+  const l = r.text.split('\n')
+  assert.equal(l[0], `housekeeping audit: after ${f.start.slice(0, 7)} through ${tip.slice(0, 7)} on main`)
+  assert.match(l[1], new RegExp(`^housekeeping owed: ${f.start.slice(0, 7)}\.\.${tip.slice(0, 7)}, `))
+  assert.equal(l.at(-1), `Last commit read: ${tip}`)
+  for (const id of PLANTED) assert.ok(r.text.includes(`\n- ${id} `), id)
+})
+
+// the controller's call on Task 2's stops: with no start, the range opens at the empty tree when the oldest commit
+// read is the root, and owed reads every commit the head holds, with no merge base
+test('with no duty row and no settings commit, the audit reads from the root, from the empty tree', async () => {
+  const dir = tmp()
+  git(dir, 'init', '-q', '-b', 'main')
+  writeFileSync(join(dir, 'backlog.md'), smallBacklog)
+  writeFileSync(join(dir, 'playbook.md'), smallPlaybook)
+  git(dir, 'add', '.')
+  git(dir, '-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-q', '-m', 'first')
+  writeFileSync(join(dir, 'export.ts'), 'export const ok = 1\n')
+  git(dir, 'add', '.')
+  git(dir, '-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-q', '-m', 'Fix B-001: rate-limit the export')
+  const tip = git(dir, 'rev-parse', 'main')
+  const r = await readAudit(gitOf(dir), parseSettings(smallSettings).settings!)
+  assert.ok('text' in r, JSON.stringify(r))
+  assert.ok(r.text.startsWith(`housekeeping audit: from the root through ${tip.slice(0, 7)} on main\n` +
+    `housekeeping owed: ${EMPTY_TREE.slice(0, 7)}..${tip.slice(0, 7)}, 2 commits, 3 changed paths\n`), r.text)
+  assert.ok(r.text.includes('- B-001 Rate-limit the export endpoint\n  - '), r.text)
+  // the Node owed takes the empty tree as a base too, with no merge base
+  const o = run('owed', '--repo', dir, '--settings', join(dir, 's.json'), '--base', EMPTY_TREE, '--head', 'main')
+  assert.equal(o.status, 2) // no settings file there yet
+  writeFileSync(join(dir, 's.json'), smallSettings)
+  const n = run('owed', '--repo', dir, '--settings', join(dir, 's.json'), '--base', EMPTY_TREE, '--head', 'main')
+  assert.equal(n.status, 0, n.stdout + n.stderr)
+  assert.match(n.stdout, new RegExp(`^housekeeping owed: ${EMPTY_TREE.slice(0, 7)}\.\.${tip.slice(0, 7)}, 2 commits, 3 changed paths`))
+})
+
+// a head behind main's tip on its own line: main's tip holds the IDs the range adds because it follows the head, so
+// they are no collision (an audit range that stops at its 50th commit)
+test('owed over a range whose head main\'s tip follows lists no ID as already taken', () => {
+  const f = buildAudit(tmp(), true)
+  const line = git(f.dir, 'rev-list', '--first-parent', '--reverse', 'main').split('\n'), dutyCommit = line[2]
+  const o = run('owed', '--repo', f.dir, '--base', f.start, '--head', dutyCommit)
+  assert.equal(o.status, 0, o.stdout + o.stderr)
+  assert.match(o.stdout, /^housekeeping owed: [0-9a-f]{7}\.\.[0-9a-f]{7}, 1 commits, 1 changed paths\n/)
+  assert.match(o.stdout, /IDs the branch adds that are already taken:\nnone\n/)
 })

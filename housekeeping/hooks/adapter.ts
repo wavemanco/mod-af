@@ -3,9 +3,10 @@
 // session's own tools, except the plugin's own page (writePage).
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
-import { ancestorArgs, blobArgs, commitsArgs, headArgs, historyUnread, hunksArgs, logArgs, mergeBaseArgs, namesArgs, NO_FETCH, parseLog,
-  pathsArgs, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot, treeArgs, treeless, unreadable } from './core/history.ts'
-import { type Hit, owed, parseCommitPaths, parseCommits, parseNames, scanDiff, watchFor } from './core/owed.ts'
+import { addedArgs, ancestorArgs, blobArgs, commitsArgs, EMPTY_TREE, firstParentArgs, headArgs, historyUnread, hunksArgs, logArgs, mergeBaseArgs,
+  namesArgs, NO_FETCH, parseLog, pathsArgs, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot, treeArgs, treeless, unreadable } from './core/history.ts'
+import { auditStart, type Hit, owed, parseCommitPaths, parseCommits, parseNames, scanDiff, watchFor } from './core/owed.ts'
+import { parseFiles } from './core/parse.ts'
 import { parseSettings } from './core/settings.ts'
 import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Settings, Snapshot } from './core/types.ts'
@@ -54,19 +55,21 @@ export async function readOwed(git: Git, s: Settings, o: { base?: string; head?:
   if (!head) return { error: `housekeeping: '${o.head ?? 'HEAD'}' names no commit here` }
   const main = await resolve(s.mainBranch)
   if (!o.base && !main) return { error: `housekeeping: no branch '${s.mainBranch}' here (the "mainBranch" setting): ${BASE}` }
-  const mb = await run(mergeBaseArgs(o.base ?? s.mainBranch, head))
-  if (mb.exitCode !== 0) return { error: `housekeeping: '${o.base ?? s.mainBranch}' and ${head.slice(0, 7)} have no merge base here${said(mb) ? ` (git said: ${said(mb)})` : ''}` }
-  const base = mb.stdout.trim()
+  // from the empty tree (an audit from the root) there is no merge base: the range is all the head holds
+  const mb = o.base === EMPTY_TREE ? null : await run(mergeBaseArgs(o.base ?? s.mainBranch, head))
+  if (mb && mb.exitCode !== 0) return { error: `housekeeping: '${o.base ?? s.mainBranch}' and ${head.slice(0, 7)} have no merge base here${said(mb) ? ` (git said: ${said(mb)})` : ''}` }
+  const base = mb ? mb.stdout.trim() : EMPTY_TREE
   if (base === head) return { text: `housekeeping owed: nothing between the base and the head (${head.slice(0, 7)}): ${BASE}` }
 
   const at = recordsAt(git, s, () => true), notes: string[] = o.allow ? [] : ['No Read rules were applied: the Node command reads every changed path.']
   const fb = await at(base), fh = await at(head)
   if ('error' in fb) return fb
   if ('error' in fh) return fh
-  // main's tip, where it is not already in the range
+  // main's tip, where it is neither in the range nor after the head on its line: a tip that follows the head holds the
+  // IDs the range adds because it follows it, so they are no collision (an audit range that stops at its 50th commit)
   let fm: Files | null = null
   if (!main) notes.push(`No branch '${s.mainBranch}' here, so the IDs the branch adds were checked against the base only.`)
-  else if ((await run(ancestorArgs(main, head))).exitCode !== 0) {
+  else if ((await run(ancestorArgs(main, head))).exitCode !== 0 && (await run(ancestorArgs(head, main))).exitCode !== 0) {
     const f = await at(main)
     if ('error' in f) return f
     fm = f
@@ -103,6 +106,27 @@ export async function readOwed(git: Git, s: Settings, o: { base?: string; head?:
   }
   for (const b of toks.length ? batches(changed.filter(p => !no.has(p) && !own.has(p))) : []) await diff(b)
   return { text: owed(s, { base, head, files: { base: fb, head: fh, main: fm }, commits, paths, changed, denied, hits, notRead, notes }) }
+}
+
+// The audit's range (Phase 3 call 2), then owed's listing over it: main's first-parent line, the commit on it that
+// added the settings and the playbook's rows at main's tip go to auditStart; with no start the range opens at the parent
+// of the oldest commit read, or at the empty tree when that commit is the root. The listing's first line says the range.
+export async function readAudit(git: Git, s: Settings, o: { allow?: (path: string) => Promise<boolean>; checked?: (excluded: number) => void } = {}):
+  Promise<{ text: string } | { error: string }> {
+  const run = (argv: string[]) => git(argv.slice(1)), main = s.mainBranch
+  const line = await run(firstParentArgs(main)), fp = line.stdout.split('\n').map(x => x.trim()).filter(Boolean)
+  if (line.exitCode !== 0 || !fp.length) return { error: `housekeeping: cannot read the first-parent line of '${main}' (the "mainBranch" setting)` +
+    `${line.stderr.trim() ? `: git said: ${line.stderr.split('\n')[0].trim()}` : ''}` }
+  // a line cut short would start the audit at the wrong commit
+  if (line.isStdoutTruncated) return { error: `housekeeping: the first-parent line of '${main}' was cut short, so the audit's start cannot be found` }
+  const added = await run(addedArgs(main))
+  const tip = await recordsAt(git, s, () => true)(fp.at(-1)!)
+  if ('error' in tip) return tip
+  const { base, head, warnings } = auditStart(parseFiles(s, tip).rows, (added.exitCode === 0 && added.stdout.trim()) || null, fp)
+  const parent = base ? null : await run(resolveArgs(`${fp[0]}^`))
+  const r = await readOwed(git, s, { ...o, base: base ?? (parent?.exitCode === 0 ? parent.stdout.trim() : EMPTY_TREE), head })
+  return 'error' in r ? r
+    : { text: [`housekeeping audit: ${base ? `after ${base.slice(0, 7)}` : 'from the root'} through ${head.slice(0, 7)} on ${main}`, ...warnings, r.text].join('\n') }
 }
 
 // pathspecs under about 30,000 characters of command line a batch, inside Windows' 32,767
