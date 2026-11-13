@@ -67,8 +67,8 @@ In 9effe92, with tests:
    - It is now `--base <main>` (in `prompts/audit.md`, its pinned spec and the plan).
 3. **A commit subject that names a denied path showed it,** under a header saying such paths are never named.
    - Held by its skeptic, rated minor.
-   - A denied path named whole in a subject is now hidden; a longer name that holds it is not. A subject that names
-     only its file name still shows it: a shortcut, noted in `owed.ts` and the README.
+   - A denied path named whole in a subject is now hidden; a longer name that holds it is not. A subject that named
+     only its file name still showed it; the owner's round hid that too (item 19, 7e13c72).
 4. **The audit's first line, and `owed`'s and the audit's stops, quoted the `mainBranch` setting and the refs
    unmasked.** These are now masked like the listing.
 
@@ -94,9 +94,13 @@ In 9effe92's DESIGN commit and the commit that adds this file:
 - HK-094's and HK-095's Triggers no longer name `DESIGN.md`, which the code-name rule read as a file to watch.
 - The audit fixture's comment says B-1's code retries twice, so it acts as a seventh decoy.
 
-## For the owner's fix round
+## The owner's fix round (2026-11-13)
 
-Ranked. Two were held by their skeptic, and the rest were rated minor and not put to one.
+The owner, 2026-11-13: "let's proceed with a fix round on the 19 filed findings (and any other minor or otherwise
+findings you might have found but not surfaced within the 19)." All 19 are fixed, each with a test seen failing first:
+1, 2, 3, 9, 10 and 11 in 2d80353; 4, 5, 12 to 17 and 19 in 7e13c72; 6, 7, 8 and 18 in a542563. The gate after them: 356
+kit tests and 54 Node tests pass, and validate passes. Ranked as filed; two were held by their skeptic, and the rest
+were rated minor and not put to one.
 
 1. **`automatic` turns off only for the exact text `off`.** "Off", " off", "false" and "no" leave every automatic part
    on, with no notice.
@@ -142,6 +146,31 @@ Ranked. Two were held by their skeptic, and the rest were rated minor and not pu
     it is a real closing in a later acceptance run.
 19. **The shortcut of fix 3 at once:** a subject that names a denied path's file name alone still shows it. Fix, if
     wanted: hide the last segment too.
+
+## Beyond the 19, and what became of each
+
+Read from the lenses' notes of what held and what they could not run, the builders' concerns and the controller's own
+reading:
+- **The refuted case below,** a co-author's name in the subject's own paragraph: fixed in 7e13c72 all the same, since
+  the listing promises no author. A `-by:` trailer written there is cut off with its name.
+- **A SHA-256 repository's audit from its root** used the SHA-1 empty tree and failed: fixed in 7e13c72; the procedure
+  names both (a542563).
+- **The audit's commands in a partial clone** would fetch what the clone lacks, against "no fetches": the procedure
+  now stops there (a542563).
+- **README line 5 said "your permissions apply" to every write.** A plugin's own tool call asks nothing, so a write
+  `init` makes goes ahead unless a rule denies it; the README now says so, and that the agent's own tools ask as the
+  settings say.
+- **The README said installing housekeeping from the marketplace installs its three dependencies,** which Phase 0
+  showed only for a throwaway plugin with one: the README says so, and live check 17 tries housekeeping itself.
+- **DESIGN 9's row of 2026-11-03 on filing** still read as if the catch-up were coming: it now points at call 4 and
+  CALLS.md.
+- **map, check, the short view and the hooks read a tag named like the main branch** too, as `owed` and the audit did
+  before 7e13c72: filed as HK-103, beyond this round's findings.
+- **Two rebuilds that land out of order could leave the status line at the older one.** The hooks lens could not
+  order two walks in the kit, so it is unconfirmed: filed as HK-104.
+- **What only a live session shows,** from the lenses' notes: whether the person's path-scoped permission rules
+  reach the audit's worktree under the system temp folder, how the engine's Read rules match a path holding a newline,
+  and PowerShell's quoting of the audit's commands. They go to the owner's sitting with live check 15.
 
 ## Refuted
 

@@ -4,7 +4,7 @@ Every live check that Phase 3 and the second Phase 2 fix round leave, in one sit
 this machine may not start live sessions, so the owner runs each one in a terminal; no agent has run any of them. The
 kit tests (`claude plugin test`) drive the hooks with fakes of the engine: they prove the plugin against the fakes,
 not against the engine. Phase 3 read the engine facts it relies on from the engine's types and pinned them with kit
-fakes; checks 6 to 10, 14 and 16 try those facts live, and checks 11 to 13 and 15 try what no fake shows: how the other
+fakes; checks 6 to 10, 14, 16 and 17 try those facts live, and checks 11 to 13 and 15 try what no fake shows: how the other
 plugins and an agent behave.
 
 Each check gives the keystrokes, the one observation that means pass, and what a fail means. A fail is filed as a row,
@@ -21,7 +21,7 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
 - **The debug log.** Start Claude Code with `claude --debug`. Where the `automatic` setting is on (the default), each
   automatic part puts one line in the debug log alone (Phase 3 call 16): `housekeeping <hook>: <outcome> (<n> ms)`,
   where the hook is `Bash call`, `PowerShell call`, `turn end`, `session start` or `compaction`. A part that does
-  nothing says why; a part whose work fails writes no line, so a missing line means it did not run or it failed.
+  nothing says why, and a part whose work fails says `failed:` with its error's name.
   These lines come in any repository, one with no `.housekeeping.json` included ("no settings file").
 
 ## HK-080's checks
@@ -179,3 +179,11 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
   the debug log holds.
 - **A fail** means `$.ui.log` goes elsewhere than the README says (its table, "The stale-map line" and "Debug lines"):
   a row, and the README's words follow what the sitting saw.
+
+### 17. Installing housekeeping from the marketplace installs its three dependencies
+
+- **Keys.** On a machine or profile without the four plugins, `/plugin install housekeeping --marketplace
+  wavemanco/mod-af`; then `/plugin`.
+- **Pass.** `/plugin` lists `housekeeping`, `loose-ends`, `route` and `decide` as installed.
+- **A fail** means Phase 0's finding, made with a throwaway plugin that had one dependency, does not carry over: the
+  README's Install section then says to install all four, a row.

@@ -59,7 +59,7 @@ How the files are read:
 
 ## Code names in a Trigger
 
-`owed` lists the rows whose Trigger fired over a range of commits. A token in a Trigger is a backticked span, or a word that holds `/` or ends in `.` and letters, once the brackets, quotes and punctuation around the word are dropped (a leading `./` too). A slash command (`/loose-ends`, `` `/housekeeping audit` ``) is no token, and a duty row's Trigger is not read. A row fires when one of its tokens:
+`owed` lists the rows whose Trigger fired over a range of commits. A token in a Trigger is a backticked span, or a word that holds `/` or ends in `.` and letters, once the brackets, quotes, punctuation and bold or italic marks around the word are dropped (a leading `./` too); a Markdown link gives its target as a word. A slash command (`/loose-ends`, `` `/housekeeping audit` ``) is no token, and a duty row's Trigger is not read. A row fires when one of its tokens:
 
 - matches a changed path as a suffix on a `/` boundary: `prices.ts` matches `prices.ts` and `src/prices.ts`, not `src/myprices.ts`; or
 - is a whole word (no letter, digit or `_` on either side) on an added or removed line of a changed file other than the two records and `.housekeeping.json`: `PRICES_CHECKED` matches `const PRICES_CHECKED = 2`, not `PRICES_CHECKED_AT`.
@@ -70,6 +70,7 @@ How the files are read:
 | When src/prices.ts changes. | `src/prices.ts` |
 | Once prices.ts, or (README.md), changes. | `prices.ts`, `README.md` |
 | When it lands in scripts/route-map.ts. | `scripts/route-map.ts` |
+| When **docs/a.md** or [the guide](docs/guide.md) changes. | `docs/a.md`, `docs/guide.md` |
 | After /loose-ends files it, or `/housekeeping audit` runs. | none |
 | When the v1.2 tag lands. | none |
 
