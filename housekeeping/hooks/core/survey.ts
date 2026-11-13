@@ -150,6 +150,9 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = [],
         const targets = same.get(name)!
         if (!before) { for (const t of targets) hit(t, targets.length > 1 && name.includes('.'), !name.includes('.')); continue }
         const relative = /^\.\.?\//.test(before)
+        // a ../ after a folder the text does not name ($(dirname "$0")/../, $DIR/../): no telling which file it
+        // reaches, so a possible use of each target, never a sure reader (HK-093)
+        if (!relative && /(?:^|\/)\.\.\//.test(before)) { for (const t of targets) hit(t, false, true); continue }
         const said = fold(relative ? `${f.path}/../${before}${name}` : before + name)
         // a script, a workflow or a hook runs from the top, so its ./ and ../ are folded from there too; prose that is
         // not Markdown is read from its own folder, and a ../ from the top leaves the repository, so for those a fold

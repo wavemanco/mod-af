@@ -411,6 +411,13 @@ test('a cut guide line still ends in "..." when its path is marked', () => {
   expect(text.split('\n').find(l => l.startsWith('a&b/AGENTS.md'))!.endsWith('...')).toBe(true)
 })
 
+test('a ../ after a folder the text does not name is a possible use of each target, never a sure reader (HK-093)', () => {
+  const inv = inventory([{ path: 'TODO.md', text: '## T-1 a\n## T-2 b\n' }, { path: 'scripts/TODO.md', text: '## T-3 a\n## T-4 b\n' },
+    { path: 'scripts/sub/x.sh', text: '#!/bin/sh\ncat "$(dirname "$0")/../TODO.md"\ncat "$DIR/../TODO.md"\n' }])
+  const refs = inv.references.filter(r => r.from === 'scripts/sub/x.sh')
+  expect(refs.map(r => [r.target, !!r.possible]).sort()).toEqual([['TODO.md', true], ['scripts/TODO.md', true]])
+})
+
 test("a ../ in a script two folders down credits the file it names from its own folder, not the top one", () => {
   const inv = inventory([{ path: 'TODO.md', text: '## T-1 a\n## T-2 b\n' }, { path: 'scripts/TODO.md', text: '## T-3 a\n## T-4 b\n' },
     { path: 'scripts/sub/x.sh', text: '#!/bin/sh\ncat ../TODO.md\n' }])

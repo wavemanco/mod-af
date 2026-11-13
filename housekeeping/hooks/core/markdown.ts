@@ -52,9 +52,9 @@ export function scan(text: string): Scan {
     if (was !== null && fenced !== null && HEADING.exec(line)?.[1] === '##' && hiding[hiding.length - 1] !== opener) hiding.push(opener)
     if (was !== null && fenced !== null && line.includes('|') && SEPARATOR.test(lines[i + 1] ?? '')
       && cellsOf(lines[i + 1]).length === cellsOf(line).length) inFence.push({ opener, section, header: cellsOf(line) })
-    // a fence that opens right after a row, while a row table is open, and goes on with rows, hides them (HK-091); a
-    // code block after the last row is no stray (HK-092)
-    if (was === null && fenced !== null && open && (lines[i + 1] ?? '').trimStart().startsWith('|'))
+    // a fence that opens right after a row, while a row table is open, and whose first line that is not blank is a
+    // row, hides the rows (HK-091, HK-093); a code block after the last row is no stray (HK-092)
+    if (was === null && fenced !== null && open && (lines.slice(i + 1).find(l => l.trim() !== '') ?? '').trimStart().startsWith('|'))
       inFence.push({ opener, section: open.section, header: open.header })
     if (was !== null || fenced !== null) { open = null; run = false; continue }
     const h = HEADING.exec(line)
