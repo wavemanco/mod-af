@@ -152,8 +152,10 @@ export function inventory(files: SurveyFile[], skipped: Skipped[] = [],
         const relative = /^\.\.?\//.test(before)
         const said = fold(relative ? `${f.path}/../${before}${name}` : before + name)
         // a script, a workflow or a hook runs from the top, so its ./ and ../ are folded from there too; prose that is
-        // not Markdown is read from its own folder, so there a fold that names a tracked file stands alone (HK-088, HK-091)
-        const fromTop = relative && !MARKDOWN.test(f.path) && !(isProse(baseOf(f.path), f.text) && known.has(said)) ? fold(before + name) : said
+        // not Markdown is read from its own folder, and a ../ from the top leaves the repository, so for those a fold
+        // from the file's folder that names a tracked file stands alone (HK-088, HK-091, HK-092)
+        const local = isProse(baseOf(f.path), f.text) || before.startsWith('../')
+        const fromTop = relative && !MARKDOWN.test(f.path) && !(local && known.has(said)) ? fold(before + name) : said
         const credited = targets.filter(t => t === said || t === fromTop || (!relative && ends(t, said)))
         for (const t of credited) hit(t)
         if (!credited.length && !known.has(said) && !known.has(fromTop)) for (const t of targets) hit(t, false, true)
@@ -265,7 +267,8 @@ export function formatInventory(inv: Inventory, maxChars = 20_000): string {
     lines.push('', '## What the guide files say')
     // whole in the --json output; "..." tells the reader the line goes on in its file
     for (const g of inv.guides)
-      lines.push(`${g.path}:${g.line}: ${g.text.length > GUIDE_CUT ? g.text.slice(0, GUIDE_CUT) + '...' : g.text}${unsafe(g.path)}`)
+      // the mark beside the path, so a cut line still ends in "..." (HK-092)
+      lines.push(`${g.path}:${g.line}:${unsafe(g.path)} ${g.text.length > GUIDE_CUT ? g.text.slice(0, GUIDE_CUT) + '...' : g.text}`)
   }
 
   const text = lines.join('\n')

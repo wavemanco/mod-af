@@ -205,6 +205,12 @@ test('a fence that holds a table with the ID and Item columns is a warning at it
   const between = '## Open\n\n| ID | Item |\n|---|---|\n| B-001 | one |\n```\n| B-002 | two |\n```\n'
   expect(fence(between).map(f => [f.level, f.line])).toEqual([['warning', 6]])
   expect(fence(between.replace('## Open', '## Plan to all clear'))).toEqual([])
+  // the re-check (HK-092): a code block written straight after the last row is no stray, and the advice fits the section
+  expect(fence('## Open\n\n| ID | Item |\n|---|---|\n| B-001 | one |\n```sh\nnpm test\n```\n')).toEqual([])
+  expect(fence(lost)[0].message).toContain('the section belongs in skipSections')
+  const intro = '```text\n| ID | Item |\n|---|---|\n| B-001 | one |\n```\n\n## Open\n'
+  expect(fence(intro)[0].message).toContain('move it under a ## heading skipSections sets aside')
+  expect(fence(intro)[0].message).not.toContain('the section belongs in skipSections')
 })
 
 test("init sets its format section aside, so a fenced example row there gives no fence warning (HK-091)", () => {

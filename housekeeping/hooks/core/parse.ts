@@ -95,7 +95,9 @@ export function parseFiles(s: Settings, files: Record<FileKey, string | null>, u
     for (const t of fenced) if (!said.has(t.opener) && (!skipped(t.section) || isDone(t.section)) && t.header.includes(c.id) && t.header.includes(c.item)) {
       said.add(t.opener)
       out.findings.push({ level: 'warning', rule: 'fence', file: f, line: t.opener,
-        message: `a fence opens here and a table with ${c.id} and ${c.item} columns falls inside it, so its rows are not read: a closing fence may be missing above that table, or, for an example, the section belongs in skipSections` })
+        message: `a fence opens here and a table with ${c.id} and ${c.item} columns falls inside it, so its rows are not read: a closing fence may be missing above that table` +
+          // skipSections cannot set aside a file's intro or a Done section (HK-092)
+          (t.section && !isDone(t.section) ? ', or, for an example, the section belongs in skipSections' : ', or, for an example, move it under a ## heading skipSections sets aside') })
     }
     for (const d of dropped) if (!skipped(d.section) || isDone(d.section)) // a Done table's rows are read
       out.findings.push({ level: 'warning', rule: 'row-dropped', file: f, line: d.line, message: DROPPED[d.why] })

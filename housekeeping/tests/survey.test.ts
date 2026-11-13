@@ -402,7 +402,19 @@ test('the shell mark is on skipped files, references and guide lines too', () =>
   const text = formatInventory(inv), mark = ' (name it only through /housekeeping survey: a shell can read this path as commands)'
   expect(text).toContain(`\nbig$x.md: over 2 MB${mark}\n`)
   expect(text).toMatch(/ docs\/run&go\.sh \(machine\) \(name it only/)
-  expect(text).toContain(`a;b/AGENTS.md:1: The backlog is BACKLOG.md.${mark}`)
+  expect(text).toContain(`a;b/AGENTS.md:1:${mark} The backlog is BACKLOG.md.`)
+})
+
+// the re-check (HK-092)
+test('a cut guide line still ends in "..." when its path is marked', () => {
+  const text = formatInventory(inventory([{ path: 'BACKLOG.md', text: BACKLOG }, { path: 'a&b/AGENTS.md', text: 'The backlog is BACKLOG.md ' + 'x'.repeat(300) + '\n' }]))
+  expect(text.split('\n').find(l => l.startsWith('a&b/AGENTS.md'))!.endsWith('...')).toBe(true)
+})
+
+test("a ../ in a script two folders down credits the file it names from its own folder, not the top one", () => {
+  const inv = inventory([{ path: 'TODO.md', text: '## T-1 a\n## T-2 b\n' }, { path: 'scripts/TODO.md', text: '## T-3 a\n## T-4 b\n' },
+    { path: 'scripts/sub/x.sh', text: '#!/bin/sh\ncat ../TODO.md\n' }])
+  expect(inv.references.filter(r => r.from === 'scripts/sub/x.sh').map(r => r.target)).toEqual(['scripts/TODO.md'])
 })
 
 test('a path the shell can read as commands is marked as a candidate and in the answers line too', () => {
