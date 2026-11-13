@@ -159,7 +159,7 @@ async function records($: EngineInterface): Promise<string | null> {
   return s ? card(s) : null
 }
 
-const GUIDE_LINE ='At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.'
+const GUIDE_LINE = 'At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.'
 
 // Never overwrites: an existing file is left as it is, except .gitignore and AGENTS.md, which get a line appended when it is missing.
 async function init($: EngineInterface): Promise<{ text: string; exitCode?: number }> {
