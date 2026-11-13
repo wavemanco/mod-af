@@ -177,3 +177,63 @@ reading:
 **A trailer in the subject's own paragraph shows the co-author's name.** With no blank line, git's subject is the
 whole first paragraph. The skeptic found it reproduces, but git does not count it as a trailer, the plan and design
 define it this way, and the harm is small; the address in it is masked. Parked.
+
+## The narrow re-check of the round (2026-11-13)
+
+The owner chose "Narrow re-check". It ran at 14df3ff over `6124015..14df3ff`: the four fixes made at once, the records,
+CALLS.md and the owner's round. Three lenses each worked in their own clone (`owed` and its privacy, the automatic
+parts, the audit procedure and the records), and one skeptic voted on each serious finding. It used 7 agents of the 9
+its script allowed, ran for about 31 minutes, and started no live session. The before and after lists of untracked
+files showed nothing new. It found 25 findings. Of the four put to a skeptic, three held and one was refuted. None is
+fixed yet: the owner decides the round.
+
+**Held by its skeptic:**
+1. **Critical: in Windows PowerShell, a curly single quote ends a single-quoted string.** The quoting rule in
+   `prompts/audit.md` keeps out of commands only a name holding a straight quote. So a `mainBranch` such as
+   `main’;<command>;#`, which git accepts as a branch name, runs `<command>` when the agent follows the procedure in
+   PowerShell. The skeptic ran it on this machine, and the controller confirmed the quote's effect with a harmless echo.
+   Smallest fix: keep any settings name that is not plain (letters, digits, space, `.`, `_`, `/`, `-`, as SHELL_SAFE)
+   out of every command, say so and stop; pin it in the spec.
+2. **Three of the procedure's commands still hold `<main>` unquoted:** the Node `owed`, the `git worktree add` that
+   makes the audit branch, and the check after applying. The rule says "as the commands below do". Rated minor; the
+   same fix as 1 covers it, with the rest of the commands quoted and the spec checking each.
+3. **`bare()` cuts any `<word>-by: ` from a subject.** "Refactor export, drive-by: fixes B-005" no longer names B-005,
+   which it did at 6124015, and "stand-by: mode" cuts a subject short. Rated minor. Smallest fix: cut only a trailer
+   key followed by a name and an address, and match IDs on the whole subject.
+
+**Refuted:** with a tag named like the main branch, `owed --base <main>` reads the tag. The code does, but git refuses
+the procedure's own `git worktree add` on the ambiguous name before the check is reached, and an explicit base read the
+tag at 6124015 too.
+
+**Minor, not put to a skeptic:**
+- `owed`:
+  - `untrailed()` is narrower than git's trailer rule: a CRLF body, a Signed-off-by paragraph with prose, and a URL
+    line let trailers reach matching that 6124015 dropped.
+  - The hiding misses `./secret.txt` and another case of the name, eats ordinary words where a denied file's name is
+    one (`a`, `token`, `README`), and can rewrite its own replacement text.
+  - A newline in the `mainBranch` setting still forges a line through `owed`'s note.
+  - `bare()`'s pattern is slow on a long run of spaces, and leaves a name after a `-by:` with no space, or a `Cc:`.
+- The automatic parts:
+  - A rebuild that a prompt retries after a failure never refreshes the status line.
+  - The after-commit debug line says "rebuilding" when the retry gate starts none.
+  - The record of lines already said outlives `/clear`.
+  - The README does not say that any other `automatic` text reads as on.
+- The audit procedure:
+  - Its commands read a tag named like the main branch, where the plugin's reader reads `refs/heads`.
+  - With the commits cut short, Proposing still writes the duty row's Last done.
+- FORMAT says bold is dropped around a Trigger word, but `__docs/a.md__` still never fires.
+- The records:
+  - HK-102 and this file name 9effe92 for the four fixes made at once; they are in d8cacbf (9effe92 is the DESIGN
+    commit after it).
+  - "Records corrected" still says in the present that the README keeps only the last HEAD and that B-1 acts as a
+    decoy.
+  - DESIGN 7 counts three later changes to the procedure since the acceptance run; there are four, and the fixture
+    changed too.
+  - DESIGN 9's row of 2026-11-13 sits after a blank line, outside the table.
+  - CALLS.md row 1 still says the same commits always give the same list, which DESIGN 3.9 no longer says (main's tip
+    counts too).
+  - Three of CALLS.md's "Revisit if" cells name no step that can be seen to happen.
+  - This file sends three live-only items to live check 15, which has no step for them.
+  - Live check 7 does not explain the new "not shown" debug line.
+
+They are HK-105.
