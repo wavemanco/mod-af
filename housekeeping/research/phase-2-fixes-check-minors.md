@@ -24,7 +24,7 @@ by its records pass, and one by the history rewrite of 2026-11-11.
 
 ## Privacy (HK-070)
 
-- **Open.** `hooks/core/privacy.ts:4`: an address's top-level part takes the letters after it, so a package at a `.x` version, or an allowed address followed directly by CJK, falsely stops the page (votes important, minor, minor).
+- **Open.** `hooks/core/privacy.ts:4`: an address's top-level part takes the letters after it, so a package at a `.x` version, or an allowed address followed directly by CJK, falsely stops the page (votes important, minor, minor). The re-check of 2026-11-12 found more: two addresses joined by a CJK, kana or Thai word leave the second unmasked, and a commit subject holding them, which cannot be edited, refuses the page.
 - **Open.** `hooks/core/brief.ts:73`: a BEGIN line with no END in a name wipes the rest of the short view; disclosed.
 - **Open.** `hooks/register.tsx:48; hooks/core/brief.ts:42`: the status line's milestone and check's "On branch" line print unmasked.
 - **Open.** `hooks/core/index.ts:30`: a row ID in an old commit that holds an address or a key stops the page for good.

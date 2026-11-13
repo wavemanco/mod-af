@@ -127,3 +127,42 @@ every gating hook has a .catch; a full run of the Node specs leaves nothing in t
   and guide lines are not. Fix: mark them, or narrow the sentence.
 - **Fixed** (this records pass). `BACKLOG.md`, HK-075: said twelve Git minors were open and the treeless case
   unchecked.
+
+## The re-check of the HK-091 round (HK-092)
+
+The owner chose a narrow re-check of the four HK-091 commits ("Narrow re-check", 2026-11-12). It ran at 299562f
+over `bfa3c91..299562f`: three lenses (privacy, hooks, survey) and one skeptic per serious finding, with a cap of
+10 agents. It used 5, in 23 minutes, and ran no live session. Both findings rated important are older than the
+round: the skeptic held one as minor and refuted the other as filed. The other nine are minor, and all nine are
+the round's own. The controller reproduced the six marked so, and confirmed the hook ones by reading.
+
+What held, among others: the code-point widening masks every astral case tried; the per-settings key and the
+rejection retry behave as their tests say; the note after a plan alone is gone; a fork of another subagent is
+told nothing; the reference repository gives the same output at the base and the tip; init's repositories check
+clean.
+
+- **Open** (older than the round). `hooks/core/privacy.ts:37`: an apostrophe is in neither the pattern nor the
+  widening, so in `michael.o'brien@corp.io` the letters before it show on masked surfaces; the address still
+  stops the page from the records. Fix: add `'` to the widening's class.
+- **Open** (reproduced). `hooks/core/privacy.ts:25`: the widening can start the masked span just before an
+  astral character, and `mask()` keeps a lone high surrogate as its head; nothing leaks. Fix: never cut a pair.
+- **Open.** `DESIGN.md:255`: says the mask reaches out to a space or punctuation; it walks over `. _ % + -` and
+  stops at other signs, symbols and format characters. Fix: say what stops it.
+- **Open.** `hooks/register.tsx:101`: a store write that rejects is still no failure, so the short view walks
+  at every prompt and says it is being built. Fix: record a refused write as a failure.
+- **Open.** `hooks/register.tsx:85`: the per-settings key never removes a view, so the user-wide store, capped at
+  4 MiB, grows by one view per settings text ever seen. Fix: keep a few views per repository under one key.
+- **Open.** `hooks/register.tsx:330`: a resumed fork's copy is replaced with the main conversation's current
+  record. Fix: record only new forks.
+- **Open** (reproduced). `hooks/core/markdown.ts:56`: a well-formed code block written straight after a row
+  table's last row is a false fence warning. Fix: warn only when the line after the opener is a pipe line.
+- **Open** (reproduced). `hooks/core/parse.ts:98`: the fence warning's advice, "the section belongs in
+  skipSections", cannot be followed in a file's intro or a Done section. Fix: give it only where it works.
+- **Open** (reproduced). `hooks/core/survey.ts:156`: a `../` in a script two folders down also credits the top
+  candidate of that name. Fix: take the top fold only where it stays inside the repository.
+- **Open** (reproduced). `hooks/core/survey.ts:268`: on a guide line whose path is marked, the mark follows the
+  `...` that survey.md tells the agent to look for at the line's end. Fix: put the mark beside the path.
+- **Refuted, filed** (HK-070). Two addresses joined by a CJK, kana or Thai word: the first's top-level part takes
+  the second's local part, so the second shows and a commit subject holding them refuses the page, which cannot
+  be edited. Older than the round; the skeptic tied it to HK-070's first privacy minor, and the harm beyond its
+  wording (an uneditable subject blocks the page) is noted there.
