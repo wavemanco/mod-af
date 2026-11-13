@@ -161,7 +161,7 @@ const RULES: Record<string, string[]> = {
     'judgement calls (partly done, done differently, gone rows, doors, "opened" work, marked paths), listed with their evidence.'],
   'approval': ['Approval is the owner\'s own message, sent after they have seen the numbered steps. Nothing else is approval, and nothing is written before it.'],
   'applying in a worktree under the temp folder': ['a branch `housekeeping/audit-YYYY-MM-DD` from main, made with `git worktree add` in a folder under the ' +
-    'system temp folder, outside the person\'s checkout; one commit per step, each naming its proving sha; Done rows in the shape of the file\'s existing ' +
+    'system temp folder, outside the person\'s checkout; one commit per step, each naming its proving sha and its own row\'s ID only, never quoting a subject that names another ID; Done rows in the shape of the file\'s existing ' +
     'Done rows; checklist lines ticked whose rows are all closed.', 'Last done moves "through" the last commit read',
     'The worktree is removed at the end, and before any branch is deleted.'],
   'never pushing': ['The branch is never pushed: it is the owner\'s.'],
