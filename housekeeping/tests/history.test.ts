@@ -4,7 +4,7 @@ import { parseFiles } from '../hooks/core/parse.ts'
 import { computeFacts } from '../hooks/core/facts.ts'
 import { computeLanes } from '../hooks/core/lanes.ts'
 import { findingsFor } from '../hooks/core/findings.ts'
-import { headArgs, historyFrom, logArgs, parseLog, showArgs, snapshot } from '../hooks/core/history.ts'
+import { headArgs, historyFrom, logArgs, parseLog, showArgs, snapshot, unreadable } from '../hooks/core/history.ts'
 import * as small from './fixtures/small.ts'
 
 const s = parseSettings(small.settings).settings!
@@ -19,10 +19,12 @@ const files3 = { backlog: b2.replace(line(b2, 'B-005') + '\n', line(b2, 'B-005')
 const info = (n: number) => ({ sha: `abcdef${n}0123456789`, date: `2026-09-0${n}`, subject: `c${n}` })
 const snaps = [files1, files2, files3].map((f, i) => ({ ...snapshot(s, f), ...info(i + 1) }))
 
-// --end-of-options: a revision that starts with "-" is never read as an option
+// --end-of-options: a revision that starts with "-" is never read as an option; --no-show-signature: a signed
+// commit's gpg lines never reach the log's lines (finding 14); "--" after the head's revision, so a file named
+// like the branch is not ambiguous (finding 28)
 test('the git arguments', () => {
-  expect(headArgs('main')).toEqual(['git', 'log', '-1', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main'])
-  expect(logArgs(s)).toEqual(['git', 'log', '--reverse', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--', 'backlog.md', 'playbook.md'])
+  expect(headArgs('main')).toEqual(['git', 'log', '-1', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--'])
+  expect(logArgs(s)).toEqual(['git', 'log', '--first-parent', '--reverse', '--no-show-signature', '--format=%H%x09%cs%x09%s', '--end-of-options', 'main', '--', ':(literal)backlog.md', ':(literal)playbook.md'])
   expect(showArgs('abc', 'backlog.md')).toEqual(['git', 'show', '--end-of-options', 'abc:backlog.md'])
 })
 
@@ -60,4 +62,23 @@ test('a stale where we are is a warning', () => {
   const e = { sha: 'a', date: '2026-09-05', subject: 's', opened: [], closed: ['B-001'], moved: [], gone: [], whereWeAre: false }
   expect(stale([e])).toHaveLength(1)
   expect(stale([{ ...e, date: '2026-09-01' }])).toEqual([])
+})
+
+// HK-015: a merge commit's side branch is not walked
+test('the log follows first parents only', () => {
+  expect(logArgs(s)).toContain('--first-parent')
+  expect(logArgs(s).indexOf('--first-parent')).toBeLessThan(logArgs(s).indexOf('--end-of-options'))
+})
+
+// the small check of the second round (HK-087): the cure line was built from the settings' branch and paths, so a
+// $(...) in one ran when the line was pasted; a name that is not plain now never goes into the command
+test('the blobless cure puts the settings\' names in its command only when they are plain', () => {
+  const cure = (x: typeof s) => { const m = unreadable(x, 'abcdef1234', 'backlog.md', 'x'); return m.slice(m.indexOf('To fetch')) }
+  expect(cure(s)).toBe('To fetch the old versions, run git log -p -m --first-parent main -- backlog.md playbook.md, then run this again.')
+  const PLACEHOLDERS = 'To fetch the old versions, run git log -p -m --first-parent <main branch> -- <backlog> <playbook> with the ' +
+    'settings\' names quoted for your shell (one holds characters a shell may run, so they are not printed here), then run this again.'
+  for (const bad of ['main$(touch${IFS}X)', 'main;id', 'main`id`'])
+    expect(cure({ ...s, mainBranch: bad })).toBe(PLACEHOLDERS)
+  for (const bad of ['docs/$(touch X).md', 'a b.md', "it's.md", 'x%PATH%.md', 'x&id.md'])
+    expect(cure({ ...s, files: { ...s.files, playbook: { ...s.files.playbook, path: bad } } })).toBe(PLACEHOLDERS)
 })

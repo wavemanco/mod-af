@@ -20,6 +20,9 @@ const run = (m: Mut = {}, history: HistoryEntry[] = []): Finding[] => {
   return findingsFor(s, p, computeFacts(s, p), computeLanes(s, p, computeFacts(s, p)), history)
 }
 const rules = (fs: Finding[]) => [...new Set(fs.filter(f => f.level !== 'recommendation').map(f => f.rule))]
+// B-005 as a standing duty last done on `day`
+const DUTY = '| Whenever an agent picks it up. | — | **Why:** slow builds. |'
+const duty = (day: string) => `| Every 30 days. | — | **Why:** slow builds. Last done: ${day} |`
 
 test('the good fixture has no errors or warnings', () => {
   const fs = run()
@@ -56,9 +59,32 @@ const cases: [string, Mut, string][] = [
   ['checklist-ids (nowhere)', { b: ['*Settles:* PB-01.', '*Settles:* PB-01, B-008.'] }, 'checklist-ids'],
   ['checklist-ids (none)', { b: ['*Settles:* PB-01.', '*Settles:* the testers row.'] }, 'checklist-ids'],
   ['where-we-are (nowhere)', { b: ['B-001, then B-002', 'B-001, then B-002 and B-009'] }, 'where-we-are'],
+  ['last-done (no such month)', { b: [DUTY, duty('2026-13-01')] }, 'last-done'],
+  ['last-done (no such day)', { b: [DUTY, duty('2026-10-40')] }, 'last-done'],
+  ['last-done (rolls over)', { b: [DUTY, duty('2026-02-30')] }, 'last-done'],
 ]
 for (const [name, m, rule] of cases) test(`mutation: ${name} gives exactly ${rule}`, () => {
   expect(rules(run(m))).toEqual([rule])
+})
+
+// finding 15
+test('a real Last done date passes; an impossible one names its row', () => {
+  expect(rules(run({ b: [DUTY, duty('2026-10-01')] }))).toEqual([])
+  const fs = run({ b: [DUTY, duty('2026-13-01')] }).filter(f => f.rule === 'last-done')
+  expect(fs.map(f => [f.level, f.file, f.line, f.message])).toEqual([['warning', 'backlog', 23, 'B-005: Last done "2026-13-01" is not a real YYYY-MM-DD date']])
+})
+
+// finding 25: the warning also covers spelled-out numbers and another triggerPrefix
+test('a duty with a Last done and a period the short view cannot read is a warning', () => {
+  const at = (trigger: string, details = '**Why:** slow builds. Last done: 2026-10-01') =>
+    rules(run({ b: [DUTY, `| ${trigger} | — | ${details} |`] }))
+  for (const t of ['Every three months.', 'Every two weeks.', 'Every fortnight.'])
+    expect([t, at(t)]).toEqual([t, ['duty-period']])
+  for (const t of ['Every quarter.', 'Every 2 years.', 'Every session.', 'Every 3 weeks.', 'Every month.'])
+    expect([t, at(t)]).toEqual([t, []])
+  expect(at('Every three months.', '**Why:** slow builds.')).toEqual([])
+  const each = run({ s: ['"version":1', '"version":1,"duties":{"triggerPrefix":"Each"}'], b: [DUTY, '| Each 30 days. | — | Last done: 2026-10-01 |'] })
+  expect(rules(each)).toEqual(['duty-period'])
 })
 
 test('a 30-word Trigger passes; 31 fails', () => {
@@ -117,6 +143,19 @@ test('where-we-are is stale against the last history entry with a delta', () => 
   expect(rules(run(m, [e('2026-09-01', ['B-001'])]))).toEqual([])
 })
 
+// finding 24: the small fixture's where-we-are has no date
+test('an undated where-we-are is stale when it has not changed since the rows last changed', () => {
+  const e = (date: string, opened: string[], whereWeAre: boolean): HistoryEntry =>
+    ({ sha: 'a', date, subject: 's', opened, closed: [], moved: [], gone: [], whereWeAre })
+  const stale = run({}, [e('2026-09-01', [], true), e('2026-09-02', ['B-001'], false)]).filter(f => f.rule === 'where-we-are')
+  expect(stale.map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 5]])
+  expect(stale[0].message).toContain('no date')
+  expect(stale[0].message).toContain('2026-09-02')
+  expect(rules(run({}, [e('2026-09-01', [], true), e('2026-09-02', ['B-001'], true)]))).toEqual([])
+  expect(rules(run({}, [e('2026-09-02', ['B-001'], false), e('2026-09-03', [], true)]))).toEqual([])
+  expect(rules(run({}, [e('2026-09-01', [], true)]))).toEqual([])
+})
+
 test('recommendations for missing options', () => {
   const s = parseSettings(small.settings).settings!
   const bare = { ...s, paths: [], whereWeAre: undefined, columns: { ...s.columns, details: undefined, filed: undefined } }
@@ -133,4 +172,18 @@ test('formatFindings: errors, warnings, then recommendations, one line each', ()
     { level: 'error', rule: 'e', file: 'playbook', message: 'm1' },
   ]
   expect(formatFindings(fs)).toBe('error e playbook m1\nwarning w backlog:4 m2\nrecommendation r - m3')
+})
+
+// HK-019
+test('optional-column checks skip rows of a table without the column', () => {
+  const t = '## Work\n\n| ID | Item | Milestone | Who | Land now | Trigger | Waits on |\n|---|---|---|---|---|---|---|\n| B-001 | x | beta | agent | yes | Now. | — |\n'
+  const s = { ...parseSettings(small.settings).settings!, checklists: [] } // this backlog has no checklist section
+  const p = parseFiles(s, { backlog: t, playbook: small.playbook })
+  const fs = findingsFor(s, p, computeFacts(s, p), computeLanes(s, p, computeFacts(s, p)), [])
+  expect(rules(fs)).toEqual([])
+})
+
+// HK-007
+test('a yes row that waits only on a closed row gets no land-now-yes warning', () => {
+  expect(rules(run({ b: ['| Whenever an agent picks it up. | — |', '| Whenever an agent picks it up. | B-004 |'] }))).toEqual([])
 })

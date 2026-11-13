@@ -13,8 +13,17 @@ export function partitionLine(f: Facts): string {
   return `${c.all} rows in all = ${c.closed} closed + ${c.open} open; open = ${c.yes} land now + ${c.choice} small choice + ${c.no} not now; ${c.perFile.backlog.open} open in the backlog, ${c.perFile.playbook.open} in the playbook`
 }
 
+// Every string in a value as the reader sees it: the page writes <, >, &, non-ASCII and line breaks as escapes,
+// which would hide a key's left edge and make an address of an at-name, so the scan reads these, not the page.
+function strings(v: unknown): string[] {
+  const out: string[] = []
+  JSON.stringify(v, (_k, x) => { if (typeof x === 'string') out.push(x); return x })
+  return out
+}
+const scanAll = (v: unknown) => strings(v).flatMap(scanPrivacy)
+
 export function build(i: BuildInput): BuildOutput {
-  const parsed = parseFiles(i.settings, i.files)
+  const parsed = parseFiles(i.settings, i.files, i.head.date.slice(0, 10))
   const facts = computeFacts(i.settings, parsed)
   const lanes = computeLanes(i.settings, parsed, facts)
   // a commit subject cannot be edited, so a hit there is masked; a hit in the files still blocks the page
@@ -22,13 +31,22 @@ export function build(i: BuildInput): BuildOutput {
   const findings: Finding[] = findingsFor(i.settings, parsed, facts, lanes, history)
   const data = pageData(i.settings, i.head, parsed, facts, lanes, history, findings)
   let html: string | null = renderPage(data)
-  const hits = scanPrivacy(html)
+  const hits = scanAll(data)
   if (hits.length) {
-    // name the rows whose own cells hold a hit; when only other text does, the page and the masked text
-    const rows = parsed.rows.filter(r => scanPrivacy(JSON.stringify(r)).length > 0).map(r => r.id)
-    for (const id of rows.length ? rows : [`the page (${hits[0].sample})`])
+    // name the rows whose own cells hold a hit, then the other texts by file and line
+    const dirty = (t: unknown) => scanAll(t).length > 0
+    const places = [
+      ...parsed.rows.filter(dirty).map(r => r.id),
+      ...(parsed.whereWeAre && dirty(parsed.whereWeAre.text) ? [`${parsed.whereWeAre.file} line ${parsed.whereWeAre.line}`] : []),
+      ...parsed.done.filter(d => dirty(d.cells.join(' '))).map(d => `${d.file} line ${d.line}`),
+      ...parsed.checklists.filter(c => dirty(c.text)).map(c => `${c.file} line ${c.line}`),
+    ]
+    for (const id of places.length ? places : [`the page (${hits[0].sample})`])
       findings.push({ level: 'error', rule: 'privacy', message: `${id}: holds a personal address or a key-shaped string` })
   }
+  // ASCII page, so length is bytes
+  if (html && html.length > 1_000_000)
+    findings.push({ level: 'warning', rule: 'page-size', message: `the page is ${html.length} bytes, over the 1,000,000 it should stay under` })
   if (findings.some(f => f.level === 'error')) html = null
   return { parsed, facts, lanes, history, findings, data, html, brief: brief(data, {}), partition: partitionLine(facts) }
 }

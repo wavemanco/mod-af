@@ -1,9 +1,12 @@
-// The plugin's reads and writes: git through $.process.run, files through the session's own tools, except the
-// plugin's own page (writePage).
+// The plugin's reads and writes: git through $.process.run; the settings and the survey's files through $.fs, the
+// survey's only where the person's Read rules allow them ($.tool.check, readTracked); every write through the
+// session's own tools, except the plugin's own page (writePage).
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
-import { headArgs, logArgs, parseLog, showArgs, snapshot } from './core/history.ts'
+import { blobArgs, headArgs, historyUnread, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs,
+  snapshot, treeArgs, treeless, unreadable } from './core/history.ts'
 import { parseSettings } from './core/settings.ts'
+import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
 
 type Dollar = EngineInterface
@@ -16,34 +19,45 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
   if (settingsText === null) return { error: 'housekeeping: no .housekeeping.json here (run /housekeeping init)' }
   const { settings, findings } = parseSettings(settingsText)
   if (!settings) return { error: formatFindings(findings) }
-  const git = (argv: string[]) => $.process.run(['git', ...argv], { cwd: root, timeoutMs: TIMEOUT })
+  const git = (argv: string[]) => $.process.run(['git', ...argv], { cwd: root, timeoutMs: TIMEOUT, env: NO_FETCH })
 
   const main = settings.mainBranch
   const last = await git(headArgs(main).slice(1))
   if (last.isStdoutTruncated) return fail('git log was cut short')
   const head: CommitInfo | undefined = last.exitCode === 0 ? parseLog(last.stdout)[0] : undefined
-  if (!head) return { error: `housekeeping: no branch '${main}' in ${root} (the "mainBranch" setting in .housekeeping.json)` }
+  if (!head) {
+    // "no branch" only where the repository opens and the name does not resolve; otherwise git's words (finding 28)
+    const v = await git(resolveArgs(main).slice(1))
+    return { error: v.exitCode === 1 ? `housekeeping: no branch '${main}' in ${root} (the "mainBranch" setting in .housekeeping.json)`
+      : `housekeeping: cannot read '${main}' in ${root}: git said: ${(last.stderr || v.stderr).split('\n')[0].trim()}` }
+  }
 
-  // a null file is a missing one; a cut-short one must not be read as a short one
-  const show = async (sha: string, path: string): Promise<string | null | 'cut'> => {
+  // a null file is a missing one; a cut-short one must not be read as a short one, nor an unreadable one as missing
+  const show = async (sha: string, path: string): Promise<string | null | { error: string }> => {
     const r = await git(showArgs(sha, path).slice(1))
-    return r.isStdoutTruncated ? 'cut' : r.exitCode === 0 ? r.stdout : null
+    if (r.isStdoutTruncated) return { error: `git show was cut short at ${sha.slice(0, 7)}` }
+    if (r.exitCode === 0) return r.stdout
+    if ((await git(blobArgs(sha, path).slice(1))).exitCode === 0) return { error: unreadable(settings, sha, path, r.stderr.split('\n')[0].trim()) }
+    return sha === head.sha && (await git(treeArgs(sha).slice(1))).exitCode !== 0 ? { error: treeless(sha, path) } : null
   }
-  const filesAt = async (sha: string): Promise<Record<FileKey, string | null> | 'cut'> => {
+  const filesAt = async (sha: string): Promise<Record<FileKey, string | null> | { error: string }> => {
     const b = await show(sha, settings.files.backlog.path), p = await show(sha, settings.files.playbook.path)
-    return b === 'cut' || p === 'cut' ? 'cut' : { backlog: b, playbook: p }
+    return typeof b === 'object' && b ? b : typeof p === 'object' && p ? p : { backlog: b, playbook: p }
   }
 
-  const log = await git(logArgs(settings).slice(1))
-  if (log.isStdoutTruncated) return fail('git log was cut short')
+  const shallow = (await git(SHALLOW.slice(1))).stdout.trim() === 'true'
+  if (shallow) findings.push(SHALLOW_WARNING)
+  const log = shallow ? null : await git(logArgs(settings).slice(1))
+  if (log?.isStdoutTruncated) return fail('git log was cut short')
+  if (log && log.exitCode !== 0) return fail(historyUnread(settings, log.stderr.split('\n')[0].trim()))
   const snapshots: (Snapshot & CommitInfo)[] = []
-  for (const c of parseLog(log.stdout)) {
+  for (const c of parseLog(log?.stdout ?? '')) {
     const f = await filesAt(c.sha)
-    if (f === 'cut') return fail(`git show was cut short at ${c.sha.slice(0, 7)}`)
+    if ('error' in f) return fail(f.error)
     snapshots.push({ ...snapshot(settings, f), ...c })
   }
   const files = await filesAt(head.sha)
-  if (files === 'cut') return fail(`git show was cut short at ${head.sha.slice(0, 7)}`)
+  if ('error' in files) return fail(files.error)
 
   const b = await git(['rev-parse', '--abbrev-ref', 'HEAD'])
   const branch = b.exitCode === 0 ? b.stdout.trim() : main
@@ -55,9 +69,13 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
   return { input: { settings, files, head, snapshots }, branch, behindRemote, findings }
 }
 
+// The repository's key: its common git dir. Asked with no --path-format, which a git before 2.31 echoes, so the answer
+// may be relative to root, as it is at the top (second check, finding 7); a current git's keys stay as they were.
+export const commonDir = (root: string, dir: string): string => /^([A-Za-z]:)?[\\/]/.test(dir) ? dir : `${root}/${dir}`
+
 export async function repoKey($: Dollar, root: string): Promise<string> {
-  const r = await $.process.run(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'], { cwd: root, timeoutMs: TIMEOUT })
-  return r.exitCode === 0 && r.stdout.trim() ? r.stdout.trim() : root
+  const r = await $.process.run(['git', 'rev-parse', '--git-common-dir'], { cwd: root, timeoutMs: TIMEOUT })
+  return r.exitCode === 0 && r.stdout.trim() ? commonDir(root, r.stdout.trim()) : root
 }
 
 // null on success, else the deny or error text. The Read comes first so the Write tool accepts an overwrite.
@@ -106,4 +124,32 @@ export async function writePage($: Dollar, root: string, path: string, html: str
   } catch (err) {
     return String(err)
   }
+}
+
+// The survey's reader: the tracked files, under collect's rules. GIT_OPTIONAL_LOCKS=0: the survey writes nothing,
+// not even git's index refresh. Each file is first put to the person's Read rules, which the survey obeys (the
+// owner, 2026-11-04: "Obey the deny rules"); a check that fails counts as a deny.
+// The person's --tracker and --not-tracker paths come back checked, for the inventory. outside: the files counted as
+// denied because the engine answered an ask with no rule for a file outside the session's folder: the rules of the
+// repository's top are not in force in a session started below it (second check, finding 4: the owner's "Treat 'ask'
+// as refused").
+export async function readTracked($: Dollar, root: string, named = { tracker: [] as string[], notTracker: [] as string[] }):
+  Promise<{ files: SurveyFile[]; skipped: Skipped[]; denied: number; outside: number; named: { tracker: string[]; notTracker: string[] } } | { error: string }> {
+  const r = await $.process.run(['git', 'ls-files', '-z'], { cwd: root, timeoutMs: TIMEOUT, env: { GIT_OPTIONAL_LOCKS: '0' } })
+  // as the Node command says it; a survey that could not list is no survey (finding 7)
+  if (r.exitCode !== 0) return { error: `housekeeping: cannot list the tracked files in ${root}: git said: ${r.stderr.split('\n')[0].trim()}` }
+  const paths = r.stdout.split('\0')
+  paths.pop() // the empty tail after the last NUL, or the entry the cut left half written
+  const n = checkNamed(paths, named.tracker, named.notTracker)
+  if ('error' in n) return { error: `housekeeping: ${n.error} (paths are from the top of ${root})` }
+  const start = `${fold(await $.session.root())}/`
+  let outside = 0
+  const allow = (p: string) => $.tool.check({ tool: 'Read', input: { file_path: `${root}/${p}` } }).then(v =>
+    v.decision === 'ask' && !v.rule && !fold(`${root}/${p}`).startsWith(start) ? (outside++, false) : v.decision !== 'deny', () => false)
+  const got = await collect(paths,
+    p => $.fs.stat(`${root}/${p}`).then(s => ({ file: s.kind === 'file' && !s.isLink, size: s.size }), () => null),
+    p => $.fs.read(`${root}/${p}`).catch(() => null),
+    { first: n.tracker, allow })
+  if (r.isStdoutTruncated) got.skipped.push({ path: root, why: CUT_LIST })
+  return { ...got, outside, named: n }
 }

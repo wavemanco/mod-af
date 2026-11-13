@@ -1,8 +1,8 @@
 import type { CommitInfo, Facts, Finding, HistoryEntry, Lane, PageData, Parsed, Settings } from './types.ts'
 import { TEMPLATE } from './template.ts'
+import { lastDones } from './brief.ts'
 
 const PLACEHOLDER = '/*DATA*/null'
-const LAST_DONE = /Last done:(?:\*\*)?\s*(\d{4}-\d{2}-\d{2})/
 const escapeRe = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 // history comes oldest first, as historyFrom gives it; the page gets it newest first
@@ -36,7 +36,7 @@ export function pageData(s: Settings, head: CommitInfo, p: Parsed, f: Facts, lan
     doors: f.doors, waitingOnRows: f.waitingOnRows, byHand: f.byHand,
     duties: f.duties.map(id => {
       const r = byId.get(id)!
-      return { id, trigger: r.trigger, lastDone: LAST_DONE.exec(r.details)?.[1] ?? null }
+      return { id, trigger: r.trigger, lastDone: lastDones(r.details).sort().pop() ?? null } // the latest one
     }),
     checklists: p.checklists, history: [...history].reverse(), findings, notDoing: p.notDoing,
   }

@@ -24,6 +24,49 @@ test('a duty is due by its last-done date and interval', () => {
   expect(brief(d, {})).not.toContain('Duties due:')
 })
 
+// finding 25
+test('quarter and year periods are read, and the latest Last done counts', () => {
+  const due = (trigger: string, details: string, today: string) => brief(smallData(once(small.backlog,
+    '| Whenever an agent picks it up. | — | **Why:** slow builds. |', `| ${trigger} | — | ${details} |`)), { today }).includes('Duties due: B-005')
+  expect(due('Every quarter.', 'Last done: 2026-09-01', '2026-11-30')).toBe(false)
+  expect(due('Every quarter.', 'Last done: 2026-09-01', '2026-12-01')).toBe(true)
+  expect(due('Every 2 years.', 'Last done: 2025-01-01', '2026-12-31')).toBe(false)
+  expect(due('Every 2 years.', 'Last done: 2025-01-01', '2027-01-01')).toBe(true)
+  expect(due('Every year.', 'Last done: 2020-01-01', '2026-11-04')).toBe(true)
+  expect(due('Every 30 days.', 'Last done: 2020-01-01. Last done: 2026-10-01', '2026-10-15')).toBe(false)
+})
+
+// finding 15
+test('an impossible Last done date makes no duty due, and nothing throws', () => {
+  for (const day of ['2026-13-01', '2026-10-40', '2026-02-30']) {
+    const d = smallData(once(small.backlog, '| Whenever an agent picks it up. | — | **Why:** slow builds. |',
+      `| Every 30 days. | — | **Why:** slow builds. Last done: ${day} |`))
+    expect([day, brief(d, { today: '2027-01-01' }).includes('Duties due: \n')]).toEqual([day, true])
+  }
+})
+
+test('a hit in the short view is masked, not blocked', () => {
+  const t = brief({ ...SMALL, project: 'ask jane.doe@gmail.com' }, {})
+  expect(t.includes('jane.doe@gmail.com')).toBe(false)
+  expect(t).toContain('ask ja**************om')
+})
+
+test('the short view masks before it cuts, and never shows a private key\'s body', () => {
+  const [k, e] = SMALL.landNow
+  const item = (r: PageData['rows'][number]) => r.id === k ? 'x'.repeat(100) + ' sk-ant-FAKEFAKEFAKEFAKEFAKEFAKE'
+    : r.id === e ? 'y'.repeat(105) + ' jane.doe@corp.io' : r.item
+  const t = brief({ ...SMALL, rows: SMALL.rows.map(r => ({ ...r, item: item(r) })) }, {})
+  expect(t.includes('FAKE')).toBe(false)
+  expect(t.includes('jane.doe@')).toBe(false)
+  const block = '-----BEGIN PRIVATE KEY-----\nMIIE' + 'FAKE'.repeat(10) + '\n' + 'FAKE'.repeat(10) + '\n-----END PRIVATE KEY-----'
+  const where = (text: string) => brief({ ...SMALL, whereWeAre: { file: 'backlog', line: 1, text, date: null } }, {})
+  for (const w of [where(`keys: ${block} done`), where('word '.repeat(100) + block)]) {
+    expect(w.includes('FAKE')).toBe(false)
+    expect(w).toContain('Needs you:')
+  }
+  expect(where(`keys: ${block} done`)).toContain(' done')
+})
+
 test('branch and remote notes', () => {
   const t = brief(SMALL, { branch: 'feature/x', behindRemote: 3 })
   expect(t).toContain('On branch feature/x; the map shows main.')
@@ -38,4 +81,23 @@ test('a huge where-we-are text keeps the brief within 8,000 characters', () => {
   const t = brief(long, {})
   expect(t.length).toBe(8000)
   expect(t.endsWith('…')).toBe(true)
+})
+
+test('a lane with no milestone is not "all reached"', () => {
+  const lane = SMALL.lanes[0]
+  const t = brief({ ...SMALL, lanes: [{ ...lane, stations: [], next: null }] }, {})
+  expect(t).toContain(`${lane.path}: no milestone yet`)
+  expect(t).not.toContain('all reached')
+})
+
+test('long items are cut, and the branch and remote lines survive the cap', () => {
+  const rows = SMALL.rows.map(r => ({ ...r, item: 'long '.repeat(3000) }))
+  const d: PageData = { ...SMALL, rows, landNow: rows.map(r => r.id), queue: SMALL.queue }
+  const t = brief(d, { branch: 'feature/x', behindRemote: 3 })
+  expect(t.length).toBeLessThanOrEqual(8000)
+  expect(t).toContain('On branch feature/x; the map shows main.')
+  expect(t).toContain('Local main is 3 commits behind its remote copy.')
+  expect(t.split('\n').every(l => l.length <= 200)).toBe(true)
+  expect(t).toContain('… (opens')
+  expect(t).not.toContain('�')
 })

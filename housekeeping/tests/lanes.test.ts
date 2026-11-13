@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { parseSettings } from '../hooks/core/settings.ts'
 import { parseFiles } from '../hooks/core/parse.ts'
 import { computeFacts } from '../hooks/core/facts.ts'
-import { computeLanes } from '../hooks/core/lanes.ts'
+import { computeLanes, orderStops } from '../hooks/core/lanes.ts'
 import * as small from './fixtures/small.ts'
 import * as paths from './fixtures/paths.ts'
 
@@ -43,4 +43,35 @@ test('a self-wait and a cycle terminate', () => {
     const st = host(lanes(paths, paths.backlog([], over))).stations
     for (const s of st) expect(Number.isFinite(s.chain)).toBe(true)
   }
+})
+
+// HK-016
+test('orderStops keeps the first row of a duplicate ID', () => {
+  const row = (id: string, state: string) => ({ id, priority: '', landNow: { state } }) as any
+  expect(orderStops(['X', 'Y'], [row('X', 'yes'), row('Y', 'yes'), row('X', 'no')], { before: {} } as any)).toEqual(['X', 'Y'])
+})
+
+const withPaths = (ps: unknown[], backlog = paths.backlog()) =>
+  lanes({ settings: JSON.stringify({ ...JSON.parse(paths.settings), paths: ps }), playbook: paths.playbook }, backlog)
+
+// HK-008
+test('a milestone on the shared path and on a lane is drawn once', () => {
+  const ls = withPaths([{ name: 'core', shared: true, milestones: [{ name: 'core-ready' }] },
+    { name: 'host', milestones: [{ name: 'core-ready' }, { name: 'host-beta' }, { name: 'host-beta' }] }])
+  expect(ls).toHaveLength(1)
+  expect(ls[0].stations.map(x => x.milestone)).toEqual(['core-ready', 'host-beta'])
+})
+
+// HK-009
+test('when every path is shared there is one lane named after the project', () => {
+  const ls = withPaths([{ name: 'core', shared: true, milestones: [{ name: 'core-ready' }] }])
+  expect(ls.map(l => l.path)).toEqual(['Paths'])
+  expect(ls[0].stations.map(x => x.milestone)).toEqual(['core-ready'])
+})
+
+// HK-010
+test('a standing duty does not keep a station unreached', () => {
+  const duty = '| D-001 | Item D-001 | medium | core-ready | agent | no: standing | Every month. | — |\n'
+  const b = paths.backlog(['C-001', 'C-002']).replace('\n## Done', duty + '\n## Done')
+  expect(host(lanes(paths, b)).stations[0].reached).toBe(true)
 })

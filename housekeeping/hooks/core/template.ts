@@ -514,7 +514,7 @@ window.DATA = /*DATA*/null;
         h('div', { class: 'lanes' }, D.lanes.map((l) => {
           const nx = l.stations.find((st) => st.milestone === l.next);
           return h('section', { class: 'lane', 'aria-label': 'Path ' + l.path },
-            h('header', {}, h('p', { class: 'when' }, nx ? 'next: ' + nx.milestone : 'all reached'), h('h3', {}, l.path),
+            h('header', {}, h('p', { class: 'when' }, nx ? 'next: ' + nx.milestone : l.stations.length ? 'all reached' : 'no milestone yet'), h('h3', {}, l.path),
               h('p', { class: 'status' }, nx ? n(nx.stops.length, 'open row', 'open rows') + ' before ' + nx.milestone + (nx.chain ? SEP + 'longest chain ' + n(nx.chain, 'row', 'rows') : '') : 'Every milestone on this path is reached.'),
               nx && nx.doneWhen ? h('p', { class: 'trig' }, 'Done when: ', md(nx.doneWhen)) : null),
             l.stations.length ? h('ol', { class: 'metro' }, l.stations.map((st) => station(st, l.next))) : h('p', { class: 'none' }, 'This path names no milestone.'));
@@ -577,7 +577,9 @@ window.DATA = /*DATA*/null;
           (r) => h('p', { class: 'trig' }, md(r.trigger), SEP + (duty.get(r.id).lastDone ? 'last done ' + duty.get(r.id).lastDone : 'no "Last done" date'))));
     },
     checklists() {
-      if (!D.checklists.length) return section(empty('The settings name no checklist, or the checklists have no lines.'));
+      if (!D.checklists.length) return section(empty(D.findings.some((f) => f.rule === 'checklist-heading')
+        ? 'A checklist the settings name matches no ## heading whole, so its lines are not read: see Warnings.'
+        : 'The settings name no checklist, or the checklists have no lines.'));
       const heads = [];
       for (const l of D.checklists) if (heads.indexOf(l.heading) < 0) heads.push(l.heading);
       return section(intro('The open lines of each checklist, with the rows each settles.'), heads.map((hd) => {

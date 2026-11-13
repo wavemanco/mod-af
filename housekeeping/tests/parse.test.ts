@@ -3,6 +3,7 @@ import { parseSettings } from '../hooks/core/settings.ts'
 import { parseFiles } from '../hooks/core/parse.ts'
 import { backlog, playbook, settings } from './fixtures/small.ts'
 import { once } from './fixtures/page-data.ts'
+import { initFiles } from '../hooks/core/templates.ts'
 
 const s = parseSettings(settings).settings!
 const good = () => parseFiles(s, { backlog, playbook })
@@ -100,4 +101,189 @@ test('a separator line inside a table is not a row', () => {
   const p = parseFiles(s, { backlog: stray, playbook })
   expect(p.rows.map(r => r.id)).toEqual(['B-001', 'B-002', 'B-003', 'B-005', 'PB-01', 'PB-03'])
   expect(p.findings).toEqual([])
+})
+
+// HK-006
+test('tables under the checklist and not-doing headings are not pending rows', () => {
+  const extra = '\n## Checks\n\n| ID | Item |\n|---|---|\n| B-900 | a check |\n\n## Not doing\n\n| ID | Item | Why |\n|---|---|---|\n| B-901 | a thing | no |\n'
+  const s2 = { ...s, checklists: [...s.checklists, { file: 'backlog' as const, heading: 'Checks' }],
+    notDoing: { file: 'backlog' as const, heading: 'Not doing' } }
+  expect(parseFiles(s2, { backlog: backlog + extra, playbook }).rows.map(r => r.id)).toEqual(good().rows.map(r => r.id))
+})
+
+// HK-013
+test('a fence closes only with its own character and at least its length', () => {
+  const only = ['PB-01', 'PB-03']
+  expect(parseFiles(s, { backlog: '## Work\n\n````\n```\n' + backlog + '\n````\n', playbook }).rows.map(r => r.id)).toEqual(only)
+  expect(parseFiles(s, { backlog: '## Work\n\n```\n~~~\n' + backlog + '\n```\n', playbook }).rows.map(r => r.id)).toEqual(only)
+  expect(parseFiles(s, { backlog: '```\ntext\n```\n' + backlog, playbook }).rows.length).toBe(6)
+})
+
+// HK-014
+test('an ID repeated in Waits on counts once', () => {
+  const p = parseFiles(s, { backlog: once(backlog, '| Once the testers are booked (PB-01). | PB-01 |', '| Once the testers are booked (PB-01). | PB-01, PB-01 |'), playbook })
+  expect(p.rows[1].waitsOn).toEqual(['PB-01'])
+})
+
+// HK-018
+test('a dropped table, a dropped row and a mistyped header are warned about', () => {
+  const sep = '|' + '---|'.repeat(15)
+  const dropped = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'row-dropped')
+  const t = dropped(once(backlog, sep, '|' + '---|'.repeat(14)))
+  expect(t.map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 18]])
+  const r = dropped(once(backlog, '| B-005 |', '|  |'))
+  expect(r.map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 23]])
+  const h = dropped(once(backlog, '| ID | Item | Status', '| ID | Itme | Status'))
+  expect(h.map(f => [f.file, f.line])).toEqual([['backlog', 18]])
+  expect(dropped(backlog)).toEqual([])
+})
+
+// finding 5: one warning per break, each with its own message
+test('a pipe line in no table, and a pipe line that ends a table, are dropped and said', () => {
+  const dropped = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'row-dropped')
+  const at = (b: string) => dropped(b).map(f => [f.level, f.file, f.line])
+  const gap = once(backlog, '| B-003 |', '\n| B-003 |') // a blank line after B-002: B-003 and B-005 fall out
+  expect(parseFiles(s, { backlog: gap, playbook }).rows.map(r => r.id)).toEqual(['B-001', 'B-002', 'PB-01', 'PB-03'])
+  expect(at(gap)).toEqual([['warning', 'backlog', 23]])
+  const below = once(backlog, '\n## Done since', '\n| B-006 | filed below the table |\n\n## Done since')
+  expect(at(below)).toEqual([['warning', 'backlog', 25]])
+  const lost = once(backlog, '| B-003 |', 'B-003 |') // a row that lost its leading pipe ends the table
+  expect(at(lost)).toEqual([['warning', 'backlog', 22]])
+  const dashes = once(backlog, '|' + '---|'.repeat(15), '|' + '—|'.repeat(15))
+  expect(at(dashes)).toEqual([['warning', 'backlog', 18]])
+  const msg = (b: string) => dropped(b)[0].message
+  expect(new Set([msg(gap), msg(lost), msg(once(backlog, '|' + '---|'.repeat(15), '|' + '---|'.repeat(14)))]).size).toBe(3)
+  expect(msg(lost)).toContain('ends the table above')
+  expect(msg(gap)).toContain('in no table')
+})
+
+// finding 17: Done sections are set aside as pending rows, but their rows are read, so a lost Done table is said
+test('a Done table with a mismatched separator is warned about', () => {
+  const b = once(backlog, '| Item | Where it landed | Its row |\n|---|---|---|', '| Item | Where it landed | Its row | Note |\n|---|---|---|')
+  const p = parseFiles(s, { backlog: b, playbook })
+  expect(p.done).toEqual([])
+  expect(p.findings.filter(f => f.rule === 'row-dropped').map(f => [f.file, f.line])).toEqual([['backlog', 27]])
+})
+
+// finding 6: a fence can open in a section that is not read for rows, such as where-we-are
+test('a fence left open is a warning at its opener, wherever it opens', () => {
+  const fence = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'fence')
+  const above = once(backlog, '## Product work\n', '## Product work\n\n```\n')
+  expect(fence(above).map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 18]])
+  expect(fence(once(backlog, '1. Ship the export', '```\n1. Ship the export')).map(f => f.line)).toEqual([5])
+  expect(fence(backlog)).toEqual([])
+  expect(fence('```\ntext\n```\n' + backlog)).toEqual([])
+})
+
+// second check, finding 9: a later fence's closer closes a lost opener, so the end of the file is not inside a fence
+test('a fence that holds a ## heading is a warning at its opener, once; paired fences are not', () => {
+  const read = (b: string) => parseFiles(s, { backlog: b, playbook })
+  const at = (b: string) => read(b).findings.filter(f => f.rule === 'fence').map(f => [f.level, f.file, f.line])
+  const code = '\n```bash\nnpm test\n```\n'
+  const lost = once(backlog, '## Product work\n', '```text\nnotes\n\n## Product work\n') + code
+  expect(read(lost).rows.map(r => r.id)).toEqual(['PB-01', 'PB-03'])
+  expect(at(lost)).toEqual([['warning', 'backlog', lost.split('\n').indexOf('```text') + 1]])
+  expect(read(lost).findings.find(f => f.rule === 'fence')!.message).toContain('## heading')
+  expect(at('```\ntext\n```\n' + backlog + code)).toEqual([])
+  // an opener after a list marker: its indented closer opens no fence
+  const listed = once(backlog, '1. Ship the export: B-001, then B-002 (B-004 is closed).\n',
+    '1. Ship the export: B-001, then B-002 (B-004 is closed).\n2. ```bash\n   npm test\n   ```\n')
+  expect(read(listed).rows.length).toBe(6)
+  expect(at(listed)).toEqual([])
+})
+
+// the small check of the second round (HK-088, finding 9's limit): a stray opener closed by a fence in its own
+// section hid that section's rows with no warning
+test('a fence that holds a table with the ID and Item columns is a warning at its opener; in a skipped section, or another table, it is not', () => {
+  const fence = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'fence')
+  const lost = '## Open\n\n```text\nnotes\n\n| ID | Item |\n|---|---|\n| B-001 | one |\n\n```\n'
+  expect(fence(lost).map(f => [f.level, f.line])).toEqual([['warning', 3]])
+  expect(fence(lost)[0].message).toContain('a table with ID and Item columns')
+  expect(fence(lost.replace('## Open', '## Plan to all clear'))).toEqual([])
+  expect(fence(lost.replace('| ID | Item |', '| Name | Note |'))).toEqual([])
+  // the narrow check (HK-091): a stray opener between the rows of an open table hid the rows after it, unsaid
+  const between = '## Open\n\n| ID | Item |\n|---|---|\n| B-001 | one |\n```\n| B-002 | two |\n```\n'
+  expect(fence(between).map(f => [f.level, f.line])).toEqual([['warning', 6]])
+  expect(fence(between.replace('## Open', '## Plan to all clear'))).toEqual([])
+  // the re-check (HK-092): a code block written straight after the last row is no stray, and the advice fits the section
+  expect(fence('## Open\n\n| ID | Item |\n|---|---|\n| B-001 | one |\n```sh\nnpm test\n```\n')).toEqual([])
+  // the closing round (HK-093): no advice on examples, which no one rule fits; a stray opener before a blank line
+  // and more rows warns
+  const intro = '```text\n| ID | Item |\n|---|---|\n| B-001 | one |\n```\n\n## Open\n'
+  expect(fence(intro)[0].message).not.toContain('skipSections')
+  expect(fence(lost)[0].message).not.toContain('skipSections')
+  const blank = '## Open\n\n| ID | Item |\n|---|---|\n| B-001 | one |\n```\n\n| B-002 | two |\n```\n'
+  expect(fence(blank).map(f => [f.level, f.line])).toEqual([['warning', 6]])
+})
+
+test("init sets its format section aside, so a fenced example row there gives no fence warning (HK-091)", () => {
+  const files = initFiles('x', 'main')
+  const s0 = parseSettings(files.find(f => f.path === '.housekeeping.json')!.content).settings!
+  const b = files.find(f => f.path === 'docs/backlog.md')!.content
+    .replace('## How this file is kept\n', '## How this file is kept\n\n```markdown\n| ID | Item |\n|---|---|\n| B-1 | an example |\n```\n')
+  const p = parseFiles(s0, { backlog: b, playbook: files.find(f => f.path === 'docs/playbook.md')!.content })
+  expect(p.findings.filter(f => f.rule === 'fence')).toEqual([])
+  expect(p.rows).toEqual([])
+})
+
+// the tied minor on rows in a named section
+test('checklist and where-we-are headings match whole; a row table in skipSections is said once', () => {
+  const table = (...ids: string[]) => '| ID | Item |\n|---|---|\n' + ids.map(id => `| ${id} | a row |\n`).join('')
+  const s2 = { ...s, files: { ...s.files, backlog: { ...s.files.backlog, skipSections: ['Done since', 'Archive'] } } }
+  const b = backlog + `\n## Launch checklist, later\n\n${table('B-007')}\n## Plan to all clear, older\n\n${table('B-008')}` +
+    `\n## Archive of 2025\n\n${table('B-009', 'B-010')}\n## Archive notes\n\n| Name | Note |\n|---|---|\n| x | y |\n`
+  const p = parseFiles(s2, { backlog: b, playbook })
+  expect(p.rows.map(r => r.id)).toEqual(['B-001', 'B-002', 'B-003', 'B-005', 'B-007', 'B-008', 'PB-01', 'PB-03'])
+  expect(p.checklists.length).toBe(3)
+  expect(p.whereWeAre!.line).toBe(5)
+  const skipped = p.findings.filter(f => f.rule === 'row-skipped')
+  expect(skipped.map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', b.split('\n').indexOf('## Archive of 2025') + 3]])
+  expect(skipped[0].message).toContain('"Archive of 2025"')
+  expect(good().findings).toEqual([])
+})
+
+// second check, finding 8: a checklist named by the start of its heading reads nothing, so it is said
+test('a checklist heading that matches no ## heading is a warning, naming the headings that start with it', () => {
+  const warned = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'checklist-heading')
+  const suffixed = once(backlog, '## Launch checklist\n', '## Launch checklist (beta)\n')
+  expect(parseFiles(s, { backlog: suffixed, playbook }).checklists).toEqual([])
+  expect(warned(suffixed).map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 7]])
+  expect(warned(suffixed)[0].message).toContain('"Launch checklist (beta)"')
+  const gone = warned(once(backlog, '## Launch checklist\n', '## Checks\n'))
+  expect(gone.map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', undefined]])
+  expect(gone[0].message).toContain('"Launch checklist"')
+  expect(warned(once(backlog, '## Launch checklist\n', '```\n## Launch checklist\n```\n'))).toHaveLength(1) // a fenced heading is none
+  expect(warned(backlog)).toEqual([])
+  expect(parseFiles(s, { backlog, playbook: null }).findings.filter(f => f.rule === 'checklist-heading')).toEqual([])
+})
+
+// finding 16: a reopened row is legitimate, so a warning, not an error
+test('an ID both open and in Done, or twice in Done, is a warning', () => {
+  const done = (b: string) => parseFiles(s, { backlog: b, playbook }).findings.filter(f => f.rule === 'done-id')
+  const reopened = once(backlog, '| Merge the export branch (B-004) |', '| Merge the export branch (B-001) |')
+  expect(done(reopened).map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 29]])
+  expect(done(reopened)[0].message).toContain('B-001')
+  const twice = once(backlog, '| Sign the hosting contract (PB-02) |', '| Sign the hosting contract (B-004) |')
+  expect(done(twice).map(f => [f.level, f.file, f.line])).toEqual([['warning', 'backlog', 30]])
+  expect(done(twice)[0].message).toContain('B-004')
+  expect(done(backlog)).toEqual([])
+})
+
+// finding 27: init's Done table has its ID and its title in two columns
+test("a Done entry's item is the cell under the Item header, else the ID cell", () => {
+  const f = Object.fromEntries(initFiles('Empty', 'main').map(x => [x.path, x.content]))
+  const si = parseSettings(f['.housekeeping.json']).settings!
+  const b = f['docs/backlog.md'] + '| B-3 | Ship the export | none | abc1234 |\n'
+  expect(parseFiles(si, { backlog: b, playbook: f['docs/playbook.md'] }).done.map(d => [d.ids, d.item])).toEqual([[['B-3'], 'Ship the export']])
+  const items = ['Merge the export branch (B-004)', 'Sign the hosting contract (PB-02)']
+  expect(good().done.map(d => d.item)).toEqual(items)
+  const noItem = once(backlog, '| Item | Where it landed | Its row |', '| What | Where it landed | Its row |')
+  expect(parseFiles(s, { backlog: noItem, playbook }).done.map(d => d.item)).toEqual(items)
+})
+
+// HK-020
+test('a date after the head commit does not make where-we-are look fresh', () => {
+  const b = once(backlog, '(B-004 is closed).', '(B-004 is closed). Checked 2026-10-01; due 2027-01-01.')
+  expect(parseFiles(s, { backlog: b, playbook }).whereWeAre!.date).toBe('2027-01-01')
+  expect(parseFiles(s, { backlog: b, playbook }, '2026-11-04').whereWeAre!.date).toBe('2026-10-01')
 })

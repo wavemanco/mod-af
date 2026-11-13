@@ -1,8 +1,8 @@
 # housekeeping
 
-One place for a repository's pending work, and a Route Map made only from it. The work lives in two Markdown files, a backlog (work done in the repository) and a playbook (what happens outside it), each row with its trigger. `housekeeping` reads those files and nothing else, and builds from them a one-page map (lanes per path, what is ready, what unblocks what), a short view for an agent, and a list of problems with the files.
+One place for a repository's pending work, and a Route Map made only from it. The work lives in two Markdown files, a backlog (work done in the repository) and a playbook (what happens outside it), each row with its trigger. Its map, short view and `check` read those files and nothing else, and it builds from them a one-page map (lanes per path, what is ready, what unblocks what), a short view for an agent, and a list of problems with the files.
 
-It never decides anything for you: no commits, no pushes, no fetches. Every write goes through Claude Code's own Write tool, so your permissions apply, except for its own generated page, `.housekeeping/route-map.html`, which it writes directly and never commits.
+It never decides anything for you: no commits, no pushes, no fetches. Every write goes through Claude Code's own tools, so your permissions apply, except for its own generated page, `.housekeeping/route-map.html`, which it writes directly and never commits. Under `plan`, the agent commits on a new branch only the steps you approve.
 
 ## What Phase 1 delivers
 
@@ -12,7 +12,7 @@ It never decides anything for you: no commits, no pushes, no fetches. Every writ
 - The short view: at most 8,000 characters, shown by `/housekeeping` with no argument and put into the session's context.
 - Publishing: the page goes to a claude.ai artifact kept private to you; the link is remembered per repository.
 
-Later phases add `survey`, `plan`, `audit`, `owed` and the automatic parts. They are not here yet.
+Phase 2 adds `survey` and `plan`, for a repository whose pending work is already spread over its own files. Later phases add `audit`, `owed` and the automatic parts. They are not here yet.
 
 ## Commands
 
@@ -22,17 +22,26 @@ Later phases add `survey`, `plan`, `audit`, `owed` and the automatic parts. They
 /housekeeping map new    forget the stored Route Map link, then build and publish a new page
 /housekeeping check      report problems in the files and the settings
 /housekeeping init       set up a new repository
+/housekeeping survey     find where the repository keeps its pending work now; writes nothing
+/housekeeping plan       propose the steps that move it into the pair, applied only once you approve
 ```
 
 `check` and `map` read the two files as committed on the main branch (`mainBranch` in the settings), so after `init`, commit its files on the branch it names.
+
+`survey` and `plan` hand the agent a procedure (`prompts/survey.md`, `prompts/plan.md`) with the inventory of the repository's tracked files; `plan` adds `check`'s findings when a `.housekeeping.json` exists. The agent does the reading and proposes; you approve. The command's reply is a count, not the result: the agent starts on your next message, for example "go ahead". Under `claude -p` the run ends with that reply, so send the next message with `claude -p --continue "go ahead"` and the same flags. The inventory obeys your Read deny rules: a file they deny is counted, never read or named. Those are the rules in force in the session: in one started in a subfolder, the top's own rules are not, so a file outside that folder that the session would have to ask about is counted as not read, and the reply says to start the session at the top. The Node command below has no such rules and reads every tracked file wherever it runs, in a Claude Code session too, so when the survey counts denied files the agent asks you to run the re-run as `/housekeeping survey --tracker <path> --not-tracker <path>`.
 
 The same computed parts run without Claude Code:
 
 ```
 node housekeeping/cli.ts <map|check|brief> [--repo <dir>] [--settings <file>] [--out <file>]
+node housekeeping/cli.ts survey [--repo <dir>] [--json] [--tracker <path>]... [--not-tracker <path>]...
 ```
 
 `check` exits 1 when it finds an error. The page it writes is byte-identical to the plugin's.
+
+In a blobless clone (`git clone --filter=blob:none`), `check`, `map` and the short view stop at the first old version of the two files that the clone does not hold, since housekeeping never fetches, and the stop names the cure: `git log -p -m --first-parent <main branch> -- <backlog> <playbook>` fetches every version the history reads, merges included, whatever branch is checked out; then run it again. When a name in the settings holds anything but letters, digits, `_`, `.`, `/` or `-`, the message gives the command with placeholders and never puts that name in it.
+
+`check` reads the main branch, not the commit checked out, and says which branch it read when HEAD is on another. To check a pull request's own records, in CI for example, run it with a copy of the settings whose `mainBranch` is `HEAD`: `node housekeeping/cli.ts check --settings <copy>`.
 
 ## Using it with `claude -p`
 
@@ -70,7 +79,7 @@ The three keep working alone in any repository.
 - No dates in triggers, no durations, no estimates.
 - No database, no sync layer, no server.
 - It never commits, pushes or fetches, and installs no CI workflow.
-- It never shows commit authors, and it refuses to build a page that holds a personal email address or a key-shaped string, saying where. One in a commit subject, which cannot be edited, is masked in the page instead.
+- It never shows commit authors, and it refuses to build a page that holds a personal email address or a key of a shape it knows, saying where. The shapes are `sk-` keys, live payment keys, AWS access keys, GitHub, GitLab, npm, Slack and Google API tokens, webhook signing secrets, JWTs and private key blocks, PGP's included, under either label. A password, a key of another shape, or an address with no ASCII letter, digit or sign before its @ (one wholly in CJK, say) passes, so keep them out of the records. A hit in a commit subject, which cannot be edited, is masked in the page instead.
 - It changes no other plugin here.
 
 ## Not built: filing after every commit
@@ -79,4 +88,4 @@ An automatic filing run after every commit was not built. The owner's reason: it
 
 ## More
 
-[`DESIGN.md`](./DESIGN.md) is the record of the design and its decisions; [`research/`](./research/README.md) holds the distilled research and the Phase 1 results.
+[`DESIGN.md`](./DESIGN.md) is the record of the design and its decisions; [`research/`](./research/README.md) holds the distilled research and the Phase 1 and Phase 2 results.
