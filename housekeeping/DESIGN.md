@@ -488,8 +488,9 @@ tables, one path, the settings file and the `.gitignore` line.
 
 ### 3.10 Working with `loose-ends`, `route` and `decide`
 
-`housekeeping` lists the three as dependencies. Whether installing it also installs them is not known yet
-(Phase 0), so the README tells people to install all four. The three keep working alone in any repository.
+`housekeeping` lists the three as dependencies, and installing it from this marketplace installs them too
+(checked in Phase 0); the README says to install them by hand only by another route. The three keep working
+alone in any repository.
 In a repository with `.housekeeping.json`:
 - **loose-ends** files each "FILE IT" item as a row in the right file, chosen by the commit test, with a
   trigger, through Claude Code's Edit tool, so the person's permissions apply. "DROP" items go to the "not

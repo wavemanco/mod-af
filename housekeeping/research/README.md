@@ -41,4 +41,9 @@ The small check of the second round, what held, and its confirmed findings and p
 
 Phase 3's brainstorm, by seven read-only Elephant-Goldfish lenses and a synthesis, is
 [phase-3-concepts-brief.md](phase-3-concepts-brief.md); the plan built from it is
-[../plans/2026-11-13-phase-3.md](../plans/2026-11-13-phase-3.md).
+[../plans/2026-11-13-phase-3.md](../plans/2026-11-13-phase-3.md). The plan's three review passes are
+[phase-3-plan-review.md](phase-3-plan-review.md), [phase-3-plan-review-2.md](phase-3-plan-review-2.md) and
+[phase-3-plan-review-3.md](phase-3-plan-review-3.md).
+
+The checks that only a live session can make, for the owner's sitting, each with its keys and the one
+observation that means pass, are in [live-checks.md](live-checks.md). None has been run yet.
