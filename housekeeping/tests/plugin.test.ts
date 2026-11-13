@@ -45,6 +45,7 @@ type World = {
   oldGit?: boolean // git rev-parse echoes --path-format, as a git before 2.31 does
   logFail?: string // the history walk's git log exits 128 with this stderr, as in a treeless clone
   noTree?: boolean // the clone holds no tree of main's head: show, the path's rev-parse and cat-file fail
+  logThrow?: boolean // the history walk's git log rejects, as process.run does past its time
   lsFail?: boolean // git ls-files exits 128
   lsCut?: boolean // git ls-files output is cut short
   reads?: string[] // every path fs.read was asked for
@@ -91,6 +92,7 @@ function world(on: On, w: World = {}) {
       stderr: 'fatal: not a git repository (or any of the parent directories): .git\n' } }
     if (a === 'ls-files') return ok(Object.keys(w.tracked ?? {}).map(p => `${p}\0`).join(''), 0, w.lsCut)
     if (w.gitFail && (a === 'log' || b === '--verify')) return { value: { exitCode: 128, stdout: '', stderr: w.gitFail, isStdoutTruncated: false, isStderrTruncated: false } }
+    if (a === 'log' && w.logThrow && e.argv.includes('--reverse')) throw new Error('git ran past its time')
     if (a === 'log' && w.logFail && e.argv.includes('--reverse')) return { value: { exitCode: 128, stdout: '', stderr: w.logFail, isStdoutTruncated: false, isStderrTruncated: false } }
     if (a === 'log' && w.gate && e.argv.includes('--reverse')) return w.gate.then(() => ok(`${SHA}\t2026-09-12\thead\n`))
     if (a === 'log') return w.noBranch ? ok('', 128) : ok(`${SHA}\t2026-09-12\thead\n`)
@@ -351,7 +353,9 @@ const brief = (r: { blocks: { name: string; text: string }[] }) => r.blocks.find
 const until = async (done: () => boolean) => { for (let i = 0; i < 200 && !done(); i++) await new Promise(r => setTimeout(r, 5)) }
 const late = <T>(p: Promise<T>) => Promise.race([p, new Promise<'late'>(r => setTimeout(() => r('late'), 1000))])
 // session start's view stored, for the tests of what a prompt then gets
-const stored = (w: World, sha = SHA) => until(() => (w.stored!['brief:/w/.git'] as { sha?: string } | undefined)?.sha === sha)
+// the stored view, under its repository and settings text (HK-091)
+const entry = (w: World, dir = '/w/.git') => Object.entries(w.stored ?? {}).find(([k]) => k.startsWith(`brief:${dir}#`))?.[1] as { sha?: string } | undefined
+const stored = (w: World, sha = SHA) => until(() => entry(w)?.sha === sha)
 
 test('prompt.context adds the short view', async ($, on) => {
   const w: World = {}
@@ -376,7 +380,7 @@ test('prompt.context never awaits the walk: the view is being built, then the st
   const cold = await late($.prompt.context({ blocks: [] }))
   expect(cold === 'late' ? 'late' : brief(cold)).toBe('housekeeping: the short view is being built and is not ready yet; /housekeeping shows it once it is.')
   open()
-  await until(() => 'brief:/w/.git' in w.stored!)
+  await until(() => !!entry(w))
   const first = brief(await $.prompt.context({ blocks: [] }))
   expect(first.startsWith('# Small: where we are (abcdef0, 2026-09-12)')).toBe(true)
   w.gate = shut()
@@ -384,7 +388,7 @@ test('prompt.context never awaits the walk: the view is being built, then the st
   const stale = await late($.prompt.context({ blocks: [] }))
   expect(stale === 'late' ? 'late' : brief(stale)).toBe(`Stored view of main at abcdef0, shown while a new one is built.\n${first}`)
   open()
-  await until(() => walks(w) === 2 && (w.stored!['brief:/w/.git'] as { sha: string }).sha === 'f'.repeat(40))
+  await until(() => walks(w) === 2 && entry(w)?.sha === 'f'.repeat(40))
   expect(walks(w)).toBe(2) // session start's and the rebuild: a prompt starts no second walk of its own
 })
 
@@ -524,13 +528,13 @@ test('on a git that echoes an unknown --path-format, two repositories keep their
   world(on, w)
   on('prompt.context', (_, e) => ({ blocks: e.blocks }))
   await $.session.start(START)
-  await until(() => 'brief:/a/.git' in w.stored!)
+  await until(() => !!entry(w, '/a/.git'))
   expect((await run($, 'map')).exitCode ?? 0).toBe(0)
   Object.assign(w, { start: '/b', top: '/b' })
   await $.prompt.context({ blocks: [] })
-  await until(() => 'brief:/b/.git' in w.stored!)
+  await until(() => !!entry(w, '/b/.git'))
   expect((await run($, 'map')).exitCode ?? 0).toBe(0)
-  expect(Object.keys(w.stored!).sort()).toEqual(['brief:/a/.git', 'brief:/b/.git', 'repo:/a/.git', 'repo:/b/.git'])
+  expect(Object.keys(w.stored!).map(k => k.replace(/#.*/, '')).sort()).toEqual(['brief:/a/.git', 'brief:/b/.git', 'repo:/a/.git', 'repo:/b/.git'])
   expect(w.calls!.filter(c => c.tool === 'Artifact').map(c => [c.action, c.url])).toEqual([['publish', undefined], ['publish', undefined]])
   expect(w.argv!.some(a => a.includes('--path-format=absolute'))).toBe(false)
 })
@@ -743,7 +747,7 @@ test('after a procedure, each compaction of the conversation is told to keep the
   expect(told.at(-1)).toContain(`this sentence: ${last} Keep`)
   expect(told.at(-1)).not.toContain(where)
   // the file it is sent back to holds the Node lines the denied context had cut (HK-088)
-  expect(told.at(-1)).toContain("In this session the procedures' lines that name cli.ts do not apply: the survey's re-run is the person's /housekeeping survey.")
+  expect(told.at(-1)).toContain("In this session the survey procedure's lines that name cli.ts do not apply: the survey's re-run is the person's /housekeeping survey.")
   expect(told[0]).not.toContain('do not apply')
 })
 
@@ -780,6 +784,72 @@ test("a fork's own compaction is told too, since it inherits the procedure; anot
   await $.session.compact({ trigger: 'auto', messages: MSGS, agentId: 'a1' })
   expect(told[0]).toContain(APPROVAL)
   expect(told[1]).toBeUndefined()
+})
+
+// the narrow check (HK-091)
+test('a fork is told what it inherited, not what the main conversation was handed later; a fork of another subagent is told nothing', async ($, on) => {
+  const w: World = { tracked: { ...TRACKED } }
+  world(on, w)
+  const told = compacts(on)
+  let n = 0
+  on('agent.spawn', () => ({ model: 'm', agentId: `s${++n}` }))
+  await $.session.start(START)
+  await run($, 'plan')
+  await ($ as any).agent.spawn({ prompt: 'x', subagentType: 'fork', fork: true }) // s1, a fork of main
+  await ($ as any).agent.spawn({ prompt: 'x', subagentType: 'general-purpose', fork: false }) // s2
+  await ($ as any).agent.spawn({ prompt: 'x', subagentType: 'fork', fork: true, parentAgentId: 's2' }) // s3, a fork of s2
+  await ($ as any).agent.spawn({ prompt: 'x', subagentType: 'fork', fork: true, parentAgentId: 's1' }) // s4, a fork of s1
+  w.denied = ['docs/todo.md']
+  await run($, 'survey') // main is handed the survey too, after the forks
+  for (const agentId of ['s1', 's3', 's4']) await $.session.compact({ trigger: 'auto', messages: MSGS, agentId })
+  expect(told[0]).toContain("handed housekeeping's plan procedure.")
+  expect(told[0]).not.toContain('do not apply')
+  expect(told[1]).toBeUndefined()
+  expect(told[2]).toContain("handed housekeeping's plan procedure.")
+})
+
+test('after a plan alone with a file denied, a compaction says nothing of the Node lines, which the plan was sent whole', async ($, on) => {
+  world(on, { tracked: { ...TRACKED }, denied: ['docs/todo.md'] })
+  const told = compacts(on)
+  await $.session.start(START)
+  await run($, 'plan')
+  await $.session.compact({ trigger: 'auto', messages: MSGS })
+  expect(told[0]).toContain(APPROVAL)
+  expect(told[0]).not.toContain('do not apply')
+})
+
+test('a rebuild that rejects is said as a failure and is not walked at every prompt', async ($, on) => {
+  const w: World = { argv: [] }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await stored(w)
+  Object.assign(w, { mainSha: 'f'.repeat(40), logThrow: true })
+  w.argv!.length = 0
+  let text = ''
+  for (let i = 0; i < 100 && !text.includes('could not be built'); i++) {
+    text = brief(await $.prompt.context({ blocks: [] }))
+    await new Promise(r => setTimeout(r, 5))
+  }
+  expect(text).toContain('a new one could not be built: housekeeping: ') // the kit reports a throwing fake as its own rejection
+  for (let i = 0; i < 3; i++) await $.prompt.context({ blocks: [] })
+  expect(walks(w)).toBe(1)
+})
+
+test('two settings texts keep two stored views, so worktrees whose settings differ do not rebuild over each other', async ($, on) => {
+  const w: World = { argv: [] }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await stored(w)
+  w.settings = small.settings.replace('"Small"', '"Other"') // the other worktree's settings
+  await $.prompt.context({ blocks: [] })
+  await until(() => walks(w) === 2)
+  await until(() => Object.keys(w.stored!).filter(k => k.startsWith('brief:/w/.git#')).length === 2)
+  w.settings = undefined // back: its own view is still stored, so no walk
+  w.argv!.length = 0
+  expect(brief(await $.prompt.context({ blocks: [] }))).not.toContain('shown while a new one is built')
+  expect(walks(w)).toBe(0)
 })
 
 test('a compaction with odd input still goes ahead (HK-090)', async ($, on) => {

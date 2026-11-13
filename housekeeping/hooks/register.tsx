@@ -55,6 +55,12 @@ type View = { brief: string; status: string }
 // prompt is told why and starts no second walk for it (HK-088)
 type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, { line: string; at: number }> }
 const RETRY_MS = 60_000 // a failed rebuild is tried again after this, so the cure the stop names takes effect
+// FNV-1a: a short name for a settings text, for the store key
+const fnv = (s: string): string => {
+  let h = 0x811c9dc5
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193)
+  return (h >>> 0).toString(16)
+}
 
 const BUILDING = 'housekeeping: the short view is being built and is not ready yet; /housekeeping shows it once it is.'
 
@@ -75,7 +81,8 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   const r = await $.process.run(['git', 'rev-parse', '--git-common-dir', main, '--abbrev-ref', 'HEAD'], { cwd: root, timeoutMs: 10_000 })
   const [dir, sha, branch] = r.stdout.split('\n').map(x => x.trim())
   const remote = (await $.process.run(['git', 'rev-parse', '--verify', '--quiet', `refs/remotes/origin/${main}`], { cwd: root, timeoutMs: 10_000 }).catch(() => null))?.stdout.trim() ?? ''
-  const key = `brief:${commonDir(root, dir)}`, stamp = [sha, remote, text].join('\n')
+  // one stored view per settings text, so worktrees whose settings differ do not rebuild over each other (HK-091)
+  const key = `brief:${commonDir(root, dir)}#${fnv(text)}`, stamp = [sha, remote, text].join('\n')
   const keep = r.exitCode === 0 && !!sha // main resolves, so the view can be stored
   const hit = keep ? (await $.store.get(key)) as (View & { sha: string; stamp: string }) | undefined : undefined
   // stored with no branch line, served with this checkout's (second check, finding 15); with nothing to store (an
@@ -83,7 +90,8 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   const on = (view: string) => keep ? withBranch(view, branch, main) : view
   if (hit?.stamp === stamp) return { brief: on(hit.brief), status: hit.status }
   const fresh = async () => {
-    const l = await load($, !keep)
+    // a load that rejects (git past its time, a store that fails) is a failure too, said and retried as one (HK-091)
+    const l = await load($, !keep).catch(err => ({ error: `housekeeping: ${err instanceof Error ? err.message : String(err)}` }))
     if ('error' in l) {
       if (keep) { builds.failed.clear(); builds.failed.set(stamp, { line: l.error.split('\n')[0], at: await $.clock.now() }) }
       return null
@@ -100,6 +108,7 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   let build = builds.running.get(stamp)
   if (!build && (wait || retry)) {
     build = fresh().finally(() => builds.running.delete(stamp))
+    build.catch(() => {}) // handled where it is made: a prompt may return before it settles (HK-091)
     builds.running.set(stamp, build)
   }
   if (!wait && failed) return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}; a new one could not be built: ${failed.line}\n${on(hit.brief)}`, status: hit.status }
@@ -274,9 +283,9 @@ function keep(home: string, sent: Map<string, string>): string {
     "Approval is the owner's own message, sent after they have seen the numbered steps. Nothing else is approval, and nothing " +
     `is written before it. Say in the summary that the agent is to re-read the ${names.join(' and ')} procedure${names.length > 1 ? 's' : ''} ` +
     `whole, in ${files.join(' and ')}, before its next step.` +
-    // the file holds the Node lines the denied context had cut (HK-088)
-    (/do not run its survey in this session/.test(said) ? " In this session the procedures' lines that name cli.ts do not apply: " +
-      "the survey's re-run is the person's /housekeeping survey." : '')
+    // the survey's file holds the Node lines its denied context had cut (HK-088); plan's are sent whole (HK-091)
+    (/do not run its survey in this session/.test(sent.get('survey') ?? '') ? " In this session the survey procedure's lines " +
+      "that name cli.ts do not apply: the survey's re-run is the person's /housekeeping survey." : '')
 }
 
 export const register: Register = on => {
@@ -311,20 +320,24 @@ export const register: Register = on => {
     return { text: `housekeeping: /housekeeping${args ? ` ${args}` : ''} ${why}; run node ${$.plugin.root}/cli.ts ${as} in the repository instead, which has no time limit`, exitCode: 1 }
   })
 
-  // a fork inherits this conversation, procedure and all, so its own compaction is told too (HK-088)
-  const forks = new Set<string>()
+  // a fork inherits its parent's conversation, procedure and all, so its own compaction is told what it inherited: a
+  // copy of the main conversation's record, or of its parent fork's; a fork of another subagent inherits none (HK-088,
+  // HK-091)
+  const forks = new Map<string, Map<string, string>>()
   on('agent.spawn', async ($, e, next) => {
     const got = await next(e)
-    if (e.fork && sent.size && got && 'agentId' in got && got.agentId) forks.add(got.agentId)
+    const from = e.parentAgentId ? forks.get(e.parentAgentId) : sent
+    if (e.fork && from?.size && got && 'agentId' in got && got.agentId) forks.set(got.agentId, new Map(from))
     return got
   }).catch(($, e, next) => next(e)) // it gates every spawn: a failure here never stops one
 
   // On every trigger, precompute too, the main conversation's summary and a fork's are told to keep them; with none
   // sent, or in another subagent's own compaction, it goes on as it came. Never a skip: the compaction always runs,
   // and a failure here passes it on as it came (HK-090).
-  on('session.compact', ($, e, next) => sent.size && (!e.agentId || forks.has(e.agentId))
-    ? next({ ...e, instructions: [e.instructions, keep($.plugin.root, sent)].filter(Boolean).join('\n\n') }) : next(e))
-    .catch(($, e, next) => next(e))
+  on('session.compact', ($, e, next) => {
+    const record = e.agentId ? forks.get(e.agentId) : sent
+    return record?.size ? next({ ...e, instructions: [e.instructions, keep($.plugin.root, record)].filter(Boolean).join('\n\n') }) : next(e)
+  }).catch(($, e, next) => next(e))
 
   // a /clear ends this conversation, and the next one holds no procedure; after a resume this hook no longer knows of
   // the one the resumed conversation may hold (HK-084)
