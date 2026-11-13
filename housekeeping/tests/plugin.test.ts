@@ -62,7 +62,7 @@ type World = {
   registered?: { description?: string; argumentHint?: string } // what session start registered the command with
   // owed's git, as -z output: the range's changed paths, its commits, their paths; each path's -U0 section, and the
   // paths whose diff is cut short (a batch holding one is cut short)
-  owed?: { names: string; log: string; paths: string; diffs: Record<string, string>; cut?: string[] }
+  owed?: { names: string; log: string; paths: string; diffs: Record<string, string>; cut?: string[]; logCut?: boolean }
   // the audit's git: main's first-parent line, oldest first, and the commit on it that added the settings
   audit?: { line: string[]; added?: string }
   changed?: boolean // git diff --quiet exits 1: the records differ between the two commits it is given
@@ -126,7 +126,7 @@ function world(on: On, w: World = {}) {
       if (a === 'merge-base') return e.argv.includes('--is-ancestor') ? ok('') : ok(`${BASE}\n`)
       if (a === 'diff' && e.argv.includes('--name-status')) return ok(o.names)
       if (a === 'log' && e.argv.includes('--name-status')) return ok(o.paths)
-      if (a === 'log' && e.argv.includes('-z')) return ok(o.log)
+      if (a === 'log' && e.argv.includes('-z')) return ok(o.log, 0, o.logCut)
       if (a === '-c') {
         const ps = e.argv.slice(e.argv.indexOf('--') + 1).map(p => p.replace(':(literal)', ''))
         return ok(ps.map(p => o.diffs[p] ?? '').join(''), 0, ps.some(p => o.cut?.includes(p)))
@@ -1489,7 +1489,28 @@ test('after /housekeeping owed a compaction is told no procedure; after plan, in
 
 // Phase 3, Task 3: /housekeeping audit. main's first-parent line is F0, F1, F2 and SHA; F1 added the settings and the
 // playbook has no duty row, so the range starts after F1 and reads through SHA; the range is owed's world above
+// the Phase 3 check: a path holding a backslash is counted as not read, never diffed, since Git for Windows reads it as a
+// separator in a pathspec; a commit log cut short names no last commit read; and the note reads as English
+test('owed counts a path holding a backslash as not read and diffs none of it; a cut commit log names no last commit read', async ($, on) => {
+  const o = OWED()
+  const w: World = { backlog: OWED_BACKLOG, argv: [], owed: { ...o, names: o.names + 'M\0odd/a\\b.ts\0', diffs: { ...o.diffs, 'odd/a\\b.ts': section('odd/a\\b.ts', 'LIMIT x') }, logCut: true } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'owed')
+  expect(r.text).toMatch(/^housekeeping owed: 1234567\.\.abcdef0, 0 commits, 4 changed paths; 1 not read \(cut short or unreadable\)\n/)
+  expect(r.text).toContain('The commits of the range were cut short: what lies past the cut is not read.')
+  expect(r.text.split('\n').at(-1)).toBe('Last commit read: none: the commits of the range were cut short, so Last done stays where it is')
+  expect(hunkCalls(w).flat().some(p => p.includes('\\'))).toBe(false)
+})
+
 const F = ['0', '1', '2'].map(c => c.repeat(40)), AUDIT_LINE = [...F, SHA]
+
+test('/housekeeping audit with nothing on main after its start says so and hands no procedure', async ($, on) => {
+  world(on, { backlog: OWED_BACKLOG, owed: OWED(), audit: { line: [F[0], F[1]], added: F[1] } })
+  await $.session.start(START)
+  const r = await run($, 'audit')
+  expect([r.exitCode ?? 0, r.text, r.context]).toEqual([0, `housekeeping audit: nothing on main after ${F[1].slice(0, 7)} to audit`, undefined])
+})
 const AUDIT_SAID = (home: string) => `housekeeping is installed at ${home}; the audit procedure is ${home}/prompts/audit.md.`
 
 test('/housekeeping audit hands the procedure, the install sentence and owed\'s listing over auditStart\'s range, with a denied path never named', async ($, on) => {

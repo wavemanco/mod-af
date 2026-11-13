@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildAudit, DECOYS, PLANTED } from '../tests/fixtures/audit.ts'
 import { type Git, readAudit, readOwed } from '../hooks/adapter.ts'
-import { addedArgs, EMPTY_TREE, firstParentArgs, OWED_ENV } from '../hooks/core/history.ts'
+import { addedArgs, EMPTY_TREE, EMPTY_TREE_256, firstParentArgs, OWED_ENV } from '../hooks/core/history.ts'
 import { parseSettings } from '../hooks/core/settings.ts'
 import { backlog as smallBacklog, playbook as smallPlaybook, settings as smallSettings } from '../tests/fixtures/small.ts'
 
@@ -106,6 +106,32 @@ test('the audit\'s first line and owed\'s stops mask an address in the mainBranc
   assert.ok(!r.text.includes(addr), r.text)
   const e = await readOwed(gitOf(f.dir), s, { base: 'x' + addr })
   assert.ok('error' in e && !e.error.includes(addr), JSON.stringify(e))
+})
+
+// the Phase 3 check: a tag named like the main branch is not read for it, which git would do first
+test('the audit reads the main branch, not a tag of the same name', async () => {
+  const f = buildAudit(tmp(), false), tip = git(f.dir, 'rev-parse', 'main')
+  git(f.dir, 'tag', 'main', f.settingsCommit)
+  const r = await readAudit(gitOf(f.dir), fixtureSettings(f.dir))
+  assert.ok('text' in r, JSON.stringify(r))
+  assert.equal(r.text.split('\n')[0], `housekeeping audit: after ${f.start.slice(0, 7)} through ${tip.slice(0, 7)} on main`)
+  // owed from main's merge base with HEAD, which is main's tip: nothing between, where the tag would give the whole range
+  const o = await readOwed(gitOf(f.dir), fixtureSettings(f.dir), {})
+  assert.ok('text' in o && o.text.startsWith('housekeeping owed: nothing between the base and the head'), JSON.stringify(o))
+})
+
+// the Phase 3 check: a SHA-256 repository's audit from its root starts at its own empty tree
+test('in a SHA-256 repository the audit reads from the root, from that format\'s empty tree', async () => {
+  const dir = tmp()
+  git(dir, 'init', '-q', '--object-format=sha256', '-b', 'main')
+  writeFileSync(join(dir, 'backlog.md'), smallBacklog)
+  writeFileSync(join(dir, 'playbook.md'), smallPlaybook)
+  git(dir, 'add', '.')
+  git(dir, '-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-q', '-m', 'Fix B-001: rate-limit the export')
+  const tip = git(dir, 'rev-parse', 'main')
+  const r = await readAudit(gitOf(dir), parseSettings(smallSettings).settings!)
+  assert.ok('text' in r, JSON.stringify(r))
+  assert.ok(r.text.startsWith(`housekeeping audit: from the root through ${tip.slice(0, 7)} on main\nhousekeeping owed: ${EMPTY_TREE_256.slice(0, 7)}..${tip.slice(0, 7)}, 1 commits, `), r.text)
 })
 
 // the controller's call on Task 2's stops: with no start, the range opens at the empty tree when the oldest commit

@@ -169,6 +169,43 @@ test('a denied path that a subject names whole is hidden; a longer name that hol
   expect(t).toContain('  - 1111111 Fix B-005: rotate [a path the Read rules deny], then [a path the Read rules deny]. Keep secret.txt.bak and mysecret.txt (in the subject')
 })
 
+// the Phase 3 check's owed findings (HK-102)
+test("a trailer is dropped only as git's own block, a paragraph of its own; a Key: value line inside prose is read", () => {
+  const t = owed(s, { ...READ, commits: [
+    { sha: sha('1'), subject: 'Tidy', body: 'Done here.\nCloses: B-002\n' },
+    { sha: sha('2'), subject: 'Tidy more', body: 'Prep.\n\nCloses: B-005\nSigned-off-by: A Person <someone@corp.io>\n' }] })
+  expect(t).toContain('  - 1111111 Tidy (in the body; a closing word is next to the ID)')
+  expect(t).not.toContain('2222222')
+})
+
+test('a trailer in the subject\'s own paragraph is cut from it, so no co-author is shown', () => {
+  const t = owed(s, { ...READ, commits: [{ sha: sha('1'), subject: 'Close B-005 Co-authored-by: Pat Example <someone@corp.io>', body: '' }] })
+  expect(t).toContain('  - 1111111 Close B-005 (in the subject; a closing word is next to the ID)')
+  expect(t).not.toContain('Pat Example')
+})
+
+test('an unterminated private key marker in one subject masks its own line only', () => {
+  const t = owed(s, { ...READ, commits: [{ sha: sha('1'), subject: 'Fix B-005 -----BEGIN OPENSSH PRIVATE KEY----- FAKEFAKE', body: '' },
+    { sha: sha('2'), subject: 'Tidy the CSV code', body: 'Prep for B-002.' }] }).split('\n')
+  expect(t).toContain('  - 2222222 Tidy the CSV code (in the body)')
+  expect(t.at(-1)).toBe(`Last commit read: ${sha('e')}`)
+})
+
+test('with the commits cut short, the listing names no last commit read, so Last done stays where it is', () => {
+  expect(owed(s, { ...READ, commitsCut: true }).split('\n').at(-1))
+    .toBe('Last commit read: none: the commits of the range were cut short, so Last done stays where it is')
+})
+
+test('a denied path\'s file name alone in a subject is hidden too', () => {
+  const t = owed(s, { ...READ, denied: ['config/private-keys.env'], commits: [{ sha: sha('1'), subject: 'Fix B-005: rotate private-keys.env', body: '' }] })
+  expect(t).toContain('  - 1111111 Fix B-005: rotate [a path the Read rules deny] (in the subject')
+})
+
+test('a path in bold, in italics or as a Markdown link in a Trigger is a token', () => {
+  expect(tokens('When **src/prices.ts** or _docs/a.md_ changes, or [the guide](docs/guide.md).')).toEqual(['src/prices.ts', 'docs/a.md', 'docs/guide.md'])
+  expect(tokens('When __init__.py changes.')).toEqual(['__init__.py'])
+})
+
 test('an ID the base holds in a Done table is taken; with nothing to list, each group says none', () => {
   const reused = once(small.backlog, '| B-005 |', '| B-004 | Reuse an ID | open | low | none | agent | yes | S | chore | now | Later. | — | — | — | 2026-09-12 |\n| B-005 |')
   const t = owed(s, { ...READ, files: { base: READ.files.base, head: { backlog: reused, playbook: small.playbook }, main: null },

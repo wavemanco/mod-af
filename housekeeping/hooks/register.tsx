@@ -390,6 +390,7 @@ async function audit($: EngineInterface, checked: (excluded: number) => void): P
   if ('text' in g) return g
   const r = await readAudit(g.git, g.settings, { allow: g.allow, checked }).catch(thrown)
   if ('error' in r) return { text: r.error, exitCode: 2 }
+  if ('idle' in r && r.idle) return { text: r.text } // nothing after the start: no procedure is handed (the Phase 3 check)
   const home = $.plugin.root
   return { text: `${r.text.split('\n')[0]}\nThe agent carries out the audit procedure on your next message, for example "go ahead".`,
     context: await handPrompt($, 'audit', `housekeeping is installed at ${home}; the audit procedure is ${home}/prompts/audit.md.`, [r.text]) }

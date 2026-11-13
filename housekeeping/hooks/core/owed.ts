@@ -13,8 +13,9 @@ export type Hit = { token: string; path: string; line: number; removed: boolean 
 // What the routes read for a range: the records at its base, its head and main's tip (null where main's tip is in the
 // range or does not resolve); its commits and each one's changed paths; the range's changed paths, both sides of a
 // rename; the paths the Read rules deny; the hits in the allowed paths' changed lines; how many paths were not read
+// commitsCut: the commit log was cut short, so the listing names no last commit read
 export type OwedRead = { base: string; head: string; files: { base: Files; head: Files; main: Files | null }; commits: Commit[];
-  paths: Record<string, string[]>; changed: string[]; denied: string[]; hits: Hit[]; notRead: number; notes: string[] }
+  paths: Record<string, string[]>; changed: string[]; denied: string[]; hits: Hit[]; notRead: number; notes: string[]; commitsCut?: boolean }
 
 const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const W = '\\p{L}\\p{N}_'
@@ -23,7 +24,9 @@ const W = '\\p{L}\\p{N}_'
 // letters once the punctuation around it is dropped; a slash command is none
 const SLASH = /^\/[^/\s]+(?:\s|$)/
 export function tokens(trigger: string): string[] {
-  const words = trigger.replace(/`[^`]*`/g, ' ').split(/\s+/).map(w => w.replace(/^[("'[{<]+|[)"'\]}>,;:!?.]+$/g, ''))
+  // a Markdown link gives its text and its target as words; bold and italics are dropped, an underscore only in a pair
+  const words = trigger.replace(/`[^`]*`/g, ' ').replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, ' $1 $2 ').split(/\s+/)
+    .map(w => w.replace(/^[("'[{<*]+|[)"'\]}>,;:!?.*]+$/g, '')).map(w => /^_.+_$/.test(w) && !/^__.*__$/.test(w) ? w.slice(1, -1) : w)
     .filter(w => w.includes('/') || /\.\p{L}+$/u.test(w))
   const all = [...[...trigger.matchAll(/`([^`]+)`/g)].map(m => m[1].trim()), ...words].map(t => t.replace(/^\.\//, ''))
   return [...new Set(all.filter(t => t && !SLASH.test(t)))]
@@ -99,12 +102,16 @@ export function parseCommits(out: string, cut: boolean): Commit[] {
   return got
 }
 
-// trailer lines (Key: value at the body's end) are dropped before matching
+// git's trailer block, the body's last paragraph when each of its lines is Key: value, is dropped before matching; a
+// Key: value line inside prose is read (the Phase 3 check)
+const TRAILER = /^[A-Za-z][\w-]*:\s/
 const untrailed = (body: string) => {
-  const l = body.trimEnd().split('\n')
-  while (l.length && /^[A-Za-z][\w-]*:\s/.test(l.at(-1)!)) l.pop()
-  return l.join('\n')
+  const paras = body.trimEnd().split(/\n[ \t]*\n/)
+  return paras.at(-1)!.split('\n').every(l => TRAILER.test(l)) ? paras.slice(0, -1).join('\n\n') : body
 }
+// git's subject is the message's whole first paragraph, so a trailer written in it with no blank line before is cut
+// off, and with it the name it holds
+const bare = (subject: string) => subject.replace(/\s+[A-Za-z][\w-]*-by:\s.*$/is, '')
 // the closing words, any case, next to the ID on either side
 const CLOSING = '(?:close[sd]?|fix(?:e[sd])?|done|land(?:s|ed)?|resolve[sd]?)'
 const closing = (text: string, id: string) => new RegExp(`(?<![${W}])${CLOSING}[^\\p{L}\\p{N}]{1,3}${esc(id)}(?![${W}])|` +
@@ -115,11 +122,10 @@ const MARK = ' (a shell can read this path as commands: put it in no command)'
 const oneLine = (t: string) => t.replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
 const marked = (p: string) => SHELL_SAFE.test(p) ? '' : MARK
 const shown = (p: string) => oneLine(p) + marked(p)
-// a denied path that a subject names whole is hidden, and a longer name that holds it is not
-// shortcut: a part of it, such as its file name alone, still shows; widen it if the owner's sitting shows the need
+// a denied path that a subject names, whole or by its file name, is hidden, and a longer name that holds it is not
 const P = '\\p{L}\\p{N}_/-'
-const hider = (denied: Set<string>) => [...denied].sort((a, b) => b.length - a.length)
-  .map(p => new RegExp(`(?<![.${P}])${esc(p)}(?![${P}]|\\.[${P}])`, 'gu'))
+const hider = (denied: Set<string>) => [...new Set([...denied].flatMap(p => [p, p.split('/').at(-1)!]))].filter(Boolean)
+  .sort((a, b) => b.length - a.length).map(p => new RegExp(`(?<![.${P}])${esc(p)}(?![${P}]|\\.[${P}])`, 'gu'))
 
 /** The listing: what the range owes the records. Evidence never holds a line's text, an author or a trailer; masked. */
 export function owed(s: Settings, r: OwedRead): string {
@@ -141,12 +147,12 @@ export function owed(s: Settings, r: OwedRead): string {
   const named = new Map<string, string[]>(), listed = new Set<string>(), hide = hider(denied)
   const subject = (t: string) => oneLine(hide.reduce((x, re) => x.replace(re, '[a path the Read rules deny]'), t))
   for (const c of r.commits) {
-    const body = untrailed(c.body), inSubject = idsIn(c.subject, s)
+    const body = untrailed(c.body), said = bare(c.subject), inSubject = idsIn(said, s)
     for (const id of new Set([...inSubject, ...idsIn(body, s)])) {
       if (!open.has(id)) continue
       listed.add(c.sha)
-      const close = closing(c.subject, id) || closing(body, id) ? '; a closing word is next to the ID' : ''
-      named.set(id, [...(named.get(id) ?? []), `  - ${c.sha.slice(0, 7)} ${subject(c.subject)} (in the ${inSubject.includes(id) ? 'subject' : 'body'}${close})`])
+      const close = closing(said, id) || closing(body, id) ? '; a closing word is next to the ID' : ''
+      named.set(id, [...(named.get(id) ?? []), `  - ${c.sha.slice(0, 7)} ${subject(said)} (in the ${inSubject.includes(id) ? 'subject' : 'body'}${close})`])
     }
   }
   const paths = r.commits.filter(c => listed.has(c.sha)).map(c => {
@@ -164,7 +170,8 @@ export function owed(s: Settings, r: OwedRead): string {
     : atBase.closed.includes(id) ? [`- ${id}: the base holds it in a Done table`] : [])
 
   const part = (title: string, lines: string[]) => [title, ...(lines.length ? lines : ['none'])]
-  return maskPrivacy([
+  // masked line by line, so an unterminated key block in one subject hides its own line only (the Phase 3 check)
+  return [
     `housekeeping owed: ${r.base.slice(0, 7)}..${r.head.slice(0, 7)}, ${r.commits.length} commits, ${r.changed.length} changed paths` +
       `${denied.size ? `; ${denied.size} excluded by the Read rules, never read or named` : ''}${r.notRead ? `; ${r.notRead} not read (cut short or unreadable)` : ''}`,
     ...r.notes,
@@ -175,8 +182,8 @@ export function owed(s: Settings, r: OwedRead): string {
     ...part('Rows gone over the range (open at the base, absent at the head, in no Done table):', d.gone.map(row)),
     ...part('Rows already settled (moved to Done at the head):', d.closed.map(row)),
     ...part('IDs the branch adds that are already taken:', taken),
-    `Last commit read: ${r.head}`,
-  ].join('\n'))
+    `Last commit read: ${r.commitsCut ? 'none: the commits of the range were cut short, so Last done stays where it is' : r.head}`,
+  ].map(l => maskPrivacy(l)).join('\n')
 }
 
 // The audit's start (Phase 3 call 2): the playbook duty row whose Trigger holds "/housekeeping audit" (the first, with a

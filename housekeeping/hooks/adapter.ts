@@ -3,8 +3,8 @@
 // session's own tools, except the plugin's own page (writePage).
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
-import { addedArgs, ancestorArgs, blobArgs, commitsArgs, EMPTY_TREE, firstParentArgs, headArgs, historyUnread, hunksArgs, logArgs, mergeBaseArgs,
-  namesArgs, NO_FETCH, parseLog, pathsArgs, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot, treeArgs, treeless, unreadable } from './core/history.ts'
+import { addedArgs, ancestorArgs, blobArgs, commitsArgs, EMPTY_TREE, EMPTY_TREE_256, firstParentArgs, headArgs, historyUnread, hunksArgs, logArgs, mergeBaseArgs,
+  isEmptyTree, namesArgs, NO_FETCH, parseLog, pathsArgs, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot, treeArgs, treeless, unreadable } from './core/history.ts'
 import { auditStart, type Hit, owed, parseCommitPaths, parseCommits, parseNames, scanDiff, watchFor } from './core/owed.ts'
 import { parseFiles } from './core/parse.ts'
 import { maskPrivacy } from './core/privacy.ts'
@@ -47,8 +47,13 @@ const BASE = 'give a base with --base <ref>.'
 // or named; checked hears how many were excluded once every check is done. A batch or a path cut short is counted as not
 // read, never a stop.
 export const readOwed = async (...a: Parameters<typeof owedRead>) => masked(await owedRead(...a))
-// what reaches the reply and the agent is masked, the settings' and the refs' names it quotes too (the Phase 3 check)
-const masked = (r: { text: string } | { error: string }) => 'error' in r ? { error: maskPrivacy(r.error) } : { text: maskPrivacy(r.text) }
+// what reaches the reply and the agent is masked, the settings' and the refs' names it quotes too, line by line, so an
+// unterminated key block hides its own line only (the Phase 3 check)
+const lines = (t: string) => t.split('\n').map(l => maskPrivacy(l)).join('\n')
+const masked = <T extends { text: string } | { error: string }>(r: T): T => 'error' in r ? { ...r, error: lines(r.error) } : { ...r, text: lines((r as { text: string }).text) }
+// a branch named as mainBranch is read before a tag of the same name, which git would read first (the Phase 3 check)
+const branchRef = async (git: Git, name: string) =>
+  (await git(['rev-parse', '--verify', '--quiet', '--end-of-options', `refs/heads/${name}`])).exitCode === 0 ? `refs/heads/${name}` : name
 async function owedRead(git: Git, s: Settings, o: { base?: string; head?: string; allow?: (path: string) => Promise<boolean>; checked?: (excluded: number) => void }):
   Promise<{ text: string } | { error: string }> {
   const run = (argv: string[]) => git(argv.slice(1))
@@ -57,12 +62,12 @@ async function owedRead(git: Git, s: Settings, o: { base?: string; head?: string
   if ((await run(SHALLOW)).stdout.trim() === 'true') return { error: SHALLOW_OWED }
   const head = await resolve(o.head ?? 'HEAD')
   if (!head) return { error: `housekeeping: '${o.head ?? 'HEAD'}' names no commit here` }
-  const main = await resolve(s.mainBranch)
+  const mref = await branchRef(git, s.mainBranch), main = await resolve(mref)
   if (!o.base && !main) return { error: `housekeeping: no branch '${s.mainBranch}' here (the "mainBranch" setting): ${BASE}` }
   // from the empty tree (an audit from the root) there is no merge base: the range is all the head holds
-  const mb = o.base === EMPTY_TREE ? null : await run(mergeBaseArgs(o.base ?? s.mainBranch, head))
+  const mb = o.base && isEmptyTree(o.base) ? null : await run(mergeBaseArgs(o.base ?? mref, head))
   if (mb && mb.exitCode !== 0) return { error: `housekeeping: '${o.base ?? s.mainBranch}' and ${head.slice(0, 7)} have no merge base here${said(mb) ? ` (git said: ${said(mb)})` : ''}` }
-  const base = mb ? mb.stdout.trim() : EMPTY_TREE
+  const base = mb ? mb.stdout.trim() : o.base!
   if (base === head) return { text: `housekeeping owed: nothing between the base and the head (${head.slice(0, 7)}): ${BASE}` }
 
   const at = recordsAt(git, s, () => true), notes: string[] = o.allow ? [] : ['No Read rules were applied: the Node command reads every changed path.']
@@ -81,7 +86,7 @@ async function owedRead(git: Git, s: Settings, o: { base?: string; head?: string
   const listing = async (argv: string[], what: string) => {
     const r = await run(argv)
     if (r.exitCode !== 0) return { error: `housekeeping: cannot read ${what} of the range: git said: ${said(r)}` }
-    if (r.isStdoutTruncated) notes.push(`The ${what} of the range was cut short: what lies past the cut is not read.`)
+    if (r.isStdoutTruncated) notes.push(`${what[0].toUpperCase()}${what.slice(1)} of the range were cut short: what lies past the cut is not read.`)
     return r
   }
   const names = await listing(namesArgs(base, head), 'the changed paths')
@@ -108,28 +113,37 @@ async function owedRead(git: Git, s: Settings, o: { base?: string; head?: string
     if (r?.isStdoutTruncated && ps.length > 1) { await diff(ps.slice(0, ps.length >> 1)); await diff(ps.slice(ps.length >> 1)); return }
     notRead += ps.length
   }
-  for (const b of toks.length ? batches(changed.filter(p => !no.has(p) && !own.has(p))) : []) await diff(b)
-  return { text: owed(s, { base, head, files: { base: fb, head: fh, main: fm }, commits, paths, changed, denied, hits, notRead, notes }) }
+  const scan = toks.length ? changed.filter(p => !no.has(p) && !own.has(p)) : []
+  // shortcut: a path holding a backslash is counted as not read on every platform, since Git for Windows reads it as a
+  // separator in a pathspec and finds nothing (the Phase 3 check); read it where git is not Windows' if one turns up
+  notRead += scan.filter(p => p.includes('\\')).length
+  for (const b of batches(scan.filter(p => !p.includes('\\')))) await diff(b)
+  return { text: owed(s, { base, head, files: { base: fb, head: fh, main: fm }, commits, paths, changed, denied, hits, notRead, notes,
+    commitsCut: log.isStdoutTruncated }) }
 }
 
 // The audit's range (Phase 3 call 2), then owed's listing over it: main's first-parent line, the commit on it that
 // added the settings and the playbook's rows at main's tip go to auditStart; with no start the range opens at the parent
 // of the oldest commit read, or at the empty tree when that commit is the root. The listing's first line says the range.
+// idle: nothing on main follows the start, so there is nothing to audit and no procedure to hand
 export const readAudit = async (...a: Parameters<typeof auditRead>) => masked(await auditRead(...a))
 async function auditRead(git: Git, s: Settings, o: { allow?: (path: string) => Promise<boolean>; checked?: (excluded: number) => void } = {}):
-  Promise<{ text: string } | { error: string }> {
-  const run = (argv: string[]) => git(argv.slice(1)), main = s.mainBranch
-  const line = await run(firstParentArgs(main)), fp = line.stdout.split('\n').map(x => x.trim()).filter(Boolean)
+  Promise<{ text: string; idle?: boolean } | { error: string }> {
+  const run = (argv: string[]) => git(argv.slice(1)), main = s.mainBranch, ref = await branchRef(git, main)
+  const line = await run(firstParentArgs(ref)), fp = line.stdout.split('\n').map(x => x.trim()).filter(Boolean)
   if (line.exitCode !== 0 || !fp.length) return { error: `housekeeping: cannot read the first-parent line of '${main}' (the "mainBranch" setting)` +
     `${line.stderr.trim() ? `: git said: ${line.stderr.split('\n')[0].trim()}` : ''}` }
   // a line cut short would start the audit at the wrong commit
   if (line.isStdoutTruncated) return { error: `housekeeping: the first-parent line of '${main}' was cut short, so the audit's start cannot be found` }
-  const added = await run(addedArgs(main))
+  const added = await run(addedArgs(ref))
   const tip = await recordsAt(git, s, () => true)(fp.at(-1)!)
   if ('error' in tip) return tip
   const { base, head, warnings } = auditStart(parseFiles(s, tip).rows, (added.exitCode === 0 && added.stdout.trim()) || null, fp)
+  if (base && head === base) return { text: [`housekeeping audit: nothing on ${main} after ${base.slice(0, 7)} to audit`, ...warnings].join('\n'), idle: true }
   const parent = base ? null : await run(resolveArgs(`${fp[0]}^`))
-  const r = await readOwed(git, s, { ...o, base: base ?? (parent?.exitCode === 0 ? parent.stdout.trim() : EMPTY_TREE), head })
+  // with no start and the root read, the range opens at the empty tree of the repository's object format
+  const empty = async () => (await run(['git', 'rev-parse', '--show-object-format'])).stdout.trim() === 'sha256' ? EMPTY_TREE_256 : EMPTY_TREE
+  const r = await readOwed(git, s, { ...o, base: base ?? (parent?.exitCode === 0 ? parent.stdout.trim() : await empty()), head })
   return 'error' in r ? r
     : { text: [`housekeeping audit: ${base ? `after ${base.slice(0, 7)}` : 'from the root'} through ${head.slice(0, 7)} on ${main}`, ...warnings, r.text].join('\n') }
 }

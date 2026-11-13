@@ -28,11 +28,12 @@ export const OWED_ENV = { GIT_OPTIONAL_LOCKS: '0', ...NO_FETCH }
 export const mergeBaseArgs = (a: string, b: string): string[] => ['git', 'merge-base', '--end-of-options', a, b]
 export const ancestorArgs = (a: string, b: string): string[] => ['git', 'merge-base', '--is-ancestor', '--end-of-options', a, b]
 // git's empty tree, where an audit from the root starts (Task 3): no merge base, the diffs compare it with the head and
-// the logs read all the head holds. shortcut: a SHA-1 repository's; a SHA-256 one names another empty tree, so an
-// audit from its root fails at git, said; take git hash-object -t tree of nothing if one is asked for
+// the logs read all the head holds; a SHA-1 repository's and a SHA-256 one's (the Phase 3 check)
 export const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
-const diffSpan = (base: string, head: string) => base === EMPTY_TREE ? [base, head] : [`${base}...${head}`]
-const logSpan = (base: string, head: string) => base === EMPTY_TREE ? [head] : [`${base}..${head}`]
+export const EMPTY_TREE_256 = '6ef19b41225c5369f1c104d45d8d85efa9b057b53b14b4b9b939dd74decc5321'
+export const isEmptyTree = (ref: string) => ref === EMPTY_TREE || ref === EMPTY_TREE_256
+const diffSpan = (base: string, head: string) => isEmptyTree(base) ? [base, head] : [`${base}...${head}`]
+const logSpan = (base: string, head: string) => isEmptyTree(base) ? [head] : [`${base}..${head}`]
 // the range's changed paths, both sides of a rename
 export const namesArgs = (base: string, head: string): string[] =>
   ['git', 'diff', '--name-status', '-M', '-z', '--no-color', '--end-of-options', ...diffSpan(base, head), '--']
