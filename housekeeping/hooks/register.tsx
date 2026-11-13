@@ -1,5 +1,6 @@
 import type { EngineInterface, Register } from 'claude-code'
-import { commonDir, PAGE, readInput, readTracked, repoKey, writeFile, writePage } from './adapter.ts'
+import { commonDir, PAGE, readInput, readOwed, readRule, readTracked, repoKey, writeFile, writePage } from './adapter.ts'
+import { OWED_ENV } from './core/history.ts'
 import { behind, brief, onBranch, withBranch, withDuties } from './core/brief.ts'
 import { card } from './core/card.ts'
 import { formatFindings } from './core/findings.ts'
@@ -254,14 +255,36 @@ function surveyArgs(rest: string): { tracker: string[]; notTracker: string[] } |
   return named
 }
 
+const OWED_USAGE = 'housekeeping: owed [--base <ref>] [--head <ref>]'
+
+// /housekeeping owed (Phase 3, Task 2): the listing as the reply; exit 2 on a usage error, a stop or a git error. Every
+// changed path is put to the person's Read rules; checked hears how many were excluded once all the checks are done.
+async function owed($: EngineInterface, rest: string, checked: (excluded: number) => void): Promise<{ text: string; exitCode?: number }> {
+  const w = rest.split(/\s+/).filter(Boolean), o: { base?: string; head?: string } = {}
+  for (let i = 0; i < w.length; i += 2) {
+    const k = w[i] === '--base' ? 'base' : w[i] === '--head' ? 'head' : null
+    if (!k || w[i + 1] === undefined || k in o) return { text: OWED_USAGE, exitCode: 2 }
+    o[k] = w[i + 1]
+  }
+  const root = await repoRoot($), file = `${root}/${SETTINGS}`
+  const p = (await $.fs.exists(file)) ? parseSettings(await $.fs.read(file)) : null
+  if (!p?.settings) return { text: p ? formatFindings(p.findings) : 'housekeeping: no .housekeeping.json here (run /housekeeping init)', exitCode: 2 }
+  const git = (argv: string[]) => $.process.run(['git', ...argv], { cwd: root, timeoutMs: 60_000, env: OWED_ENV })
+  const r = await readOwed(git, p.settings, { ...o, allow: await readRule($, root), checked })
+    .catch(err => ({ error: `housekeeping: ${err instanceof Error ? err.message : String(err)}` }))
+  return 'error' in r ? { text: r.error, exitCode: 2 } : { text: r.text }
+}
+
 // room: the pane docks beside the transcript, which the fullscreen layout does from 110 columns; elsewhere it is
 // placed inline above the prompt, where a few of the view's lines show (finding 19)
-async function command($: EngineInterface, arg: string, show: (brief: string) => void, room: boolean): Promise<{ text: string; exitCode?: number; context?: string[] }> {
+async function command($: EngineInterface, arg: string, show: (brief: string) => void, room: boolean, checked: (excluded: number) => void):
+  Promise<{ text: string; exitCode?: number; context?: string[] }> {
   if (arg === 'init') return init($)
   if (arg === 'plan') return procedure($, arg)
+  if (/^owed(?:\s|$)/.test(arg)) return owed($, arg.slice(4), checked)
   const named = /^survey(?:\s|$)/.test(arg) ? surveyArgs(arg.slice(6)) : null
   if (named) return procedure($, 'survey', named)
-  if (!['', 'check', 'map', 'map new'].includes(arg)) return { text: 'housekeeping: [map | map new | check | init | survey [--tracker <path>] [--not-tracker <path>] | plan]; no argument opens the short view' }
+  if (!['', 'check', 'map', 'map new'].includes(arg)) return { text: 'housekeeping: [map | map new | check | init | survey [--tracker <path>] [--not-tracker <path>] | plan | owed [--base <ref>] [--head <ref>]]; no argument opens the short view' }
   const l = await load($)
   if ('error' in l) return { text: l.error, exitCode: 1 }
   if (arg === 'check') return { text: [l.on.branch, ...l.on.behind, l.text].filter(Boolean).join('\n'), exitCode: l.failed ? 1 : 0 }
@@ -346,14 +369,28 @@ export function keep(home: string, sent: Map<string, Sent>): string {
       "that name cli.ts do not apply: the survey's re-run is the person's /housekeeping survey." : '')
 }
 
+// The reply of a command hook that failed outside its own promise, past its 10 s budget above all (finding 11): exit 1,
+// and the Node form to run, which has no time limit. owed's ignores the Read rules, so it is named only after a run
+// whose Read checks all finished with nothing excluded; otherwise the reply says to run the slash command again.
+export function failedReply(home: string, args: string, why: string, owedClear: boolean): { text: string; exitCode: number } {
+  const word = args.split(/\s/)[0], said = `housekeeping: /housekeeping${args ? ` ${args}` : ''} ${why}; `
+  if (word === 'owed' && !owedClear) return { text: `${said}run /housekeeping owed again: housekeeping's Node command ignores the Read rules, ` +
+    "and this run's Read checks did not all finish with nothing excluded", exitCode: 1 }
+  const as = word === '' ? 'brief' : ['map', 'check', 'survey', 'owed'].includes(word) ? word : word === 'plan' ? 'survey' : '<map|check|brief|survey|owed>'
+  return { text: `${said}run node ${home}/cli.ts ${as} in the repository instead, which has no time limit`, exitCode: 1 }
+}
+
 export const register: Register = on => {
   let view = 'housekeeping: run /housekeeping to build the short view.'
   const builds: Builds = { running: new Map(), failed: new Map() }
   // the procedures sent in this conversation, each with its install sentence (second check, finding 13)
   const sent = new Map<string, Sent>()
+  // per run of the command: whether owed's Read checks all finished with nothing excluded, for the failed reply
+  let owedClear = false
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, map new, check, init, survey, plan.', argumentHint: '[map|map new|check|init|survey [--tracker <path>] [--not-tracker <path>]|plan]' })
+    await $.command.register({ name: 'housekeeping', description: 'Pending work in one place: short view, map, map new, check, init, survey, plan, owed.',
+      argumentHint: '[map|map new|check|init|survey [--tracker <path>] [--not-tracker <path>]|plan|owed [--base <ref>] [--head <ref>]]' })
     const got = await next(e)
     // not awaited: a slow repository must not hold up the session
     cachedView($, builds).then(v => { if (v) $.ui.status(v.status) }).catch(() => {})
@@ -361,9 +398,11 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'housekeeping' }, async ($, e) => {
+    owedClear = false // first, so a run that fails at once never inherits the last one's
     // a throw anywhere below still gives the person a reply (HK-031)
     const room = e.presentation.isFullscreen && e.presentation.columns >= 110
-    const r = await command($, e.args.trim(), b => { view = b }, room).catch(err => ({ text: `housekeeping: ${err instanceof Error ? err.message : String(err)}`, exitCode: 1 } as { text: string; exitCode?: number; context?: string[] }))
+    const r = await command($, e.args.trim(), b => { view = b }, room, n => { owedClear = n === 0 })
+      .catch(err => ({ text: `housekeeping: ${err instanceof Error ? err.message : String(err)}`, exitCode: 1 } as { text: string; exitCode?: number; context?: string[] }))
     // only a procedure comes with context: the procedure, then the sentence that says where housekeeping lives
     const name = e.args.trim().split(/\s/)[0]
     // the last one sent is last, with the sentence that stands; only a reply the site can take is recorded (HK-088), and
@@ -371,12 +410,8 @@ export const register: Register = on => {
     if (Object.hasOwn(KEEP, name) && r.context?.every(c => typeof c === 'string')) { sent.delete(name); sent.set(name, { install: r.context[1] }) }
     return r
   }).catch(($, e, next) => {
-    // the hook failed outside its own promise, past its 10 s budget above all: a reply still, exit 1, and the Node
-    // command, which has no such budget, to run instead (finding 11)
-    const args = e.args.trim(), word = args.split(/\s/)[0]
-    const as = word === '' ? 'brief' : ['map', 'check', 'survey'].includes(word) ? word : word === 'plan' ? 'survey' : '<map|check|brief|survey>'
     const why = next.error.kind === 'timeout' ? 'ran past the 10 s a hook may take' : `failed in the hook (${next.error.message ?? 'no reason given'})`
-    return { text: `housekeeping: /housekeeping${args ? ` ${args}` : ''} ${why}; run node ${$.plugin.root}/cli.ts ${as} in the repository instead, which has no time limit`, exitCode: 1 }
+    return failedReply($.plugin.root, e.args.trim(), why, owedClear)
   })
 
   // a fork inherits its parent's conversation, procedure and all, so its own compaction is told what it inherited: a

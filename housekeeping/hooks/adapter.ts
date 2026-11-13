@@ -218,6 +218,15 @@ export async function writePage($: Dollar, root: string, path: string, html: str
   }
 }
 
+// The person's Read rules for a path under root, as the survey and owed obey them: a check that fails is a deny, and
+// so is an ask with no rule for a path outside the session's folder, where the rules of the repository's top are not
+// in force (second check, finding 4: the owner's "Treat 'ask' as refused"); outside hears each of those.
+export async function readRule($: Dollar, root: string, outside = () => {}): Promise<(path: string) => Promise<boolean>> {
+  const start = `${fold(await $.session.root())}/`
+  return p => $.tool.check({ tool: 'Read', input: { file_path: `${root}/${p}` } }).then(v =>
+    v.decision === 'ask' && !v.rule && !fold(`${root}/${p}`).startsWith(start) ? (outside(), false) : v.decision !== 'deny', () => false)
+}
+
 // The survey's reader: the tracked files, under collect's rules. GIT_OPTIONAL_LOCKS=0: the survey writes nothing,
 // not even git's index refresh. Each file is first put to the person's Read rules, which the survey obeys (the
 // owner, 2026-11-04: "Obey the deny rules"); a check that fails counts as a deny.
@@ -234,10 +243,8 @@ export async function readTracked($: Dollar, root: string, named = { tracker: []
   paths.pop() // the empty tail after the last NUL, or the entry the cut left half written
   const n = checkNamed(paths, named.tracker, named.notTracker)
   if ('error' in n) return { error: `housekeeping: ${n.error} (paths are from the top of ${root})` }
-  const start = `${fold(await $.session.root())}/`
   let outside = 0
-  const allow = (p: string) => $.tool.check({ tool: 'Read', input: { file_path: `${root}/${p}` } }).then(v =>
-    v.decision === 'ask' && !v.rule && !fold(`${root}/${p}`).startsWith(start) ? (outside++, false) : v.decision !== 'deny', () => false)
+  const allow = await readRule($, root, () => outside++)
   const got = await collect(paths,
     p => $.fs.stat(`${root}/${p}`).then(s => ({ file: s.kind === 'file' && !s.isLink, size: s.size }), () => null),
     p => $.fs.read(`${root}/${p}`).catch(() => null),

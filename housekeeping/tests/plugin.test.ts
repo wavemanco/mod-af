@@ -1,8 +1,8 @@
 import type { On } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 import * as small from './fixtures/small.ts'
-import { isOwnPage, readTracked } from '../hooks/adapter.ts'
-import { handPrompt, keep } from '../hooks/register.tsx'
+import { batches, isOwnPage, readTracked } from '../hooks/adapter.ts'
+import { failedReply, handPrompt, keep } from '../hooks/register.tsx'
 import { card } from '../hooks/core/card.ts'
 import { parseSettings } from '../hooks/core/settings.ts'
 
@@ -10,6 +10,7 @@ const START = { cwd: '/w', surface: 'terminal', isInteractive: true } as const
 // the fullscreen layout from 110 columns, where the pane docks beside the transcript with room
 const RUN = { origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 120 } } as const
 const SHA = 'abcdef0123456789abcdef0123456789abcdef01'
+const BASE = '1234567890123456789012345678901234567890'
 const LINE = '8 rows in all = 2 closed + 6 open; open = 2 land now + 1 small choice + 3 not now; 4 open in the backlog, 2 in the playbook'
 const ok = (stdout: string, exitCode = 0, isStdoutTruncated = false) =>
   ({ value: { exitCode, stdout, stderr: '', isStdoutTruncated, isStderrTruncated: false } })
@@ -58,6 +59,9 @@ type World = {
   gate?: Promise<void> // the history walk's git log waits for it: a slow repository
   badPrompt?: boolean // a procedure file reads as a number, so the command's reply is one the site refuses
   registered?: { description?: string; argumentHint?: string } // what session start registered the command with
+  // owed's git, as -z output: the range's changed paths, its commits, their paths; each path's -U0 section, and the
+  // paths whose diff is cut short (a batch holding one is cut short)
+  owed?: { names: string; log: string; paths: string; diffs: Record<string, string>; cut?: string[] }
 }
 
 // the engine may hand a hook a Windows-style path
@@ -90,6 +94,19 @@ function world(on: On, w: World = {}) {
     w.argv?.push([...e.argv])
     w.envs?.push(e.init?.env)
     const [, a, b] = e.argv
+    const o = w.owed
+    if (o) {
+      // HEAD and main resolve to SHA, their merge base is BASE, and main's tip is in the range
+      if (a === 'rev-parse' && b === '--verify' && String(e.argv.at(-1)).endsWith('^{commit}')) return ok(`${SHA}\n`)
+      if (a === 'merge-base') return e.argv.includes('--is-ancestor') ? ok('') : ok(`${BASE}\n`)
+      if (a === 'diff' && e.argv.includes('--name-status')) return ok(o.names)
+      if (a === 'log' && e.argv.includes('--name-status')) return ok(o.paths)
+      if (a === 'log' && e.argv.includes('-z')) return ok(o.log)
+      if (a === '-c') {
+        const ps = e.argv.slice(e.argv.indexOf('--') + 1).map(p => p.replace(':(literal)', ''))
+        return ok(ps.map(p => o.diffs[p] ?? '').join(''), 0, ps.some(p => o.cut?.includes(p)))
+      }
+    }
     if (w.noTree && (a === 'show' || a === 'cat-file' || (b === '--verify' && String(e.argv.at(-1)).includes(':'))))
       return { value: { exitCode: a === 'show' ? 128 : 1, stdout: '', stderr: 'fatal: bad object x\n', isStdoutTruncated: false, isStderrTruncated: false } }
     if (w.blobless && a === 'show') return { value: { exitCode: 128, stdout: '', stderr: 'fatal: bad object x\n', isStdoutTruncated: false, isStderrTruncated: false } }
@@ -616,7 +633,7 @@ test('a command hook that fails is answered by its .catch, with exit 1 and the N
 
 // Phase 3: each slash command is named in the usage line, the description and the argument hint; each later task
 // adds its own
-const COMMANDS = ['map', 'map new', 'check', 'init', 'survey', 'plan']
+const COMMANDS = ['map', 'map new', 'check', 'init', 'survey', 'plan', 'owed']
 const named = (text: string | undefined, name: string) => new RegExp(`(^|[^a-z])${name}([^a-z]|$)`).test(text ?? '')
 
 test('each slash command is named in the usage line, the description and the argument hint', async ($, on) => {
@@ -640,6 +657,18 @@ test('the reply of a hook that fails names each command\'s Node form', async ($,
     expect(r.text).toMatch(new RegExp(`^housekeeping: /housekeeping${args ? ` ${args}` : ''} failed in the hook \\(.+\\); ` +
       `run node .+/cli\\.ts ${node} in the repository instead, which has no time limit$`))
   }
+  // owed's Node form ignores the Read rules: a run whose checks did not all finish clear names the slash command
+  const r = await $.command.run({ command: 'housekeeping', args: 'owed', origin: { kind: 'composer' } } as never) as { text: string; exitCode?: number }
+  expect(r.exitCode).toBe(1)
+  expect(r.text).toMatch(new RegExp('^housekeeping: /housekeeping owed failed in the hook \\(.+\\); run /housekeeping owed again: ' +
+    "housekeeping's Node command ignores the Read rules, and this run's Read checks did not all finish with nothing excluded$"))
+})
+
+test('the failed reply names the Node owed only after a run whose Read checks all finished with nothing excluded', () => {
+  expect(failedReply('/h', 'owed --base x', 'ran past the 10 s a hook may take', true)).toEqual({ exitCode: 1,
+    text: 'housekeeping: /housekeeping owed --base x ran past the 10 s a hook may take; run node /h/cli.ts owed in the repository instead, which has no time limit' })
+  expect(failedReply('/h', 'owed', 'ran past the 10 s a hook may take', false).text).toBe('housekeeping: /housekeeping owed ran past the 10 s a hook ' +
+    "may take; run /housekeeping owed again: housekeeping's Node command ignores the Read rules, and this run's Read checks did not all finish with nothing excluded")
 })
 
 test('a failed publish still says the partition line and the page path (HK-032)', async ($, on) => {
@@ -1258,4 +1287,74 @@ test('in a repository with no tracked files, the survey says there is nothing to
   await $.session.start(START)
   const r = await run($, 'survey')
   expect(r.text).toContain('0 files read, 0 candidates: no tracked files, nothing to move; /housekeeping init sets up the pair')
+})
+
+// Phase 3, Task 2: /housekeeping owed on the plugin route. B-001 waits on src/a.ts and LIMIT; the range changes
+// src/a.ts, secret/key.txt (which the Read rules deny) and big.txt, each holding LIMIT on an added line
+const OWED_BACKLOG = small.backlog.replace('Before the beta.', 'When `src/a.ts` or `LIMIT` changes.')
+const C1 = 'c'.repeat(40)
+const section = (p: string, text: string) => `diff --git a/${p} b/${p}\n--- a/${p}\n+++ b/${p}\n@@ -0,0 +1 @@\n+${text}\n`
+const OWED = () => ({
+  names: 'M\0src/a.ts\0M\0secret/key.txt\0M\0big.txt\0',
+  log: `${C1}\tFix B-001 now\0\0`,
+  paths: `${C1}\0\nM\0src/a.ts\0M\0secret/key.txt\0M\0big.txt\0`,
+  diffs: { 'src/a.ts': section('src/a.ts', 'const LIMIT = 1'), 'secret/key.txt': section('secret/key.txt', 'LIMIT hidden-value'),
+    'big.txt': section('big.txt', 'LIMIT big') },
+})
+const hunkCalls = (w: World) => w.argv!.filter(a => a[1] === '-c').map(a => a.slice(a.indexOf('--') + 1))
+
+test('/housekeeping owed counts a denied path and never reads or names it, in the reply or the time-out reply; its git runs with no locks and no fetch', async ($, on) => {
+  const w: World = { backlog: OWED_BACKLOG, owed: OWED(), denied: ['secret/key.txt'], argv: [], envs: [] }
+  world(on, w)
+  await $.session.start(START)
+  w.argv!.length = 0
+  w.envs!.length = 0
+  const r = await run($, 'owed')
+  expect(r.exitCode ?? 0).toBe(0)
+  expect(r.text).toMatch(/^housekeeping owed: 1234567\.\.abcdef0, 1 commits, 3 changed paths; 1 excluded by the Read rules, never read or named\n/)
+  expect(r.text).toContain('- B-001 Rate-limit the export endpoint: `src/a.ts` matched src/a.ts; `LIMIT` matched src/a.ts line 1 and 1 more\n')
+  expect(r.text).toContain(`- ${C1.slice(0, 7)}: src/a.ts, big.txt; 1 excluded\n`)
+  for (const no of ['secret', 'hidden-value']) expect([no, r.text.includes(no)]).toEqual([no, false])
+  expect(hunkCalls(w)).toEqual([[':(literal)src/a.ts', ':(literal)big.txt']])
+  // each git call only owed makes (the short view's background build, which session start began, makes the others too)
+  const only = (a: string[]) => ['merge-base', 'diff', '-c'].includes(a[1]) || (a[1] === 'log' && a.includes('-z')) ||
+    (a[1] === 'rev-parse' && String(a.at(-1)).endsWith('^{commit}'))
+  const owedEnvs = w.envs!.filter((_, i) => only(w.argv![i]))
+  expect(owedEnvs.length).toBe(8) // HEAD, main, the merge base, main's tip in the range, the paths, the commits, theirs, one batch
+  for (const env of owedEnvs) expect(env).toEqual({ GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' })
+  // the same run, failing in the hook (a run with no presentation), names no path and offers no Node command
+  const t = await $.command.run({ command: 'housekeeping', args: 'owed', origin: { kind: 'composer' } } as never) as { text: string }
+  expect(t.text).toContain('run /housekeeping owed again')
+  expect(t.text.includes('secret')).toBe(false)
+})
+
+test('a batch cut short is read again in halves, so only the path cut short on its own is counted as not read', async ($, on) => {
+  const w: World = { backlog: OWED_BACKLOG, owed: { ...OWED(), cut: ['big.txt'] }, argv: [] }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'owed')
+  expect(r.exitCode ?? 0).toBe(0)
+  expect(r.text).toMatch(/, 3 changed paths; 1 not read \(cut short or unreadable\)\n/)
+  expect(r.text).toContain('`LIMIT` matched src/a.ts line 1 and 1 more\n')
+  expect(hunkCalls(w).map(c => c.length)).toEqual([3, 1, 2, 1, 1])
+  // each pathspec counts 11 characters more than its path (":(literal)" and a space): 12, 13 and 14 here
+  expect(batches(['a', 'bb', 'ccc'], 24)).toEqual([['a'], ['bb'], ['ccc']])
+  expect(batches(['a', 'bb', 'ccc'], 25)).toEqual([['a', 'bb'], ['ccc']])
+  expect(batches(['a', 'bb', 'ccc'], 39)).toEqual([['a', 'bb', 'ccc']])
+})
+
+test('owed exits 2 on a usage error and with no settings; a run that finished clear leaves no clear flag for the next one', async ($, on) => {
+  const w: World = { backlog: OWED_BACKLOG, owed: OWED() }
+  world(on, w)
+  await $.session.start(START)
+  for (const args of ['owed --bogus x', 'owed --base', 'owed --base a --base b']) {
+    const r = await run($, args)
+    expect([args, r.exitCode, r.text]).toEqual([args, 2, 'housekeeping: owed [--base <ref>] [--head <ref>]'])
+  }
+  expect((await run($, 'owed')).exitCode ?? 0).toBe(0) // every Read check finished, nothing excluded
+  const t = await $.command.run({ command: 'housekeeping', args: 'owed', origin: { kind: 'composer' } } as never) as { text: string }
+  expect(t.text).toContain('run /housekeeping owed again') // the failed run's own checks never ran
+  w.hasSettings = false
+  const none = await run($, 'owed')
+  expect([none.exitCode, none.text]).toEqual([2, 'housekeeping: no .housekeeping.json here (run /housekeeping init)'])
 })
