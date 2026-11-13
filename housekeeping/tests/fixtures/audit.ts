@@ -58,7 +58,9 @@ export function buildAudit(dir: string, duty: boolean): AuditFixture {
     'no: a standing duty', '—', 'Every 2 weeks: /housekeeping audit', '—', `Last done: 2026-09-01, through ${readme.slice(0, 7)}`, '2026-09-01'])) })
 
   // the ten closings do their row's work in full and wire it in, so a skeptic reading the hunk can agree; the decoys
-  // are stubs, prep, a part, a revert or a mention (the acceptance run of 2026-11-12 found stubs here, rightly refused)
+  // are stubs, prep, a part, a revert or a mention (the acceptance run of 2026-11-12 found stubs here, rightly refused).
+  // B-1's code tries three times in all, two retries, and both skeptics of the second run refused it on that: it acts
+  // as a seventh decoy, and the bar is at least 9 of the 10
   commit(['Fix B-1: retry a failed upload three times'], code('upload', [
     'export const RETRIES = 3',
     'export async function upload(send: () => Promise<void>): Promise<void> {',

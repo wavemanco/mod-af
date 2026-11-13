@@ -4,7 +4,7 @@ Every live check that Phase 3 and the second Phase 2 fix round leave, in one sit
 this machine may not start live sessions, so the owner runs each one in a terminal; no agent has run any of them. The
 kit tests (`claude plugin test`) drive the hooks with fakes of the engine: they prove the plugin against the fakes,
 not against the engine. Phase 3 read the engine facts it relies on from the engine's types and pinned them with kit
-fakes; checks 6 to 10 and 14 try those facts live, and checks 11 to 13 and 15 try what no fake shows: how the other
+fakes; checks 6 to 10, 14 and 16 try those facts live, and checks 11 to 13 and 15 try what no fake shows: how the other
 plugins and an agent behave.
 
 Each check gives the keystrokes, the one observation that means pass, and what a fail means. A fail is filed as a row,
@@ -14,20 +14,24 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
 
 - **A scratch repository with records,** so nothing the checks write lands in real work: `git init -b main`, start
   Claude Code in it, `/housekeeping init`, add three or four rows to the backlog's Open table (one with Who `owner`),
-  and commit everything on `main`. Checks 3 and 4 need a Read deny rule, and check 15 a repository whose commits close
-  rows; each says so.
+  give the path in `.housekeeping.json` one milestone (`"milestones": [{ "name": "beta" }]`) and two of the rows
+  `beta` as their Milestone (check 12), add a tracked `ideas.md` holding a `## Next steps` heading and one line under
+  it, which the survey lists as a suspect (check 4), and commit everything on `main`. Checks 3 and 4 need a Read deny
+  rule, and check 15 a repository whose commits close rows; each says so.
 - **The debug log.** Start Claude Code with `claude --debug`. Where the `automatic` setting is on (the default), each
   automatic part puts one line in the debug log alone (Phase 3 call 16): `housekeeping <hook>: <outcome> (<n> ms)`,
   where the hook is `Bash call`, `PowerShell call`, `turn end`, `session start` or `compaction`. A part that does
-  nothing says why, so a skip is told from a part that did not run.
+  nothing says why; a part whose work fails writes no line, so a missing line means it did not run or it failed.
+  These lines come in any repository, one with no `.housekeeping.json` included ("no settings file").
 
 ## HK-080's checks
 
 ### 1. A compaction before the numbered steps keeps the plan procedure (the second check's finding 13)
 
 - **Keys.** `/housekeeping plan`; at once, before any other message, `/compact`; then `go ahead`.
-- **Pass.** The agent reads the plan procedure from the install folder that the command's reply named, shows numbered
-  steps and stops, and `git status --porcelain` prints nothing.
+- **Pass.** The agent reads `prompts/plan.md` from housekeeping's install folder (its Read call shows the path, and
+  `/plugin` lists the folder; the command's reply does not name it), shows numbered steps and stops, and
+  `git status --porcelain` prints nothing.
 - **A fail** means the summary dropped the install sentence or the approval rule that the compaction hook asks it to
   keep. HK-084 names two causes the kit cannot see (a summary precomputed before the procedure was sent, and a resumed
   conversation); a write before the steps is also HK-077's trigger.
@@ -76,7 +80,9 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
   own (not `/compact`); then ask: "Quote the first line of the housekeeping block and of the housekeeping-records block
   in your context."
 - **Pass.** The agent quotes the short view's heading, `# <project>: where we are (<commit>, <date>)`, and the card's
-  first line, which starts "The commit test:".
+  first line, which starts "The commit test:". After a commit that left the records as they were, the housekeeping
+  block can start with `Stored view of <main> at <sha7>, shown while a new one is built.`, the heading on the line
+  after it: that is a pass too.
 - **A fail** means the context blocks are not served again after an automatic compaction, so DESIGN 3.6's "again after
   the conversation is compressed" does not hold: a row. The debug log's `housekeeping compaction:` line says whether
   the compaction hook ran on that trigger.
@@ -110,7 +116,9 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
   first, and `housekeeping Bash call: run in the background, nothing read` for the second.
 - **A fail** on the second means a backgrounded command's result carries no `backgroundTaskId`, so the hook reads main
   while the command may still be running, and its line can be missing or late: a row. A fail on the first means the
-  hook did not run on a compound command.
+  hook did not run on a compound command. Since the first command holds the word `git`, its pass does not show
+  whether the engine set the git operation on it; the plugin needs that only for a command without the word, which
+  this sitting does not run.
 
 ### 10. A change to the plugin's setting reloads it
 
@@ -118,8 +126,9 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
   to `on` after.
 - **Pass.** The debug log has no `housekeeping Bash call:` line for that commit, and no housekeeping line reaches the
   agent.
-- **A fail** means the old value held until a restart: the README then says to restart after changing it, a row. A
-  reload also forgets the procedures sent in the conversation (call 8).
+- **A fail:** restart Claude Code and do the commit again. If the line stops, the setting holds only after a restart:
+  the README then says to restart after changing it, a row. If it still comes, the setting never reaches the plugin:
+  a row. A reload also forgets the procedures sent in the conversation (call 8).
 
 ### 11. The records card reaches `/loose-ends`, and it follows the card
 
@@ -131,7 +140,7 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
 
 ### 12. The records card reaches `/route`, and it follows the card
 
-- **Keys.** `/route`, naming a milestone from the settings' paths.
+- **Keys.** `/route`, naming the milestone `beta` that "Before the sitting" added.
 - **Pass.** Its answer names the open rows before that milestone by their IDs, from the two files.
 - **A fail** means the card and the short view fall short for route: the same row as check 11.
 
@@ -159,3 +168,14 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
   `git worktree list` shows no audit worktree, and the branch is on no remote.
 - **A fail** means the audit's bar on a real repository (DESIGN section 7) is not met: a write before approval is
   HK-077's case too (call 14), and a wrong step is a finding for the owner.
+
+### 16. The stale-map line shows in the transcript only, and the debug lines in the debug log only
+
+- **Keys.** Under `claude --debug`, `/housekeeping map`, and publish it when asked. Then, from a shell outside Claude
+  Code, change one word in a backlog row's Details and commit it on `main`. Start a new session in the repository and
+  ask: "Did a housekeeping line about the Route Map reach you? Quote it."
+- **Pass.** "The Route Map is older than the records on main: /housekeeping map publishes it." shows dim in the
+  transcript, the agent says no such line reached it, and the transcript shows no `housekeeping <hook>:` line, which
+  the debug log holds.
+- **A fail** means `$.ui.log` goes elsewhere than the README says (its table, "The stale-map line" and "Debug lines"):
+  a row, and the README's words follow what the sitting saw.

@@ -45,5 +45,8 @@ Phase 3's brainstorm, by seven read-only Elephant-Goldfish lenses and a synthesi
 [phase-3-plan-review.md](phase-3-plan-review.md), [phase-3-plan-review-2.md](phase-3-plan-review-2.md) and
 [phase-3-plan-review-3.md](phase-3-plan-review-3.md).
 
+The narrow check of the whole Phase 3 branch, what held, what was fixed at once, and the findings for the owner's
+fix round are in [phase-3-check.md](phase-3-check.md).
+
 The checks that only a live session can make, for the owner's sitting, each with its keys and the one
 observation that means pass, are in [live-checks.md](live-checks.md). None has been run yet.

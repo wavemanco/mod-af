@@ -1,5 +1,5 @@
-// owed (Phase 3, DESIGN 3.9): what a range of commits owes the records, a pure function of what git gave for its base and
-// head, with no clock (call 1). The routes read (adapter.ts's readOwed); this module parses and lists.
+// owed (Phase 3, DESIGN 3.9): what a range of commits owes the records, a function of what git gave for its base, its
+// head and main's tip, with no clock (call 1). The routes read (adapter.ts's readOwed); this module parses and lists.
 import type { FileKey, Row, Settings } from './types.ts'
 import { historyFrom, snapshot } from './history.ts'
 import { idsIn, parseFiles } from './parse.ts'

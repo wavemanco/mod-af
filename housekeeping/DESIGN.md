@@ -468,9 +468,9 @@ tables, one path, the settings file and the `.gitignore` line.
     folder under the system temp folder, one commit per step; the branch is never pushed, and the worktree is
     removed at the end. `map` before and after, on a settings copy outside the repository, checks the counts.
 - **`/housekeeping owed [--base <ref>] [--head <ref>]`**, and `node cli.ts owed` with the same options, works
-  from the merge base of main (or of `--base`) with HEAD (or `--head`) to that head. It is a pure function of
-  what git gives for the base and the head, with no clock, so CI's output for one commit never changes by the
-  day (Phase 3 call 1; duties due stay in the short view). It lists:
+  from the merge base of main (or of `--base`) with HEAD (or `--head`) to that head. It is a function of
+  what git gives for the base, the head and main's tip (for the IDs already taken), with no clock, so CI's
+  output for one commit never changes by the day (Phase 3 call 1; duties due stay in the short view). It lists:
   - the rows whose Trigger names a changed path, or a code name on a changed line outside the records and the
     settings file, by FORMAT's code-name rule, with the token and where it matched; duty rows are left out
     (the reference repository's fired-triggers script does this part, and the comparison with it is a backlog
