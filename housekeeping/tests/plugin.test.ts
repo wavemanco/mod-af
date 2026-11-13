@@ -1,8 +1,8 @@
 import type { On } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 import * as small from './fixtures/small.ts'
-import { isOwnPage } from '../hooks/adapter.ts'
-import { keep } from '../hooks/register.tsx'
+import { isOwnPage, readTracked } from '../hooks/adapter.ts'
+import { handPrompt, keep } from '../hooks/register.tsx'
 
 const START = { cwd: '/w', surface: 'terminal', isInteractive: true } as const
 // the fullscreen layout from 110 columns, where the pane docks beside the transcript with room
@@ -61,7 +61,8 @@ type World = {
 const posix = (p: string) => p.replaceAll('\\', '/').replace(/^[A-Za-z]:/, '')
 // stand-ins for prompts/*.md: the test kit imports code files only, so it cannot read the real ones
 // the survey's has a line that names the Node command, as the real one does
-const PROMPTS: Record<string, string> = { survey: '# the survey procedure\nRe-run: node <path to housekeeping>/cli.ts survey', plan: '# the plan procedure' }
+const PROMPTS: Record<string, string> = { survey: '# the survey procedure\nRe-run: node <path to housekeeping>/cli.ts survey', plan: '# the plan procedure',
+  standin: '# a procedure that reads no tracked files' }
 const under = (p: string) => posix(p).replace(/^\/w\//, '')
 
 // The engine stand-ins: git answers from small.ts's files, tools are logged, the store is a map.
@@ -703,6 +704,22 @@ test('/housekeeping survey hands over the procedure, where housekeeping lives, t
   expect(r.context.length).toBe(3)
   expect(w.written).toBeUndefined()
   expect(w.calls!.length).toBe(0)
+})
+
+// Phase 3, the hand-over split: the inventory and the walk are survey's and plan's; another procedure is handed
+// with its install sentence and what goes with it, and runs no git. The kit refuses a test's own hooks the $ calls
+// their module never makes, so a recording stand-in for $ is the world here.
+test('a procedure other than survey and plan is handed with its install sentence and its context, with no ls-files call', async () => {
+  const argv: string[][] = [], reads: string[] = []
+  const $ = { plugin: { root: '/h' }, session: { root: async () => '/w' },
+    fs: { read: async (p: string) => (reads.push(p), PROMPTS[/\/prompts\/(\w+)\.md$/.exec(p)?.[1] ?? ''] ?? '') },
+    process: { run: async (a: string[]) => (argv.push(a), { exitCode: 128, stdout: '', stderr: 'fatal: x\n', isStdoutTruncated: false, isStderrTruncated: false }) } } as never
+  await readTracked($, '/w') // in the same world the survey's reader lists the tracked files
+  expect(argv.map(a => a[1])).toEqual(['ls-files'])
+  argv.length = 0
+  expect(await handPrompt($, 'standin', 'the install sentence', ['the listing'])).toEqual([PROMPTS.standin, 'the install sentence', 'the listing'])
+  expect(reads).toEqual(['/h/prompts/standin.md'])
+  expect(argv).toEqual([])
 })
 
 test('/housekeeping plan adds the check findings when a .housekeeping.json exists', async ($, on) => {

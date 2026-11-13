@@ -183,6 +183,12 @@ async function init($: EngineInterface): Promise<{ text: string; exitCode?: numb
   }
 }
 
+// A procedure handed to the agent: its prompt file (cut, for the survey with a file denied), the sentence that says
+// where housekeeping lives, then what goes with it. It reads no tracked file: the inventory is survey's and plan's.
+export async function handPrompt($: EngineInterface, name: string, install: string, extra: string[], cut = (t: string) => t): Promise<string[]> {
+  return [cut(await $.fs.read(`${$.plugin.root}/prompts/${name}.md`)), install, ...extra]
+}
+
 // survey and plan: the procedure, then the inventory, for the agent to follow; plan adds check's findings when
 // there are settings. Neither writes anything.
 async function procedure($: EngineInterface, arg: 'survey' | 'plan', named?: { tracker: string[]; notTracker: string[] }):
@@ -194,7 +200,6 @@ async function procedure($: EngineInterface, arg: 'survey' | 'plan', named?: { t
   // where housekeeping lives, which the procedures need for the Node command and FORMAT.md (finding 22). With a file
   // denied, no Node command: it ignores the Read rules, so the re-run is the person's slash command (second check, finding 1)
   const home = $.plugin.root
-  const text = await $.fs.read(`${home}/prompts/${arg}.md`)
   // the files outside the session's folder are said as such: no rule denied them (HK-088)
   const kept = [t.denied > t.outside && "files the person's Read rules deny",
     t.outside && "files outside the folder this session started in, where the Read rules of the repository's top are not in force"]
@@ -204,7 +209,7 @@ async function procedure($: EngineInterface, arg: 'survey' | 'plan', named?: { t
     '--not-tracker <path>, which obeys the rules.'
     : `housekeeping is installed at ${home}: run its Node command as node ${home}/cli.ts (survey takes --tracker and --not-tracker), ` +
     `and read its row format in ${home}/FORMAT.md.`
-  const context = [inv.denied && arg === 'survey' ? withoutNode(text) : text, where, formatInventory(inv)]
+  const context = await handPrompt($, arg, where, [formatInventory(inv)], inv.denied && arg === 'survey' ? withoutNode : undefined)
   if (arg === 'plan' && (await $.fs.exists(`${root}/${SETTINGS}`))) {
     const l = await load($)
     context.push(`The current /housekeeping check findings:\n${'error' in l ? l.error : l.text || 'none'}`)
