@@ -53,9 +53,19 @@ function statusLine(out: BuildOutput): string {
 type View = { brief: string; status: string }
 // the rebuilds under way, by stamp: one walk however many ask; and the last that failed, with its first line, so a
 // prompt is told why and starts no second walk for it (HK-088)
-type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, { line: string; at: number }> }
-type Views = { order: string[]; views: Record<string, View & { sha: string; stamp: string }> }
-const VIEWS = 4 // views kept per repository, one per settings text
+type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, { line: string; at: number; view?: View }> }
+type Kept = View & { sha: string; stamp: string }
+type Views = { order: string[]; views: Record<string, Kept> }
+// shortcut: more than VIEWS settings texts in use at once (worktrees, say) rebuild at every prompt; raise VIEWS if
+// that happens. 16 views of a large repository's short view are about 60 KB of the 4 MiB store (HK-093)
+const VIEWS = 16
+// a stored entry as it is meant to be, or none: an older form or a damaged one is read as none, never thrown on (HK-093)
+const viewsOf = (v: unknown): Views => {
+  const o = v as Partial<Views> | null | undefined
+  const views = o && typeof o.views === 'object' && o.views && !Array.isArray(o.views) ? o.views : {}
+  const ok = (x: unknown): x is string => typeof x === 'string' && typeof views[x]?.stamp === 'string' && typeof views[x]?.brief === 'string'
+  return { order: Array.isArray(o?.order) ? o!.order.filter(ok) : [], views }
+}
 const RETRY_MS = 60_000 // a failed rebuild is tried again after this, so the cure the stop names takes effect
 // FNV-1a: a short name for a settings text, for the store key
 const fnv = (s: string): string => {
@@ -87,7 +97,8 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   // differ keep theirs and the store stays bounded (HK-091, HK-092); an entry of an older form is read as none
   const key = `brief:${commonDir(root, dir)}`, id = fnv(text), stamp = [sha, remote, text].join('\n')
   const keep = r.exitCode === 0 && !!sha // main resolves, so the view can be stored
-  const hit = keep ? ((await $.store.get(key)) as Views | undefined)?.views?.[id] : undefined
+  const stored = keep ? viewsOf(await $.store.get(key)) : undefined
+  const hit = stored?.order.includes(id) ? stored.views[id] : undefined
   // stored with no branch line, served with this checkout's (second check, finding 15); with nothing to store (an
   // unborn HEAD, say, whose rev-parse names no branch) the load's own line stands
   const on = (view: string) => keep ? withBranch(view, branch, main) : view
@@ -104,13 +115,14 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
     if (keep) {
       // shortcut: two builds at once for two settings texts each write over the other's list, so one view is lost and
       // built again at its next prompt; fine while such builds are rare, a lock per key if they are not
-      const now = (await $.store.get(key)) as Views | undefined
-      const views = { ...(now?.views ?? {}), [id]: { sha, stamp, ...v } }
-      const order = [id, ...(now?.order ?? []).filter(x => x !== id && views[x])].slice(0, VIEWS)
-      // a refused write (a full store, say) is a failure too, so prompts do not walk again at every turn (HK-092)
+      const now = viewsOf(await $.store.get(key))
+      const views: Record<string, Kept> = { ...now.views, [id]: { sha, stamp, ...v } }
+      const order = [id, ...now.order.filter(x => x !== id)].slice(0, VIEWS)
+      // a refused write (a full store, say) keeps the view it built, said with the reason, and prompts do not walk
+      // again at every turn (HK-092, HK-093)
       const refused = await $.store.set(key, { order, views: Object.fromEntries(order.map(x => [x, views[x]])) })
-        .then(() => null, (err: unknown) => `housekeeping: the short view could not be stored: ${err instanceof Error ? err.message : String(err)}`)
-      if (refused) builds.failed.set(stamp, { line: refused, at: await $.clock.now() })
+        .then(() => null, (err: unknown) => err instanceof Error ? err.message : String(err))
+      if (refused) builds.failed.set(stamp, { line: `the short view was built but could not be stored: ${refused}`, at: await $.clock.now(), view: v })
     }
     return { ...v, brief: on(v.brief) }
   }
@@ -124,6 +136,7 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
     build.catch(() => {}) // handled where it is made: a prompt may return before it settles (HK-091)
     builds.running.set(stamp, build)
   }
+  if (!wait && failed?.view) return { brief: `housekeeping: ${failed.line}\n${on(failed.view.brief)}`, status: failed.view.status }
   if (!wait && failed) return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}; a new one could not be built: ${failed.line}\n${on(hit.brief)}`, status: hit.status }
     : { brief: `housekeeping: the short view could not be built: ${failed.line}`, status: '' }
   if (!build) return null

@@ -861,18 +861,18 @@ test('two settings texts keep two stored views, so worktrees whose settings diff
 })
 
 // the re-check (HK-092)
-test('a repository keeps at most four stored views, the latest settings texts, under one key', async ($, on) => {
+test('a repository keeps at most sixteen stored views, the latest settings texts, under one key', async ($, on) => {
   const w: World = { argv: [], stored: { 'brief:/w/.git': { sha: SHA, stamp: 'an older form', brief: 'old', status: '' } } }
   world(on, w)
   on('prompt.context', (_, e) => ({ blocks: e.blocks }))
   await $.session.start(START)
   await until(() => !!entry(w)) // the start's own build first: two builds at once each write over the other's list
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 18; i++) {
     w.settings = small.settings.replace('"Small"', `"P${i}"`)
     await $.prompt.context({ blocks: [] })
-    await until(() => walks(w) === i + 1 && (kept(w)?.order?.length ?? 0) === Math.min(i + 1, 4))
+    await until(() => walks(w) === i + 1 && (kept(w)?.order?.length ?? 0) === Math.min(i + 1, 16))
   }
-  expect(kept(w)!.order!.length).toBe(4)
+  expect(kept(w)!.order!.length).toBe(16)
   expect(Object.keys(kept(w)!.views!).sort()).toEqual([...kept(w)!.order!].sort())
   expect(Object.keys(w.stored!).filter(k => k.startsWith('brief:'))).toEqual(['brief:/w/.git'])
 })
@@ -888,9 +888,24 @@ test('a refused write of the short view is said, and prompts do not walk again a
     text = brief(await $.prompt.context({ blocks: [] }))
     await new Promise(r => setTimeout(r, 5))
   }
-  expect(text.startsWith('housekeeping: the short view could not be built: housekeeping: the short view could not be stored: ')).toBe(true)
+  // the view it built is served, with the reason (HK-093)
+  expect(text.startsWith('housekeeping: the short view was built but could not be stored: ')).toBe(true)
+  expect(text).toContain('\n# Small: where we are (abcdef0, 2026-09-12)\n')
   for (let i = 0; i < 3; i++) await $.prompt.context({ blocks: [] })
   expect(walks(w)).toBeLessThanOrEqual(2)
+})
+
+test('a damaged stored entry is read as none and replaced, never thrown on (HK-093)', async ($, on) => {
+  const w: World = { argv: [], stored: { 'brief:/w/.git': { order: 'not a list', views: [1, 2] } } }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await stored(w)
+  expect(brief(await $.prompt.context({ blocks: [] }))).toContain('# Small: where we are')
+  w.stored!['brief:/w/.git'] = { order: ['x'], views: { x: 'a string' } }
+  w.mainSha = 'f'.repeat(40)
+  await $.prompt.context({ blocks: [] })
+  await stored(w, w.mainSha)
 })
 
 test("a resumed fork keeps the record it had, not the main conversation's current one", async ($, on) => {
