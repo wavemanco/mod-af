@@ -147,6 +147,8 @@ const RULES: Record<string, string[]> = {
     'then the ID in the subject, then in the body), read only the hunks of that commit\'s allowed paths: ' +
     '`git show --format= --end-of-options <sha> -- :(literal)<path> ...`, never a whole commit, never `--stat`.', 'Pairs past 25 are counted.'],
   'the marked path': ['A pair with a marked path is a judgement call and goes into no command.'],
+  // the second acceptance run (2026-11-12): an agent read whole commit messages to confirm the listing
+  'nothing else of a commit': ['Read nothing else of a commit: not its message beyond what the listing quotes, and not its header, which names its author.'],
   'clear-cut': ['**Clear-cut** means all three: a closing word ("close", "closes", "closed", "fix", "fixes", "fixed", "done", "land", "lands", "landed", ' +
     '"resolve", "resolves", "resolved", any case) next to the ID in the subject or body; the change the hunk shows still present at main\'s tip ' +
     '(`git show --end-of-options <main>:<path>` holds it); and the skeptic agrees.'],
