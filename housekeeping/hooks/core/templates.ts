@@ -31,7 +31,10 @@ service and GitHub settings; live runs; standing duties; and milestones. An act 
 Work done in the repository is in the backlog.
 
 ${OPEN}
-${DONE}`
+${DONE}
+## Not doing
+
+${row(['Item', 'Why not', 'What would reopen it'])}`
 
 export function initFiles(project: string, mainBranch: string): { path: string; content: string }[] {
   const done = (file: string) => ({ file, sectionPrefix: 'Done', idColumn: 0, landedColumn: 3, milestoneColumn: 2 })
@@ -45,6 +48,9 @@ export function initFiles(project: string, mainBranch: string): { path: string; 
     done: [done('backlog'), done('playbook')],
     paths: [{ name: project, milestones: [] }],
     whereWeAre: { file: 'backlog', heading: 'Where we are' },
+    // items dropped, so they are not filed or argued over again, and where decision records go (Phase 3 call 10)
+    notDoing: { file: 'playbook', heading: 'Not doing' },
+    decisions: 'docs/decisions',
   }
   return [
     { path: 'docs/backlog.md', content: BACKLOG },

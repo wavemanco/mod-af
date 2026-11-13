@@ -71,6 +71,33 @@ test('the backlog keeps its how-this-file-is-kept section short', () => {
   expect(b.indexOf('## Done')).toBeGreaterThan(b.indexOf('## Open'))
 })
 
+// Phase 3 call 10: a new repository gets a not-doing table, and its settings name it and a decisions folder
+test("init's playbook has an empty Not doing table, and its settings name it, the decisions folder and the backlog's format section", () => {
+  const { f, settings, input } = made()
+  const raw = JSON.parse(f['.housekeeping.json'])
+  expect(raw.notDoing).toEqual({ file: 'playbook', heading: 'Not doing' })
+  expect(raw.decisions).toBe('docs/decisions')
+  expect(raw.files.backlog.skipSections).toEqual(['How this file is kept'])
+  expect(parseSettings(f['.housekeeping.json']).findings).toEqual([])
+  expect(f['docs/playbook.md']).toContain('\n## Not doing\n\n| Item | Why not | What would reopen it |\n|---|---|---|\n')
+  expect(build(input).parsed.notDoing).toEqual([])
+  const dropped = f['docs/playbook.md'].replace('| Item | Why not | What would reopen it |\n|---|---|---|\n',
+    '| Item | Why not | What would reopen it |\n|---|---|---|\n| Dark mode | Nobody asked | Two asks |\n')
+  const out = build({ ...input, settings, files: { ...input.files, playbook: dropped } })
+  expect(out.parsed.notDoing).toEqual([{ item: 'Dark mode', why: 'Nobody asked', reopen: 'Two asks' }])
+  expect(out.findings.filter(x => x.level !== 'recommendation')).toEqual([])
+})
+
+test('a fenced example row under "How this file is kept" gives no warning', () => {
+  const { f, input } = made()
+  const fence = '\n```\n| ID | Item | Priority | Milestone | Who | Land now | Trigger type | Trigger | Waits on | Details | Filed |\n' +
+    '|---|---|---|---|---|---|---|---|---|---|---|\n| B-1 | An example | low | none | agent | yes | now | Now. | — | — | 2026-11-03 |\n```\n'
+  const warnings = (backlog: string) => build({ ...input, files: { ...input.files, backlog } }).findings.filter(x => x.level === 'warning')
+  // in a section read for rows the same fence is a warning
+  expect(warnings(f['docs/backlog.md'].replace('\n## Open', `\n## Notes\n${fence}\n## Open`)).map(x => x.rule)).toEqual(['fence'])
+  expect(warnings(f['docs/backlog.md'].replace('\n## Where we are', `${fence}\n## Where we are`))).toEqual([])
+})
+
 // the engine may hand back Windows-style paths
 const rel = (p: string) => p.replaceAll('\\', '/').replace(/^([A-Za-z]:)?\/w\//, '')
 

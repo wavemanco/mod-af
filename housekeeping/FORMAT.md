@@ -62,8 +62,8 @@ How the files are read:
 `/housekeeping init` sets up a repository that has no records yet. It writes four things and never overwrites:
 
 - `docs/backlog.md`: the backlog definition, a short `## How this file is kept`, then `## Where we are`, `## Open` (an empty table with the columns ID, Item, Priority, Milestone, Who, Land now, Trigger type, Trigger, Waits on, Details and Filed) and `## Done` (ID, Item, Milestone, Landed).
-- `docs/playbook.md`: the playbook definition, then the same `## Open` and `## Done`.
-- `.housekeeping.json`: one path named after the folder, with no milestones, and Done readers for both files with `milestoneColumn: 2`.
+- `docs/playbook.md`: the playbook definition, then the same `## Open` and `## Done`, then `## Not doing` (an empty table with the columns Item, Why not and What would reopen it), where dropped items go so they are not filed again.
+- `.housekeeping.json`: one path named after the folder, with no milestones; Done readers for both files with `milestoneColumn: 2`; the backlog's `## How this file is kept` set aside in `skipSections`; `notDoing` naming the playbook's `Not doing`; and `decisions: "docs/decisions"`, a folder init does not create.
 - `.gitignore`: the line `.housekeeping/`, appended only when it is missing.
 
 A file that already exists is listed as "left as it is". If the repository has an `AGENTS.md` without the agent-guide line, init appends `At session start, run node <path to housekeeping>/cli.ts brief, or read the Route Map.` It creates no guide file; with none, it says so. The reply lists every file it wrote.
