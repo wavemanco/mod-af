@@ -75,6 +75,8 @@ How the files are read:
 
 A word such as `e.g.` reads as a token too (`e.g`); a name in backticks is read whatever it holds.
 
+`/housekeeping owed` puts every changed path, both sides of a rename, to your Read rules: a path they deny is never read or named, so it matches nothing, and it is counted. `node cli.ts owed` ignores the Read rules and reads every changed path.
+
 ## New repositories
 
 `/housekeeping init` sets up a repository that has no records yet. It writes four things and never overwrites:

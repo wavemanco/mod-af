@@ -206,11 +206,11 @@ test('check names the branch it read when HEAD is elsewhere, and map and check s
 })
 
 // Phase 3: the Node command's list holds each command that has a Node form; each later task adds its own
-test('the usage names map, check, brief and survey, and each of them runs', () => {
+test('the usage names map, check, brief, survey and owed, and each of them runs', () => {
   const usage = run()
   assert.equal(usage.status, 2)
   const dir = repo()
-  for (const cmd of ['map', 'check', 'brief', 'survey']) {
+  for (const cmd of ['map', 'check', 'brief', 'survey', 'owed']) {
     assert.match(usage.stderr, new RegExp(`[<|\\s]${cmd}[>|\\s]`), cmd)
     const r = run(cmd, '--repo', dir, ...(cmd === 'map' ? ['--out', join(dir, 'm.html')] : []))
     assert.equal(r.status, 0, cmd + r.stdout + r.stderr)
@@ -420,4 +420,81 @@ test('brief counts duties due by today, not by the head commit date', () => {
   const r = run('brief', '--repo', dir)
   assert.equal(r.status, 0, r.stderr)
   assert.match(r.stdout, /^Duties due: .*B-005/m)
+})
+
+// Phase 3, Task 2: owed over a range of real commits. main's B-005 waits on two code names; the branch closes it, names
+// B-002 in a body and PB-01 in a trailer, edits B-005's own row (whose line holds both names), and adds B-006, which
+// main also adds after the branch was cut
+function owedRepo(): { dir: string; first: string } {
+  const dir = repo()
+  const B = join(dir, 'backlog.md')
+  writeFileSync(B, backlog.replace('Whenever an agent picks it up.', 'When `src/export.ts` or `RATE_LIMIT` changes.'))
+  git(dir, 'commit', '-qam', 'B-005 waits on the export')
+  git(dir, 'checkout', '-q', '-b', 'feat')
+  mkdirSync(join(dir, 'src'))
+  writeFileSync(join(dir, 'src', 'export.ts'), 'export const RATE_LIMIT = 5\n')
+  git(dir, 'add', '.')
+  git(dir, 'commit', '-q', '-m', 'Fix B-005: rate-limit the export')
+  const first = git(dir, 'rev-parse', 'HEAD').trim()
+  writeFileSync(join(dir, 'src', 'csv.ts'), 'export const csv = 1\n')
+  git(dir, 'add', '.')
+  git(dir, 'commit', '-q', '-m', 'Tidy the CSV code', '-m', 'Prep for B-002.', '-m', 'Refs: PB-01\nSigned-off-by: A Person <someone@example.com>')
+  const b = readFileSync(B, 'utf8')
+  const B6 = '| B-006 | Cache the prices | open | low | none | agent | yes | S | chore | now | Later. | — | — | — | 2026-09-12 |\n'
+  writeFileSync(B, b.replace('**Why:** slow builds.', '**Why:** slow builds, and RATE_LIMIT.').replace('| B-005 |', `${B6}| B-005 |`))
+  git(dir, 'commit', '-qam', 'File the cache row')
+  git(dir, 'checkout', '-q', 'main')
+  writeFileSync(B, readFileSync(B, 'utf8').replace('| B-005 |', `${B6.replace('Cache the prices', 'Cache the rates')}| B-005 |`))
+  git(dir, 'commit', '-qam', 'File the rates row')
+  git(dir, 'checkout', '-q', 'feat')
+  return { dir, first }
+}
+const part = (out: string, title: string) => { const l = out.split('\n'), i = l.indexOf(title); return l.slice(i + 1, l.findIndex((x, j) => j > i && !/^ *- |^none$/.test(x))) }
+
+test('owed lists from the merge base with main to HEAD by default, and from a given base run through merge-base', () => {
+  const { dir, first } = owedRepo()
+  const r = run('owed', '--repo', dir)
+  assert.equal(r.status, 0, r.stdout + r.stderr)
+  const head = git(dir, 'rev-parse', 'HEAD').trim(), base = git(dir, 'merge-base', 'main', 'HEAD').trim()
+  assert.ok(r.stdout.startsWith(`housekeeping owed: ${base.slice(0, 7)}..${head.slice(0, 7)}, 3 commits, 3 changed paths\n` +
+    'No Read rules were applied: the Node command reads every changed path.\n'), r.stdout)
+  // the records' own lines are not read for code names: B-005's edited row holds RATE_LIMIT, and only src/export.ts counts
+  assert.deepEqual(part(r.stdout, 'Rows whose Trigger fired:'), ['- B-005 Tidy the build scripts: `src/export.ts` matched src/export.ts; `RATE_LIMIT` matched src/export.ts line 1'])
+  // newest first, as git logs them
+  assert.deepEqual(part(r.stdout, 'Rows the commits name by ID:'), [
+    '- B-002 CSV export of reports', `  - ${git(dir, 'rev-parse', 'HEAD~1').trim().slice(0, 7)} Tidy the CSV code (in the body)`,
+    '- B-005 Tidy the build scripts', `  - ${first.slice(0, 7)} Fix B-005: rate-limit the export (in the subject; a closing word is next to the ID)`])
+  assert.deepEqual(part(r.stdout, 'IDs the branch adds that are already taken:'), ["- B-006: main's tip holds it"])
+  assert.ok(r.stdout.endsWith(`\nLast commit read: ${head}\n`), r.stdout)
+  // no author, no trailer
+  for (const no of ['t@example.test', 'someone@example.com', 'A Person', 'Refs', 'PB-01 Book']) assert.ok(!r.stdout.includes(no), no)
+  const given = run('owed', '--repo', dir, '--base', first)
+  assert.equal(given.status, 0, given.stdout + given.stderr)
+  assert.ok(given.stdout.startsWith(`housekeeping owed: ${first.slice(0, 7)}..${head.slice(0, 7)}, 2 commits, `), given.stdout)
+  assert.deepEqual(part(given.stdout, 'Rows the commits name by ID:').filter(l => l.startsWith('- ')), ['- B-002 CSV export of reports'])
+  // the head given: nothing between it and its merge base with main, so the reply says to give a base
+  const none = run('owed', '--repo', dir, '--head', 'main')
+  assert.equal(none.status, 0, none.stdout + none.stderr)
+  assert.match(none.stdout, /^housekeeping owed: nothing between the base and the head \([0-9a-f]{7}\): give a base with --base <ref>\.$/m)
+})
+
+test('owed with no local main says to give a base, exit 2; a usage error exits 2', () => {
+  const dir = repo('trunk')
+  const r = run('owed', '--repo', dir)
+  assert.equal(r.status, 2, r.stdout + r.stderr)
+  assert.match(r.stdout, /^housekeeping: no branch 'main' here \(the "mainBranch" setting\): give a base with --base <ref>\.$/m)
+  assert.equal(run('owed', '--repo', dir, '--base', 'trunk').status, 0)
+  assert.equal(run('owed', '--repo', dir, '--bogus', 'x').status, 2)
+  assert.equal(run('owed', '--repo', dir, '--base').status, 2)
+  assert.equal(run('owed', '--repo', dir, '--settings', 'no-such.json').status, 2)
+})
+
+test('owed in a shallow clone stops, exit 2, and says why', () => {
+  const { dir } = owedRepo()
+  const clone = tmp()
+  execFileSync('git', ['clone', '-q', '--depth', '1', '--no-single-branch', pathToFileURL(dir).href, clone], { stdio: 'ignore' })
+  git(clone, 'checkout', '-q', 'feat')
+  const r = run('owed', '--repo', clone, '--base', 'origin/main')
+  assert.equal(r.status, 2, r.stdout + r.stderr)
+  assert.match(r.stdout, /^housekeeping: this clone is shallow, so the commits between the base and the head may be missing, and owed reads none: housekeeping never fetches\. Deepen it \(git fetch --unshallow\), then run this again\.$/m)
 })

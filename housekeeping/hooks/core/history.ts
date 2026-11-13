@@ -22,6 +22,26 @@ export const showArgs = (sha: string, path: string): string[] => ['git', 'show',
 // git runs with lazy fetching off: a partial clone is never fetched into (DESIGN 3.4: "never fetches")
 export const NO_FETCH = { GIT_NO_LAZY_FETCH: '1' }
 
+// owed's reads (Phase 3), each run with OWED_ENV: no optional locks, so no index refresh is written, and no lazy fetch.
+// --end-of-options before every revision; --no-color, so a color setting never reaches a parser.
+export const OWED_ENV = { GIT_OPTIONAL_LOCKS: '0', ...NO_FETCH }
+export const mergeBaseArgs = (a: string, b: string): string[] => ['git', 'merge-base', '--end-of-options', a, b]
+export const ancestorArgs = (a: string, b: string): string[] => ['git', 'merge-base', '--is-ancestor', '--end-of-options', a, b]
+// the range's changed paths, both sides of a rename
+export const namesArgs = (base: string, head: string): string[] =>
+  ['git', 'diff', '--name-status', '-M', '-z', '--no-color', '--end-of-options', `${base}...${head}`, '--']
+// every commit of the range, merged branches' too: the subject and the body; no author is asked for
+export const commitsArgs = (base: string, head: string): string[] =>
+  ['git', 'log', '-z', '--no-show-signature', '--no-color', '--format=%H%x09%s%x00%b', '--end-of-options', `${base}..${head}`, '--']
+// each commit's changed paths
+export const pathsArgs = (base: string, head: string): string[] =>
+  ['git', 'log', '-z', '--name-status', '-M', '--no-show-signature', '--no-color', '--format=%H', '--end-of-options', `${base}..${head}`, '--']
+// the added and removed lines of the paths named: no external diff or textconv runs a program, the prefixes are fixed
+// whatever the settings say, and a name is quoted only where git must
+export const hunksArgs = (base: string, head: string, paths: string[]): string[] =>
+  ['git', '-c', 'core.quotePath=false', 'diff', '-U0', '-M', '--no-color', '--no-ext-diff', '--no-textconv', '--src-prefix=a/', '--dst-prefix=b/',
+    '--end-of-options', `${base}...${head}`, '--', ...paths.map(p => `:(literal)${p}`)]
+
 // the audit's start (Phase 3 call 2): main's first-parent line, oldest first, and the commit on it that added the
 // settings (a merge that brought them in, where they came from a branch)
 export const firstParentArgs = (main: string): string[] => ['git', 'rev-list', '--first-parent', '--reverse', '--end-of-options', main, '--']

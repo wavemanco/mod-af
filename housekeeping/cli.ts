@@ -1,23 +1,26 @@
 // The Node command: reads a repository's files through git, builds with the core, writes or prints.
 // Usage: node cli.ts <map|check|brief> [--repo <dir>] [--settings <file>] [--out <file>]
 //        node cli.ts survey [--repo <dir>] [--json] [--tracker <path>]... [--not-tracker <path>]...
-import { execFileSync } from 'node:child_process'
+//        node cli.ts owed [--base <ref>] [--head <ref>] [--repo <dir>] [--settings <file>]
+import { execFileSync, spawnSync } from 'node:child_process'
 import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
+import { readOwed } from './hooks/adapter.ts'
 import { build } from './hooks/core/index.ts'
 import { behind, brief, onBranch } from './hooks/core/brief.ts'
 import { card } from './hooks/core/card.ts'
 import { formatFindings } from './hooks/core/findings.ts'
-import { blobArgs, headArgs, historyUnread, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs,
+import { blobArgs, headArgs, historyUnread, logArgs, OWED_ENV, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs,
   snapshot, treeArgs, treeless, unreadable } from './hooks/core/history.ts'
 import { parseSettings } from './hooks/core/settings.ts'
 import { checkNamed, collect, formatInventory, inventory } from './hooks/core/survey.ts'
 import type { CommitInfo, FileKey, Snapshot } from './hooks/core/types.ts'
 
 const USAGE = 'usage: node cli.ts <map|check|brief> [--repo <dir>] [--settings <file>] [--out <file>]\n' +
-  '       node cli.ts survey [--repo <dir>] [--json] [--tracker <path>]... [--not-tracker <path>]...'
+  '       node cli.ts survey [--repo <dir>] [--json] [--tracker <path>]... [--not-tracker <path>]...\n' +
+  '       node cli.ts owed [--base <ref>] [--head <ref>] [--repo <dir>] [--settings <file>]'
 const OPTIONS: Record<string, string[]> = { map: ['repo', 'settings', 'out'], check: ['repo', 'settings', 'out'],
-  brief: ['repo', 'settings', 'out'], survey: ['repo', 'json', 'tracker', 'not-tracker'] }
+  brief: ['repo', 'settings', 'out'], survey: ['repo', 'json', 'tracker', 'not-tracker'], owed: ['repo', 'settings', 'base', 'head'] }
 
 export async function main(argv: string[]): Promise<number> {
   // on Windows, Node finds a git.exe in the folder git runs in before PATH unless this is set in its own environment
@@ -40,7 +43,7 @@ export async function main(argv: string[]): Promise<number> {
   let repo = resolve(opt.repo ?? '.')
   // GIT_OPTIONAL_LOCKS=0 keeps a read from taking the index lock in a checkout someone else is using
   const git = (args: string[]) => execFileSync('git', args, { cwd: repo, maxBuffer: 64 * 1024 * 1024, encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', ...NO_FETCH } })
+    stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...OWED_ENV } })
   const gitSaid = (e: unknown) => String((e as { stderr?: string }).stderr ?? '').split('\n')[0].trim()
 
   if (cmd === 'survey') {
@@ -72,10 +75,22 @@ export async function main(argv: string[]): Promise<number> {
   let text: string
   try { text = readFileSync(settingsPath, 'utf8') } catch {
     console.log(`housekeeping: cannot read settings file ${settingsPath}`)
-    return 1
+    return cmd === 'owed' ? 2 : 1
   }
   const { settings, findings: settingsFindings } = parseSettings(text)
-  if (!settings) { console.log(formatFindings(settingsFindings)); return 1 }
+  if (!settings) { console.log(formatFindings(settingsFindings)); return cmd === 'owed' ? 2 : 1 }
+
+  // owed reads every changed path: the Node command has no Read rules (README, FORMAT). Exit 0 with a listing, 2 on a
+  // stop or a git error; output past the buffer is a cut, as past the plugin route's 4 MiB
+  if (cmd === 'owed') {
+    const r = await readOwed(async args => {
+      const c = spawnSync('git', args, { cwd: repo, maxBuffer: 64 * 1024 * 1024, encoding: 'utf8', env: { ...process.env, ...OWED_ENV } })
+      const cut = (c.error as NodeJS.ErrnoException | undefined)?.code === 'ENOBUFS'
+      return { exitCode: cut ? 0 : c.status ?? 1, stdout: c.stdout ?? '', stderr: c.stderr || String(c.error ?? ''), isStdoutTruncated: cut }
+    }, settings, { base: opt.base, head: opt.head })
+    console.log('error' in r ? r.error : r.text)
+    return 'error' in r ? 2 : 0
+  }
 
   const main = settings.mainBranch
   let head: CommitInfo

@@ -12,7 +12,7 @@ It never decides anything for you: no commits, no pushes, no fetches. Every writ
 - The short view: at most 8,000 characters, shown by `/housekeeping` with no argument and put into the session's context.
 - Publishing: the page goes to a claude.ai artifact kept private to you; the link is remembered per repository.
 
-Phase 2 adds `survey` and `plan`, for a repository whose pending work is already spread over its own files. Later phases add `audit`, `owed` and the automatic parts. They are not here yet.
+Phase 2 adds `survey` and `plan`, for a repository whose pending work is already spread over its own files. Phase 3 adds `owed`; `audit` and the automatic parts are not here yet.
 
 ## Commands
 
@@ -24,7 +24,11 @@ Phase 2 adds `survey` and `plan`, for a repository whose pending work is already
 /housekeeping init       set up a new repository
 /housekeeping survey     find where the repository keeps its pending work now; writes nothing
 /housekeeping plan       propose the steps that move it into the pair, applied only once you approve
+/housekeeping owed [--base <ref>] [--head <ref>]
+                         list what a branch owes the records: rows whose trigger fired, rows its commits name
 ```
+
+`owed` reads the commits from the merge base with the main branch (or with `--base`) to HEAD (or `--head`), and lists the rows whose Trigger names a changed path or a code name on a changed line (the rule is in [`FORMAT.md`](./FORMAT.md)), the rows the commits name by ID with each commit's paths, the checklist lines that name those rows, the rows gone or settled over the range, the IDs the branch adds that are already taken, and the range's last commit. It never shows a line's text, an author or a trailer. The slash command puts every changed path to your Read rules: a path they deny is counted, never read or named. `node cli.ts owed` ignores the Read rules and reads every changed path, wherever it runs. Both exit 0 with a listing and 2 on a usage error, a stop or a git error; in a shallow clone owed stops, since the commits it reads may be missing.
 
 `check` and `map` read the two files as committed on the main branch (`mainBranch` in the settings), so after `init`, commit its files on the branch it names.
 
@@ -35,6 +39,7 @@ The same computed parts run without Claude Code:
 ```
 node housekeeping/cli.ts <map|check|brief> [--repo <dir>] [--settings <file>] [--out <file>]
 node housekeeping/cli.ts survey [--repo <dir>] [--json] [--tracker <path>]... [--not-tracker <path>]...
+node housekeeping/cli.ts owed [--base <ref>] [--head <ref>] [--repo <dir>] [--settings <file>]
 ```
 
 `check` exits 1 when it finds an error. The page it writes is byte-identical to the plugin's.

@@ -3,17 +3,120 @@
 // session's own tools, except the plugin's own page (writePage).
 import type { EngineInterface } from 'claude-code'
 import { formatFindings } from './core/findings.ts'
-import { blobArgs, headArgs, historyUnread, logArgs, NO_FETCH, parseLog, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs,
-  snapshot, treeArgs, treeless, unreadable } from './core/history.ts'
+import { ancestorArgs, blobArgs, commitsArgs, headArgs, historyUnread, hunksArgs, logArgs, mergeBaseArgs, namesArgs, NO_FETCH, parseLog,
+  pathsArgs, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot, treeArgs, treeless, unreadable } from './core/history.ts'
+import { type Hit, owed, parseCommitPaths, parseCommits, parseNames, scanDiff, watchFor } from './core/owed.ts'
 import { parseSettings } from './core/settings.ts'
 import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
-import type { BuildInput, CommitInfo, FileKey, Finding, Snapshot } from './core/types.ts'
+import type { BuildInput, CommitInfo, FileKey, Finding, Settings, Snapshot } from './core/types.ts'
 
 type Dollar = EngineInterface
 export type Read = { input: BuildInput; branch: string; behindRemote: number; findings: Finding[] } | { error: string }
+// git, its arguments after "git": $.process.run's on the plugin route, a child process's on the Node one
+export type Git = (argv: string[]) => Promise<{ exitCode: number; stdout: string; stderr: string; isStdoutTruncated: boolean }>
+type Files = Record<FileKey, string | null>
 
 const TIMEOUT = 60_000
 const fail = (message: string): { error: string } => ({ error: formatFindings([{ level: 'error', rule: 'git', message }]) })
+
+// The two records at a commit. A null file is a missing one; a cut-short one must not be read as a short one, nor an
+// unreadable one as missing; where tree(sha) says so, a commit whose tree the clone does not hold is a stop too.
+export function recordsAt(git: Git, settings: Settings, tree: (sha: string) => boolean): (sha: string) => Promise<Files | { error: string }> {
+  const show = async (sha: string, path: string): Promise<string | null | { error: string }> => {
+    const r = await git(showArgs(sha, path).slice(1))
+    if (r.isStdoutTruncated) return { error: `git show was cut short at ${sha.slice(0, 7)}` }
+    if (r.exitCode === 0) return r.stdout
+    if ((await git(blobArgs(sha, path).slice(1))).exitCode === 0) return { error: unreadable(settings, sha, path, r.stderr.split('\n')[0].trim()) }
+    return tree(sha) && (await git(treeArgs(sha).slice(1))).exitCode !== 0 ? { error: treeless(sha, path) } : null
+  }
+  return async sha => {
+    const b = await show(sha, settings.files.backlog.path), p = await show(sha, settings.files.playbook.path)
+    return typeof b === 'object' && b ? b : typeof p === 'object' && p ? p : { backlog: b, playbook: p }
+  }
+}
+
+const SHALLOW_OWED = 'housekeeping: this clone is shallow, so the commits between the base and the head may be missing, and owed reads none: ' +
+  'housekeeping never fetches. Deepen it (git fetch --unshallow), then run this again.'
+const BASE = 'give a base with --base <ref>.'
+
+// owed's reads (Phase 3, Task 2), with no history walk: the range, the records at its base, its head and main's tip,
+// its changed paths, its commits and theirs, then the changed lines of the allowed paths in batches. allow: the
+// person's Read rules (the plugin route; the Node route has none), each changed path put to them, a denied one never read
+// or named; checked hears how many were excluded once every check is done. A batch or a path cut short is counted as not
+// read, never a stop.
+export async function readOwed(git: Git, s: Settings, o: { base?: string; head?: string; allow?: (path: string) => Promise<boolean>; checked?: (excluded: number) => void }):
+  Promise<{ text: string } | { error: string }> {
+  const run = (argv: string[]) => git(argv.slice(1))
+  const said = (r: { stderr: string }) => r.stderr.split('\n')[0].trim()
+  const resolve = async (ref: string) => { const r = await run(resolveArgs(ref)); return r.exitCode === 0 ? r.stdout.trim() : null }
+  if ((await run(SHALLOW)).stdout.trim() === 'true') return { error: SHALLOW_OWED }
+  const head = await resolve(o.head ?? 'HEAD')
+  if (!head) return { error: `housekeeping: '${o.head ?? 'HEAD'}' names no commit here` }
+  const main = await resolve(s.mainBranch)
+  if (!o.base && !main) return { error: `housekeeping: no branch '${s.mainBranch}' here (the "mainBranch" setting): ${BASE}` }
+  const mb = await run(mergeBaseArgs(o.base ?? s.mainBranch, head))
+  if (mb.exitCode !== 0) return { error: `housekeeping: '${o.base ?? s.mainBranch}' and ${head.slice(0, 7)} have no merge base here${said(mb) ? ` (git said: ${said(mb)})` : ''}` }
+  const base = mb.stdout.trim()
+  if (base === head) return { text: `housekeeping owed: nothing between the base and the head (${head.slice(0, 7)}): ${BASE}` }
+
+  const at = recordsAt(git, s, () => true), notes: string[] = o.allow ? [] : ['No Read rules were applied: the Node command reads every changed path.']
+  const fb = await at(base), fh = await at(head)
+  if ('error' in fb) return fb
+  if ('error' in fh) return fh
+  // main's tip, where it is not already in the range
+  let fm: Files | null = null
+  if (!main) notes.push(`No branch '${s.mainBranch}' here, so the IDs the branch adds were checked against the base only.`)
+  else if ((await run(ancestorArgs(main, head))).exitCode !== 0) {
+    const f = await at(main)
+    if ('error' in f) return f
+    fm = f
+  }
+  const listing = async (argv: string[], what: string) => {
+    const r = await run(argv)
+    if (r.exitCode !== 0) return { error: `housekeeping: cannot read ${what} of the range: git said: ${said(r)}` }
+    if (r.isStdoutTruncated) notes.push(`The ${what} of the range was cut short: what lies past the cut is not read.`)
+    return r
+  }
+  const names = await listing(namesArgs(base, head), 'the changed paths')
+  if ('error' in names) return names
+  const log = await listing(commitsArgs(base, head), 'the commits')
+  if ('error' in log) return log
+  const pl = await listing(pathsArgs(base, head), "the commits' paths")
+  if ('error' in pl) return pl
+  const changed = parseNames(names.stdout), commits = parseCommits(log.stdout, log.isStdoutTruncated), paths = parseCommitPaths(pl.stdout)
+
+  const all = [...new Set([...changed, ...Object.values(paths).flat()])]
+  const ok = o.allow ? await Promise.all(all.map(p => o.allow!(p))) : all.map(() => true)
+  const denied = all.filter((_, i) => !ok[i]), no = new Set(denied)
+  o.checked?.(denied.length)
+
+  // the changed lines of the allowed paths, but the records' and the settings', for the rows' code names
+  const toks = watchFor(s, fh), own = new Set([s.files.backlog.path, s.files.playbook.path, '.housekeeping.json'])
+  const hits: Hit[] = []
+  let notRead = 0
+  const diff = async (ps: string[]): Promise<void> => {
+    const r = await run(hunksArgs(base, head, ps)).catch(() => null)
+    if (r && r.exitCode === 0 && !r.isStdoutTruncated) { hits.push(...scanDiff(r.stdout, toks)); return }
+    // a batch cut short is read again in halves, so only a path cut short on its own is not read
+    if (r?.isStdoutTruncated && ps.length > 1) { await diff(ps.slice(0, ps.length >> 1)); await diff(ps.slice(ps.length >> 1)); return }
+    notRead += ps.length
+  }
+  for (const b of toks.length ? batches(changed.filter(p => !no.has(p) && !own.has(p))) : []) await diff(b)
+  return { text: owed(s, { base, head, files: { base: fb, head: fh, main: fm }, commits, paths, changed, denied, hits, notRead, notes }) }
+}
+
+// pathspecs under about 30,000 characters of command line a batch, inside Windows' 32,767
+export function batches(paths: string[], room = 30_000): string[][] {
+  const out: string[][] = []
+  let n = room
+  for (const p of paths) {
+    const k = p.length + 11 // ":(literal)" and a space
+    if (n + k > room) { out.push([]); n = 0 }
+    out.at(-1)!.push(p)
+    n += k
+  }
+  return out
+}
 
 export async function readInput($: Dollar, root: string, settingsText: string | null): Promise<Read> {
   if (settingsText === null) return { error: 'housekeeping: no .housekeeping.json here (run /housekeeping init)' }
@@ -32,18 +135,7 @@ export async function readInput($: Dollar, root: string, settingsText: string | 
       : `housekeeping: cannot read '${main}' in ${root}: git said: ${(last.stderr || v.stderr).split('\n')[0].trim()}` }
   }
 
-  // a null file is a missing one; a cut-short one must not be read as a short one, nor an unreadable one as missing
-  const show = async (sha: string, path: string): Promise<string | null | { error: string }> => {
-    const r = await git(showArgs(sha, path).slice(1))
-    if (r.isStdoutTruncated) return { error: `git show was cut short at ${sha.slice(0, 7)}` }
-    if (r.exitCode === 0) return r.stdout
-    if ((await git(blobArgs(sha, path).slice(1))).exitCode === 0) return { error: unreadable(settings, sha, path, r.stderr.split('\n')[0].trim()) }
-    return sha === head.sha && (await git(treeArgs(sha).slice(1))).exitCode !== 0 ? { error: treeless(sha, path) } : null
-  }
-  const filesAt = async (sha: string): Promise<Record<FileKey, string | null> | { error: string }> => {
-    const b = await show(sha, settings.files.backlog.path), p = await show(sha, settings.files.playbook.path)
-    return typeof b === 'object' && b ? b : typeof p === 'object' && p ? p : { backlog: b, playbook: p }
-  }
+  const filesAt = recordsAt(git, settings, sha => sha === head.sha)
 
   const shallow = (await git(SHALLOW.slice(1))).stdout.trim() === 'true'
   if (shallow) findings.push(SHALLOW_WARNING)
