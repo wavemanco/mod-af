@@ -7,6 +7,7 @@ import { addedArgs, ancestorArgs, blobArgs, commitsArgs, EMPTY_TREE, firstParent
   namesArgs, NO_FETCH, parseLog, pathsArgs, resolveArgs, SHALLOW, SHALLOW_WARNING, showArgs, snapshot, treeArgs, treeless, unreadable } from './core/history.ts'
 import { auditStart, type Hit, owed, parseCommitPaths, parseCommits, parseNames, scanDiff, watchFor } from './core/owed.ts'
 import { parseFiles } from './core/parse.ts'
+import { maskPrivacy } from './core/privacy.ts'
 import { parseSettings } from './core/settings.ts'
 import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Settings, Snapshot } from './core/types.ts'
@@ -45,7 +46,10 @@ const BASE = 'give a base with --base <ref>.'
 // person's Read rules (the plugin route; the Node route has none), each changed path put to them, a denied one never read
 // or named; checked hears how many were excluded once every check is done. A batch or a path cut short is counted as not
 // read, never a stop.
-export async function readOwed(git: Git, s: Settings, o: { base?: string; head?: string; allow?: (path: string) => Promise<boolean>; checked?: (excluded: number) => void }):
+export const readOwed = async (...a: Parameters<typeof owedRead>) => masked(await owedRead(...a))
+// what reaches the reply and the agent is masked, the settings' and the refs' names it quotes too (the Phase 3 check)
+const masked = (r: { text: string } | { error: string }) => 'error' in r ? { error: maskPrivacy(r.error) } : { text: maskPrivacy(r.text) }
+async function owedRead(git: Git, s: Settings, o: { base?: string; head?: string; allow?: (path: string) => Promise<boolean>; checked?: (excluded: number) => void }):
   Promise<{ text: string } | { error: string }> {
   const run = (argv: string[]) => git(argv.slice(1))
   const said = (r: { stderr: string }) => r.stderr.split('\n')[0].trim()
@@ -111,7 +115,8 @@ export async function readOwed(git: Git, s: Settings, o: { base?: string; head?:
 // The audit's range (Phase 3 call 2), then owed's listing over it: main's first-parent line, the commit on it that
 // added the settings and the playbook's rows at main's tip go to auditStart; with no start the range opens at the parent
 // of the oldest commit read, or at the empty tree when that commit is the root. The listing's first line says the range.
-export async function readAudit(git: Git, s: Settings, o: { allow?: (path: string) => Promise<boolean>; checked?: (excluded: number) => void } = {}):
+export const readAudit = async (...a: Parameters<typeof auditRead>) => masked(await auditRead(...a))
+async function auditRead(git: Git, s: Settings, o: { allow?: (path: string) => Promise<boolean>; checked?: (excluded: number) => void } = {}):
   Promise<{ text: string } | { error: string }> {
   const run = (argv: string[]) => git(argv.slice(1)), main = s.mainBranch
   const line = await run(firstParentArgs(main)), fp = line.stdout.split('\n').map(x => x.trim()).filter(Boolean)

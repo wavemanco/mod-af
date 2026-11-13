@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildAudit, DECOYS, PLANTED } from '../tests/fixtures/audit.ts'
-import { type Git, readAudit } from '../hooks/adapter.ts'
+import { type Git, readAudit, readOwed } from '../hooks/adapter.ts'
 import { addedArgs, EMPTY_TREE, firstParentArgs, OWED_ENV } from '../hooks/core/history.ts'
 import { parseSettings } from '../hooks/core/settings.ts'
 import { backlog as smallBacklog, playbook as smallPlaybook, settings as smallSettings } from '../tests/fixtures/small.ts'
@@ -94,6 +94,20 @@ for (const duty of [true, false]) test(`the audit's reader ${duty ? 'starts at t
   for (const id of PLANTED) assert.ok(r.text.includes(`\n- ${id} `), id)
 })
 
+// the Phase 3 check: the audit's first line and the readers' stops quote the settings and the refs, so they are masked too
+test('the audit\'s first line and owed\'s stops mask an address in the mainBranch setting or a ref', async () => {
+  // not an example.com address, which the mask leaves as made up
+  const f = buildAudit(tmp(), false), addr = 'someone@corp.io'
+  const s = { ...fixtureSettings(f.dir), mainBranch: addr }
+  git(f.dir, 'branch', '-m', 'main', addr)
+  const r = await readAudit(gitOf(f.dir), s)
+  assert.ok('text' in r, JSON.stringify(r))
+  assert.match(r.text.split('\n')[0], / on so\*+io$/)
+  assert.ok(!r.text.includes(addr), r.text)
+  const e = await readOwed(gitOf(f.dir), s, { base: 'x' + addr })
+  assert.ok('error' in e && !e.error.includes(addr), JSON.stringify(e))
+})
+
 // the controller's call on Task 2's stops: with no start, the range opens at the empty tree when the oldest commit
 // read is the root, and owed reads every commit the head holds, with no merge base
 test('with no duty row and no settings commit, the audit reads from the root, from the empty tree', async () => {
@@ -167,7 +181,7 @@ const RULES: Record<string, string[]> = {
   'never pushing': ['The branch is never pushed: it is the owner\'s.'],
   'the check after applying': ['before and after, `node <home>/cli.ts map --settings <a copy whose mainBranch is the audit branch> --out <a file in the ' +
     'system temp folder>`', 'Expected: closed up by N and open down by N; when the duty row was added, open down by N - 1 and the total up by 1. ' +
-    '`node <home>/cli.ts owed --base main --head <audit branch>` lists no gone row. Both commands read only the records and the audit\'s own commits, ' +
+    '`node <home>/cli.ts owed --base <main> --head <audit branch>` lists no gone row. Both commands read only the records and the audit\'s own commits, ' +
     'so they are allowed whatever owed excluded. If `map` exits 1 before applying, apply nothing and list the cases. Any other result: remove the ' +
     'worktree, delete the branch and report.'],
   'the settings copy outside the repository': ['the settings copy also lives there, outside the repository.'],

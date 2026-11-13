@@ -111,7 +111,15 @@ const closing = (text: string, id: string) => new RegExp(`(?<![${W}])${CLOSING}[
   `(?<![${W}-])${esc(id)}[^\\p{L}\\p{N}]{1,3}${CLOSING}(?![${W}])`, 'iu').test(text)
 
 const MARK = ' (a shell can read this path as commands: put it in no command)'
-const shown = (p: string) => SHELL_SAFE.test(p) ? p : p + MARK
+// each entry on its own line: a control character or a line or paragraph separator is written as \uXXXX
+const oneLine = (t: string) => t.replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
+const marked = (p: string) => SHELL_SAFE.test(p) ? '' : MARK
+const shown = (p: string) => oneLine(p) + marked(p)
+// a denied path that a subject names whole is hidden, and a longer name that holds it is not
+// shortcut: a part of it, such as its file name alone, still shows; widen it if the owner's sitting shows the need
+const P = '\\p{L}\\p{N}_/-'
+const hider = (denied: Set<string>) => [...denied].sort((a, b) => b.length - a.length)
+  .map(p => new RegExp(`(?<![.${P}])${esc(p)}(?![${P}]|\\.[${P}])`, 'gu'))
 
 /** The listing: what the range owes the records. Evidence never holds a line's text, an author or a trailer; masked. */
 export function owed(s: Settings, r: OwedRead): string {
@@ -123,21 +131,22 @@ export function owed(s: Settings, r: OwedRead): string {
 
   const fired = watched(s, head.rows).flatMap(({ row: w, tokens: ts }) => {
     const said = ts.flatMap(t => {
-      const at = [...r.hits.filter(h => h.token === t).map(h => `${h.path} ${h.removed ? 'removed ' : ''}line ${h.line}${shown(h.path).slice(h.path.length)}`),
+      const at = [...r.hits.filter(h => h.token === t).map(h => `${oneLine(h.path)} ${h.removed ? 'removed ' : ''}line ${h.line}${marked(h.path)}`),
         ...allowed.filter(p => onPath(t, p)).map(shown)]
       return at.length ? [`\`${t}\` matched ${at[0]}${at.length > 1 ? ` and ${at.length - 1} more` : ''}`] : []
     })
     return said.length ? [{ id: w.id, text: `${row(w.id)}: ${said.join('; ')}` }] : []
   })
 
-  const named = new Map<string, string[]>(), listed = new Set<string>()
+  const named = new Map<string, string[]>(), listed = new Set<string>(), hide = hider(denied)
+  const subject = (t: string) => oneLine(hide.reduce((x, re) => x.replace(re, '[a path the Read rules deny]'), t))
   for (const c of r.commits) {
     const body = untrailed(c.body), inSubject = idsIn(c.subject, s)
     for (const id of new Set([...inSubject, ...idsIn(body, s)])) {
       if (!open.has(id)) continue
       listed.add(c.sha)
       const close = closing(c.subject, id) || closing(body, id) ? '; a closing word is next to the ID' : ''
-      named.set(id, [...(named.get(id) ?? []), `  - ${c.sha.slice(0, 7)} ${c.subject} (in the ${inSubject.includes(id) ? 'subject' : 'body'}${close})`])
+      named.set(id, [...(named.get(id) ?? []), `  - ${c.sha.slice(0, 7)} ${subject(c.subject)} (in the ${inSubject.includes(id) ? 'subject' : 'body'}${close})`])
     }
   }
   const paths = r.commits.filter(c => listed.has(c.sha)).map(c => {
