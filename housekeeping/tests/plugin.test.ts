@@ -1358,3 +1358,18 @@ test('owed exits 2 on a usage error and with no settings; a run that finished cl
   const none = await run($, 'owed')
   expect([none.exitCode, none.text]).toEqual([2, 'housekeeping: no .housekeeping.json here (run /housekeeping init)'])
 })
+
+// Task 1's note: owed has no keep text and is never recorded, so a compaction after it goes on as it came; plan, in
+// the same world, is recorded
+test('after /housekeeping owed a compaction goes on as it came; after plan, in the same world, it is told to keep', async ($, on) => {
+  world(on, { backlog: OWED_BACKLOG, owed: OWED(), tracked: { ...TRACKED } })
+  const told = compacts(on)
+  await $.session.start(START)
+  expect((await run($, 'owed')).text).toMatch(/^housekeeping owed: /)
+  await $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine' })
+  expect(told).toEqual(['mine'])
+  await run($, 'plan')
+  await $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine' })
+  expect(told[1]).toContain("housekeeping: this conversation was handed housekeeping's plan procedure.")
+  expect(told[1]).not.toContain('owed')
+})
