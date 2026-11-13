@@ -488,9 +488,10 @@ tables, one path, the settings file and the `.gitignore` line.
 
 ### 3.10 Working with `loose-ends`, `route` and `decide`
 
-`housekeeping` lists the three as dependencies, and installing it from this marketplace installs them too
-(checked in Phase 0); the README says to install them by hand only by another route. The three keep working
-alone in any repository.
+`housekeeping` lists the three as dependencies. Phase 0 found, with a throwaway plugin that had one
+dependency, that installing a plugin from a marketplace also installs the plugin it depends on; installing
+housekeeping itself with its three has not been tried. The README says to install them by hand by another
+route. The three keep working alone in any repository.
 In a repository with `.housekeeping.json`:
 - **loose-ends** files each "FILE IT" item as a row in the right file, chosen by the commit test, with a
   trigger, through Claude Code's Edit tool, so the person's permissions apply. "DROP" items go to the "not
@@ -751,7 +752,10 @@ named limit.
   exactly, one commit per step, and `map`'s counts moved as predicted: with the duty row, closed up 9 and open
   down 9; without it, closed up 9, open down 8 and the total up 1, the duty row added. `owed` after applying
   listed no gone row, the worktrees were removed, and nothing was pushed. Both skeptics refused the tenth on a
-  real off-by-one in the fixture's code. The bar is met on both fixtures.
+  real off-by-one in the fixture's code. The bar is met on both fixtures, for `prompts/audit.md` as it was at
+  9608adc. Three later commits changed it and the run was not repeated: b17f211 (read nothing of a commit
+  beyond what the listing quotes), 56c2630 (a commit message names only its own row and its proof) and the
+  narrow check's fix of the check after applying (`--base <main>`, not `main`).
 - **`owed`:** its named tests, taken by the gate (`tests/owed.test.ts`, the owed tests in
   `tests/plugin.test.ts` and `node-tests/cli.spec.ts`). The comparison with the reference repository's
   fired-triggers script waits on its backlog row (call 13).
