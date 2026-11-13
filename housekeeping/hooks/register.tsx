@@ -57,7 +57,9 @@ function statusLine(out: BuildOutput): string {
 type View = { brief: string; status: string; duties?: PageData['duties'] }
 // the rebuilds under way, by stamp: one walk however many ask; and the last that failed, with its first line, so a
 // prompt is told why and starts no second walk for it (HK-088)
-type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, { line: string; at: number; view?: View }> }
+// announced: by store key and settings text, the main commit the after-commit line last named, so one change of the
+// records is said once however many git commands follow it (the Phase 3 check)
+type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, { line: string; at: number; view?: View }>; announced: Map<string, string> }
 type Kept = View & { sha: string; stamp: string }
 type Views = { order: string[]; views: Record<string, Kept> }
 // shortcut: more than VIEWS settings texts in use at once (worktrees, say) rebuild at every prompt; raise VIEWS if
@@ -135,11 +137,12 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
     return { ...v, brief: on(v) }
   }
   if (!keep) return fresh() // nothing to store or serve: main does not resolve, so the load stops before any walk
-  // a recent failure is said, with no walk; one older than RETRY_MS is said while it is tried again
+  // a recent failure is said, with no walk; one older than RETRY_MS is said while it is tried again, on every route,
+  // so git commands after a failure do not each walk the history again (the Phase 3 check)
   const failed = builds.failed.get(stamp)
   const retry = !failed || (await $.clock.now()) - failed.at >= RETRY_MS
   let build = builds.running.get(stamp)
-  if (!build && (wait || retry)) {
+  if (!build && retry) {
     build = fresh().finally(() => builds.running.delete(stamp))
     build.catch(() => {}) // handled where it is made: a prompt may return before it settles (HK-091)
     builds.running.set(stamp, build)
@@ -154,12 +157,12 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
     : { brief: BUILDING, status: '' }
 }
 
-// The repository's top, its settings text and its settings; null where there is no settings file or it does not parse
-async function settingsAt($: EngineInterface): Promise<{ root: string; text: string; s: Settings } | null> {
+// The repository's top, its settings text and its settings; else why not, for the debug line
+async function settingsAt($: EngineInterface): Promise<{ root: string; text: string; s: Settings } | string> {
   const root = await repoRoot($), file = `${root}/${SETTINGS}`
-  if (!(await $.fs.exists(file))) return null
+  if (!(await $.fs.exists(file))) return 'no settings file'
   const text = await $.fs.read(file), s = parseSettings(text).settings
-  return s ? { root, text, s } : null
+  return s ? { root, text, s } : 'the settings file does not parse'
 }
 const recordsSpec = (s: Settings) => ['--', `:(literal)${s.files.backlog.path}`, `:(literal)${s.files.playbook.path}`]
 // exits 1 when the records differ between two commits, 0 when they do not
@@ -172,9 +175,10 @@ async function debug($: EngineInterface, hook: string, outcome: string, t0: numb
   $.ui.log(maskPrivacy(`housekeeping ${hook}: ${outcome} (${(await $.clock.now()) - t0} ms)`), { to: 'debug' })
 }
 // an automatic part run in the background, its outcome put in the debug log; whatever fails in it stays in it, so it
-// never costs the hook that started it
+// never costs the hook that started it, and is logged by its error's name alone, which holds no path (the Phase 3 check)
+const failure = (err: unknown) => `failed: ${err instanceof Error ? err.name : 'error'}`
 const fired = ($: EngineInterface, hook: string, work: () => Promise<string>): void => {
-  (async () => { const t0 = await $.clock.now(); await debug($, hook, await work(), t0) })().catch(() => {})
+  (async () => { const t0 = await $.clock.now(); await debug($, hook, await work().catch(failure), t0) })().catch(() => {})
 }
 const at7 = (sha: string) => sha.slice(0, 7)
 
@@ -186,37 +190,43 @@ async function afterGit($: EngineInterface, builds: Builds, e: { agentId?: strin
   Promise<[typeof got, string]> {
   if (((got.result ?? {}) as { backgroundTaskId?: unknown }).backgroundTaskId) return [got, 'run in the background, nothing read']
   const at = await settingsAt($)
-  if (!at) return [got, 'no settings file']
+  if (typeof at === 'string') return [got, at]
   const { root, text, s } = at
   const v = await $.process.run(['git', 'rev-parse', '--git-common-dir', s.mainBranch], { cwd: root, timeoutMs: 10_000 })
   const [dir, sha] = v.stdout.split('\n').map(x => x.trim())
   if (v.exitCode !== 0 || !sha) return [got, 'main does not resolve']
-  const old = viewsOf(await $.store.get(`brief:${commonDir(root, dir)}`)).views[fnv(text)]?.sha
+  const key = `brief:${commonDir(root, dir)}`, id = fnv(text)
+  const old = viewsOf(await $.store.get(key)).views[id]?.sha
   if (typeof old !== 'string') return [got, `main at ${at7(sha)}, no stored view`]
   if (old === sha) return [got, `main at ${at7(sha)}, as the stored view`]
   const d = (await quietDiff($, root, s, old, sha)).exitCode
   if (d !== 1) return [got, `main at ${at7(sha)}, ${d === 0 ? `the records unchanged since ${at7(old)}` : `git diff exited ${d}`}`]
-  // not awaited: the agent's next step never waits on the walk
+  // not awaited: the agent's next step never waits on the walk, which one already running or a recent failure skips
   cachedView($, builds).then(x => { if (x) $.ui.status(x.status) }).catch(() => {})
   const said = `main at ${at7(sha)}, the records changed since ${at7(old)}: rebuilding`
-  return e.agentId === undefined
-    ? [{ ...got, context: [...(got.context ?? []), maskPrivacy(`The records on ${s.mainBranch} changed at ${at7(sha)}; /housekeeping shows the new view.`)] }, `${said}, line added`]
-    : [got, `${said}, in a subagent: no line`]
+  if (e.agentId !== undefined) return [got, `${said}, in a subagent: no line`]
+  if (builds.announced.get(`${key}#${id}`) === sha) return [got, `${said}, already said`]
+  builds.announced.set(`${key}#${id}`, sha)
+  return [{ ...got, context: [...(got.context ?? []), maskPrivacy(`The records on ${s.mainBranch} changed at ${at7(sha)}; /housekeeping shows the new view.`)] }, `${said}, line added`]
 }
 
 // At the main loop's turn end (Phase 3 call 5): /loose-ends is suggested once per HEAD, when three or more commits follow
-// the last one that touched the records and neither file has uncommitted edits. The HEAD it was last suggested at is
-// kept under its own key, nudge:<repository key>, beside the Route Map link's repo:<repository key>.
+// the last one that touched the records and neither file has uncommitted edits. The HEADs it was shown at, each with its
+// worktree's top, the latest NUDGED of them, are kept under their own key, nudge:<repository key>, beside the Route Map
+// link's repo:<repository key>; a suggestion the prompt box did not show is not kept, so the next turn end tries again.
+const NUDGED = 32
 async function nudge($: EngineInterface): Promise<string> {
   const at = await settingsAt($)
-  if (!at) return 'no settings file'
+  if (typeof at === 'string') return at
   const { root, s } = at
   const git = (argv: string[]) => $.process.run(['git', ...argv], { cwd: root, timeoutMs: 10_000, env: OWED_ENV })
   const h = await git(['rev-parse', '--git-common-dir', 'HEAD'])
   const [dir, head] = h.stdout.split('\n').map(x => x.trim())
   if (h.exitCode !== 0 || !head) return 'HEAD does not resolve'
-  const key = `nudge:${commonDir(root, dir)}`
-  if ((await $.store.get(key)) === head) return `already suggested at ${at7(head)}`
+  const key = `nudge:${commonDir(root, dir)}`, here = `${root}\n${head}`
+  // an older form (a single HEAD) is read as none
+  const kept = ((v: unknown) => Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])(await $.store.get(key))
+  if (kept.includes(here)) return `already suggested at ${at7(head)}`
   const st = await git(['status', '--porcelain', ...recordsSpec(s)])
   if (st.exitCode !== 0 || st.stdout.trim()) return `${at7(head)}, ${st.exitCode ? `git status exited ${st.exitCode}` : 'the records have uncommitted edits'}`
   const last = await git(['log', '-1', '--no-show-signature', '--format=%H', '--end-of-options', 'HEAD', ...recordsSpec(s)])
@@ -224,8 +234,10 @@ async function nudge($: EngineInterface): Promise<string> {
   const n = await git(['rev-list', '--count', '--end-of-options', last.stdout.trim() ? `${last.stdout.trim()}..HEAD` : 'HEAD', '--'])
   const since = Number(n.stdout.trim())
   if (n.exitCode !== 0 || !(since >= 3)) return `${at7(head)}, ${n.exitCode ? `git rev-list exited ${n.exitCode}` : `${since} commits since the records, fewer than 3`}`
-  $.prompt.suggest({ text: '/loose-ends' }).catch(() => {}) // not awaited (call 5)
-  await $.store.set(key, head)
+  // awaited here, in the background after the turn's end, which never waits on it (call 5)
+  const shown = (await $.prompt.suggest({ text: '/loose-ends' })).isShown
+  if (!shown) return `/loose-ends not shown at ${at7(head)}, ${since} commits since the records`
+  await $.store.set(key, [here, ...kept.filter(x => x !== here)].slice(0, NUDGED))
   return `/loose-ends suggested at ${at7(head)}, ${since} commits since the records`
 }
 
@@ -233,9 +245,9 @@ async function nudge($: EngineInterface): Promise<string> {
 // it was published at, one line in the transcript says so; with no link stored, nothing is read
 async function staleMap($: EngineInterface): Promise<string> {
   const at = await settingsAt($)
-  if (!at) return 'no settings file'
+  if (typeof at === 'string') return at
   const { root, s } = at
-  const known = (await $.store.get(`repo:${await repoKey($, root)}`)) as { url?: unknown; sha?: unknown } | undefined
+  const known =(await $.store.get(`repo:${await repoKey($, root)}`)) as { url?: unknown; sha?: unknown } | undefined
   if (!known?.url || typeof known.sha !== 'string') return 'no Route Map link stored'
   const d = (await quietDiff($, root, s, known.sha, s.mainBranch)).exitCode
   if (d !== 1) return d === 0 ? `the Route Map at ${at7(known.sha)} matches the records` : `git diff exited ${d}`
@@ -504,9 +516,10 @@ export function failedReply(home: string, args: string, why: string, owedClear: 
 export const register: Register = (on, options) => {
   // Phase 3 call 8: "off" stops the after-commit rebuild and its line, the /loose-ends suggestion, the stale-map line
   // and the debug lines; the compaction paragraph and the records card stay. "on" is the default.
-  const automatic = options?.automatic !== 'off'
+  // off, false, no or 0, in any case and with spaces around it, all read as off (the Phase 3 check)
+  const automatic = !/^(off|false|no|0)$/i.test(String(options?.automatic ?? 'on').trim())
   let view = 'housekeeping: run /housekeeping to build the short view.'
-  const builds: Builds = { running: new Map(), failed: new Map() }
+  const builds: Builds = { running: new Map(), failed: new Map(), announced: new Map() }
   // the procedures sent in this conversation, each with its install sentence (second check, finding 13)
   const sent = new Map<string, Sent>()
   // per run of the command: whether owed's Read checks all finished with nothing excluded, for the failed reply
@@ -574,13 +587,16 @@ export const register: Register = (on, options) => {
   // the tool's own result. The .catch's next is replay-safe: it never runs the command again.
   on('tool.call', { tool: ['Bash', 'PowerShell'] }, async ($, e, next) => {
     const got = await next(e)
+    let t0: number | null = null
     try {
       if (!automatic || got.deny !== undefined || !((got.result as { gitOperation?: unknown } | undefined)?.gitOperation || /\bgit\b/.test(String(e.command ?? '')))) return got
-      const t0 = await $.clock.now()
+      t0 = await $.clock.now()
       const [out, said] = await afterGit($, builds, e, got)
       debug($, `${e.tool} call`, said, t0).catch(() => {})
       return out
-    } catch {
+    } catch (err) {
+      // a firing that failed says so, by the error's name alone (the Phase 3 check)
+      if (t0 !== null) debug($, `${e.tool} call`, failure(err), t0).catch(() => {})
       return got
     }
   }).catch(($, e, next) => next(e))

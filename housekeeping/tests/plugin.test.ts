@@ -73,6 +73,7 @@ type World = {
   since?: number // rev-list --count from it to HEAD
   dirty?: string // git status --porcelain on the records
   suggested?: string[] // each prompt.suggest text
+  notShown?: boolean // the prompt box does not show the suggestion (it holds text, say)
   logs?: { text: string; to: string }[] // each ui.log line, with where it goes
 }
 
@@ -171,7 +172,7 @@ function world(on: On, w: World = {}) {
     return { value: undefined }
   })
   on('store.delete', (_, e) => { delete stored[e.key]; return { value: undefined } })
-  on('prompt.suggest', (_, e) => { w.suggested?.push(e.text); return { isShown: true } })
+  on('prompt.suggest', (_, e) => { w.suggested?.push(e.text); return { isShown: !w.notShown } })
   on('ui.log', (_, e) => { w.logs?.push({ text: e.text, to: e.to }); return { value: undefined } })
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('tool.list', () => ({ value: w.noArtifact ? [{ name: 'Write', description: '', mcp: false }] : [{ name: 'Write', description: '', mcp: false }, { name: 'Artifact', description: '', mcp: false }] }))
@@ -1686,6 +1687,92 @@ test('with automatic off, a git commit makes no git call and adds no line, a tur
   expect(w.logs).toEqual([]) // nor any debug line
 })
 
+// the Phase 3 check: the switch reads off in any case and with spaces around it, and false, no and 0 as off too
+for (const off of ['Off', ' OFF ', 'false', 'no', '0']) test(`the automatic setting "${off}" turns the automatic parts off`, { options: { automatic: off } }, async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [], logs: [], suggested: [], since: 5 }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true })
+  w.argv!.length = 0
+  expect((await shell($, 'git commit -m x')).context).toBeUndefined()
+  await ended($)
+  await new Promise(r => setTimeout(r, 50))
+  expect([w.argv, w.suggested, w.logs]).toEqual([[], [], []])
+})
+
+test('after a rebuild that failed, later git commands start no walk before the retry time and add the line once', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [], logs: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true, logFail: 'fatal: bad object\n' })
+  const n = walks(w)
+  expect((await shell($, 'git commit -m a')).context).toEqual([CHANGED])
+  await until(() => walks(w) === n + 1)
+  await new Promise(r => setTimeout(r, 50))
+  expect((await shell($, 'git status')).context).toBeUndefined()
+  expect((await shell($, 'git log')).context).toBeUndefined()
+  await new Promise(r => setTimeout(r, 50))
+  expect(walks(w)).toBe(n + 1)
+})
+
+test('while one rebuild runs, a second git command gets no second line', async ($, on) => {
+  let open!: () => void
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true, gate: new Promise<void>(r => { open = r }) })
+  expect((await shell($, 'git commit -m a')).context).toEqual([CHANGED])
+  expect((await shell($, 'git status')).context).toBeUndefined()
+  open()
+  await stored(w, NEW)
+  w.mainSha = OTHER // main moves again: a new change, a new line
+  expect((await shell($, 'git pull')).context).toEqual([CHANGED.replace(NEW.slice(0, 7), OTHER.slice(0, 7))])
+})
+
+test('a firing whose work fails says so in the debug log, and a settings file that does not parse is told from a missing one', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [], logs: [], suggested: [], since: 3 }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  await until(() => debugs(w).length > 0)
+  w.failRead = true
+  await ended($)
+  await until(() => debugs(w).length > 1)
+  await shell($, 'git commit -m x')
+  await until(() => debugs(w).length > 2)
+  Object.assign(w, { failRead: false, settings: '{ not json' })
+  await ended($)
+  await until(() => debugs(w).length > 3)
+  expect(debugs(w).slice(1)).toEqual([
+    'housekeeping turn end: failed: HooksError (0 ms)',
+    'housekeeping Bash call: failed: HooksError (0 ms)',
+    'housekeeping turn end: the settings file does not parse (0 ms)',
+  ])
+})
+
+test('a suggestion the prompt box does not show is not counted as made, and a HEAD seen again is not suggested again', async ($, on) => {
+  const w: World = { argv: [], suggested: [], logs: [], lastRecords: SHORT, since: 3, notShown: true }
+  world(on, w)
+  await $.session.start(START)
+  await ended($)
+  await until(() => debugs(w).some(t => t.startsWith('housekeeping turn end:')))
+  expect(debugs(w).filter(t => t.startsWith('housekeeping turn end:'))).toEqual(['housekeeping turn end: /loose-ends not shown at abcdef0, 3 commits since the records (0 ms)'])
+  w.notShown = false
+  await ended($)
+  await until(() => w.suggested!.length === 2)
+  w.head = NEW
+  await ended($)
+  await until(() => w.suggested!.length === 3)
+  w.head = undefined // back to SHA, suggested already
+  await ended($)
+  await until(() => debugs(w).filter(t => t.startsWith('housekeeping turn end:')).length === 4)
+  expect(w.suggested!.length).toBe(3)
+  expect(debugs(w).at(-1)).toBe('housekeeping turn end: already suggested at abcdef0 (0 ms)')
+})
+
 // Phase 3 call 16: one masked line per automatic firing, to the debug log alone
 const debugs = (w: World) => w.logs!.filter(l => l.to === 'debug').map(l => l.text)
 
@@ -1755,7 +1842,7 @@ test("at the main loop's turn end /loose-ends is suggested once per HEAD, after 
   await until(() => w.suggested!.length > 0)
   expect(w.suggested).toEqual(['/loose-ends'])
   expect(counts(w)).toEqual([['git', 'rev-list', '--count', '--end-of-options', `${SHORT}..HEAD`, '--']])
-  expect(w.stored!['nudge:/w/.git']).toBe(SHA)
+  expect(w.stored!['nudge:/w/.git']).toEqual(['/w\n' + SHA])
   await ended($) // the same HEAD: no second suggestion
   await until(() => heads(w) === 2)
   await new Promise(r => setTimeout(r, 50))
@@ -1765,7 +1852,7 @@ test("at the main loop's turn end /loose-ends is suggested once per HEAD, after 
   await until(() => w.suggested!.length > 1)
   expect(w.suggested).toEqual(['/loose-ends', '/loose-ends'])
   expect(counts(w).at(-1)).toEqual(['git', 'rev-list', '--count', '--end-of-options', 'HEAD', '--'])
-  expect(w.stored!['nudge:/w/.git']).toBe(NEW)
+  expect(w.stored!['nudge:/w/.git']).toEqual(['/w\n' + NEW, '/w\n' + SHA])
 })
 
 test('no suggestion with uncommitted edits to the records, fewer than three commits, in a subagent or after an aborted turn', async ($, on) => {
@@ -1837,6 +1924,6 @@ test("the suggestion's key leaves the Route Map link's untouched", async ($, on)
   await $.session.start(START)
   await ended($)
   await until(() => w.suggested!.length > 0)
-  expect(w.stored!['nudge:/w/.git']).toBe(SHA)
+  expect(w.stored!['nudge:/w/.git']).toEqual(['/w\n' + SHA])
   expect(w.stored!['repo:/w/.git']).toEqual(KNOWN['repo:/w/.git'])
 })
