@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { addedArgs, firstParentArgs } from '../hooks/core/history.ts'
-import { auditStart } from '../hooks/core/owed.ts'
+import { auditStart, scanDiff, tokens } from '../hooks/core/owed.ts'
 import { parseFiles } from '../hooks/core/parse.ts'
 import { parseSettings } from '../hooks/core/settings.ts'
 import * as small from './fixtures/small.ts'
@@ -57,4 +57,37 @@ test('more than 50 first-parent commits after the start: the oldest 50 are read,
   const r = auditStart(rowsWith(two), null, line)
   expect(r.base).toBe(line[2])
   expect(r.warnings).toEqual(['more than one playbook row\'s Trigger holds "/housekeeping audit" (PB-04, PB-05): the first, PB-04, is read'])
+})
+
+// The code-name rule (Phase 3 call 13, FORMAT's "Code names in a Trigger"): a backticked span, or a word that holds "/"
+// or ends in "." and letters once the punctuation around it is dropped; a slash command is none
+test('the tokens of a Trigger: backticked spans and path-like words, punctuation dropped, slash commands left out', () => {
+  expect(tokens('When `PRICES_CHECKED` changes.')).toEqual(['PRICES_CHECKED'])
+  expect(tokens('When src/prices.ts changes.')).toEqual(['src/prices.ts'])
+  expect(tokens('Once prices.ts, or (README.md), changes.')).toEqual(['prices.ts', 'README.md'])
+  expect(tokens('When it lands in scripts/route-map.ts.')).toEqual(['scripts/route-map.ts'])
+  expect(tokens('When ./a.ts or `a.ts` changes.')).toEqual(['a.ts'])
+  expect(tokens('After /loose-ends files it, or `/housekeeping audit` runs.')).toEqual([])
+  expect(tokens('When the owner decides. Before the beta.')).toEqual([])
+  expect(tokens('When the v1.2 tag lands.')).toEqual([])
+})
+
+const DIFF = [
+  'diff --git a/src/a.ts b/src/a.ts', 'index 1..2 100644', '--- a/src/a.ts', '+++ b/src/a.ts',
+  '@@ -3 +3,2 @@', '-const PRICES_CHECKED = 1', '+const PRICES_CHECKED = 2', '+const PRICES_CHECKED_AT = 3',
+  '@@ -10,0 +12 @@', '+// see prices.ts', '\\ No newline at end of file',
+  'diff --git a/s p.ts b/s p.ts', '--- a/s p.ts\t', '+++ b/s p.ts\t', '@@ -1 +1 @@', '-x', '+PRICES_CHECKED',
+  'diff --git "a/q\\"t.ts" "b/q\\"t.ts"', 'deleted file mode 100644', '--- "a/q\\"t.ts"', '+++ /dev/null', '@@ -7 +0,0 @@', '-old PRICES_CHECKED',
+  'diff --git a/+++ b/PRICES_CHECKED.ts b/+++ b/PRICES_CHECKED.ts', 'new file mode 100644', '--- /dev/null', '+++ b/+++ b/PRICES_CHECKED.ts',
+  'Binary files /dev/null and b/PRICES_CHECKED.png differ',
+].join('\n')
+
+test('a token is a whole word on an added or removed line, numbered on its own side; header lines are not content', () => {
+  expect(scanDiff(DIFF, ['PRICES_CHECKED', 'prices.ts'])).toEqual([
+    { token: 'PRICES_CHECKED', path: 'src/a.ts', line: 3, removed: true },
+    { token: 'PRICES_CHECKED', path: 'src/a.ts', line: 3, removed: false },
+    { token: 'prices.ts', path: 'src/a.ts', line: 12, removed: false },
+    { token: 'PRICES_CHECKED', path: 's p.ts', line: 1, removed: false },
+    { token: 'PRICES_CHECKED', path: 'q"t.ts', line: 7, removed: true },
+  ])
 })

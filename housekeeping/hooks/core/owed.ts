@@ -2,6 +2,47 @@
 // head, with no clock (call 1). The routes read (adapter.ts's readOwed); this module parses and lists.
 import type { Row } from './types.ts'
 
+// a token's match on an added or removed line, numbered on its own side
+export type Hit = { token: string; path: string; line: number; removed: boolean }
+
+const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const W = '\\p{L}\\p{N}_'
+
+// The code-name rule (FORMAT, "Code names in a Trigger"): a backticked span, or a word that holds "/" or ends in "." and
+// letters once the punctuation around it is dropped; a slash command is none
+const SLASH = /^\/[^/\s]+(?:\s|$)/
+export function tokens(trigger: string): string[] {
+  const words = trigger.replace(/`[^`]*`/g, ' ').split(/\s+/).map(w => w.replace(/^[("'[{<]+|[)"'\]}>,;:!?.]+$/g, ''))
+    .filter(w => w.includes('/') || /\.\p{L}+$/u.test(w))
+  const all = [...[...trigger.matchAll(/`([^`]+)`/g)].map(m => m[1].trim()), ...words].map(t => t.replace(/^\.\//, ''))
+  return [...new Set(all.filter(t => t && !SLASH.test(t)))]
+}
+
+// git's C-style quoting of a name, where core.quotePath=false leaves it (a quote, a backslash or a control character)
+const unquote = (q: string) => !q.startsWith('"') ? q : q.slice(1, -1).replace(/\\([0-7]{3}|.)/g, (_, c: string) =>
+  c.length === 3 ? String.fromCharCode(parseInt(c, 8)) : ({ t: '\t', n: '\n', r: '\r', a: '\x07', b: '\b', f: '\f', v: '\v' } as Record<string, string>)[c] ?? c)
+
+/** git diff -U0's added and removed lines that hold a token as a whole word; header lines are not content. */
+export function scanDiff(out: string, toks: string[]): Hit[] {
+  const res = toks.map(t => [t, new RegExp(`(?<![${W}])${esc(t)}(?![${W}])`, 'u')] as const), hits: Hit[] = []
+  let path = '', head = true, old = 0, now = 0
+  for (const l of out.split('\n')) {
+    if (l.startsWith('diff --git ')) { head = true; path = ''; continue }
+    const h = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(l)
+    if (h) { head = false; old = +h[1]; now = +h[2]; continue }
+    if (head) {
+      // the new side's name, else the old one's (a deleted file); a name with a space ends in a tab
+      const n = /^(?:---|\+\+\+) (.*)$/.exec(l)?.[1].replace(/\t$/, '')
+      if (n && n !== '/dev/null') path = unquote(n).slice(2)
+      continue
+    }
+    if (l[0] !== '+' && l[0] !== '-') continue
+    const removed = l[0] === '-', line = removed ? old++ : now++
+    for (const [token, re] of res) if (l.includes(token) && re.test(l.slice(1))) hits.push({ token, path, line, removed })
+  }
+  return hits
+}
+
 // The audit's start (Phase 3 call 2): the playbook duty row whose Trigger holds "/housekeeping audit" (the first, with a
 // warning, if there are more), its latest "Last done: YYYY-MM-DD, through <sha>", where the sha is one commit of main's
 // first-parent line (so git verifies it and it is an ancestor of main); else the commit that added the settings; else the

@@ -46,7 +46,7 @@ How the files are read:
 - **Fences.** A line starting with three backticks or three tildes opens or closes a fenced block; an opener may follow a list marker. Nothing inside one is read. A fence the file ends inside, one that holds a `##` heading, one that holds a table with the ID and Item columns, or one that opens right after a row of such a table and goes on with rows, in a section read for rows, is a `fence` warning at its opener, once. A stray opener that another fence closes with none of these gives no warning, and the lines between them are not read. A fenced example row belongs in a section `skipSections` sets aside; init's settings set aside the backlog's "How this file is kept".
 - **Sections.** `## x` sets the section and clears the subsection; `### x` sets the subsection. Any heading ends a table.
 - **Tables.** A line with `|` opens a table when the next line is a separator with as many cells, each one or more dashes with an optional colon at either end (`|---|---|`, `|-|-|`, `| :-- | --: |`), as GitHub reads them. Rows follow until a line that does not start with `|`. A line holding `|` that ends a table, a line starting with `|` in no table, and a separator with another cell count than its header are each a `row-dropped` warning, once per break and in Done sections too. A table without the ID and Item columns is not a row table. Tables in `skipSections` and in Done sections are not rows, and a row table in a section that only `skipSections` sets aside is one `row-skipped` warning, since its rows are not read. `skipSections`, Done and not-doing match the start of a `##` heading; a checklist's and where-we-are's heading match it whole.
-- **Cells.** Split on `|` except `\|`, which is a `|` inside the cell. Cells are trimmed and kept word for word; backticks mean nothing. A short row is padded with empty cells and is a warning (`columns`), as is a longer one.
+- **Cells.** Split on `|` except `\|`, which is a `|` inside the cell. Cells are trimmed and kept word for word; backticks mean nothing, except in a Trigger, where `owed` reads a backticked span as a code name (below). A short row is padded with empty cells and is a warning (`columns`), as is a longer one.
 - **Nothing.** A cell equal to one of `values.nothing` means empty. Milestone and Waits on hold comma-separated values; empties and those equal to `values.nothing` are dropped. Milestone keeps `none` as a value; Waits on drops it.
 - **Land now.** Exactly `yes`, `small choice: <text>` or `no: <text>`. Anything else reads as `no` with the cell as the reason and is not valid.
 - **Who.** Mapped through `values.who`; any other text is `unknown`.
@@ -56,6 +56,24 @@ How the files are read:
 - **Where we are.** The first paragraph under the configured heading, or, with a `marker`, the paragraph that starts with it. Its date is the first `YYYY-MM-DD` in its first 80 characters.
 - **Missing file.** A file that cannot be read is an error (`file`); the other is still read.
 - **Not doing.** With `notDoing` set, the rows of the table under that `##` heading read as item, why and reopen condition (cells 0, 1 and 2). A missing section gives an empty list, not a finding.
+
+## Code names in a Trigger
+
+`owed` lists the rows whose Trigger fired over a range of commits. A token in a Trigger is a backticked span, or a word that holds `/` or ends in `.` and letters, once the brackets, quotes and punctuation around the word are dropped (a leading `./` too). A slash command (`/loose-ends`, `` `/housekeeping audit` ``) is no token, and a duty row's Trigger is not read. A row fires when one of its tokens:
+
+- matches a changed path as a suffix on a `/` boundary: `prices.ts` matches `prices.ts` and `src/prices.ts`, not `src/myprices.ts`; or
+- is a whole word (no letter, digit or `_` on either side) on an added or removed line of a changed file other than the two records and `.housekeeping.json`: `PRICES_CHECKED` matches `const PRICES_CHECKED = 2`, not `PRICES_CHECKED_AT`.
+
+| Trigger | Tokens |
+|---|---|
+| When `PRICES_CHECKED` changes. | `PRICES_CHECKED` |
+| When src/prices.ts changes. | `src/prices.ts` |
+| Once prices.ts, or (README.md), changes. | `prices.ts`, `README.md` |
+| When it lands in scripts/route-map.ts. | `scripts/route-map.ts` |
+| After /loose-ends files it, or `/housekeeping audit` runs. | none |
+| When the v1.2 tag lands. | none |
+
+A word such as `e.g.` reads as a token too (`e.g`); a name in backticks is read whatever it holds.
 
 ## New repositories
 
