@@ -21,8 +21,12 @@ const KEYS = [
   /-----BEGIN [A-Z ]*(?:PRIVATE|SECRET) KEY(?: BLOCK)?-----[\s\S]*?(?:-----END [A-Z ]*(?:PRIVATE|SECRET) KEY(?: BLOCK)?-----|$)/g,
 ]
 
-const mask = (m: string): string =>
-  m.length <= 4 ? '*'.repeat(m.length) : m.slice(0, 2) + '*'.repeat(m.length - 4) + m.slice(-2)
+// the first and last two characters stay, never half a surrogate pair (HK-092)
+const mask = (m: string): string => {
+  if (m.length <= 4) return '*'.repeat(m.length)
+  const h = /[\uD800-\uDBFF]/.test(m[1]) ? 1 : 2, t = /[\uDC00-\uDFFF]/.test(m.at(-2) ?? '') ? 1 : 2
+  return m.slice(0, h) + '*'.repeat(m.length - h - t) + m.slice(-t)
+}
 
 function allowed(email: string): boolean {
   const domain = email.slice(email.lastIndexOf('@') + 1).toLowerCase()
@@ -34,7 +38,8 @@ function allowed(email: string): boolean {
 // point, so a letter outside the BMP does not stop it (HK-091). Words written straight before an address, with no
 // space, are masked with it: a few letters of prose too many rather than an address's first letters on show (the
 // automated security review of 324aea5, over the narrow check's wish to keep them)
-const LOCAL = /[\p{L}\p{M}0-9._%+-]/u
+// an apostrophe too (o'brien@): the pattern starts after it, the widening must not stop at it (HK-092)
+const LOCAL = /[\p{L}\p{M}0-9._%+'-]/u
 function emails(text: string): { start: number; end: number }[] {
   const out: { start: number; end: number }[] = []
   for (const m of text.matchAll(EMAIL)) {

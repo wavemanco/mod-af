@@ -100,4 +100,8 @@ test('a long run of mixed letters is scanned in linear time, and a 64-letter loc
   // words written straight before an address are masked with it, and an address's non-ASCII first letters are never shown
   expect(maskPrivacy('请联系jane@corp.io的回复')).toBe('请联**************回复')
   expect(maskPrivacy('écrire à éva@corp.io')).toBe('écrire à év*******io')
+  // the re-check (HK-092): an apostrophe stopped the widening, and the head could be half a surrogate pair
+  expect(maskPrivacy("cc: anne-marie.o'neil@corp.io")).toBe(`cc: an${'*'.repeat(21)}io`)
+  expect(maskPrivacy(' é\u{2000B}jane@corp.io')).toBe(` é${'*'.repeat(12)}io`)
+  expect(maskPrivacy('x 𝐚𝐛c@corp.io')).toBe(`x 𝐚${'*'.repeat(11)}io`)
 })
