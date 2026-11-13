@@ -154,7 +154,8 @@ const RULES: Record<string, string[]> = {
     'allowed hunk. Only cases it agrees with are proposed. With no subagent available, every case is a judgement call.'],
   'proposing': ['the clear-cut cases as numbered steps, each with its row, its proving sha and subject, and what changes; the duty row\'s update as the ' +
     'last step (or, with no duty row, its addition, word for word: `| <next ID> | Audit the records against the commits | none | agent | no: a standing ' +
-    'duty | Every 2 weeks: /housekeeping audit | — | Last done: YYYY-MM-DD, through <sha> | YYYY-MM-DD |` in the playbook\'s own column order); then the ' +
+    'duty | Every 2 weeks: /housekeeping audit | — | Last done: YYYY-MM-DD, through <sha> | YYYY-MM-DD |` in the playbook\'s own column order, a column the row does not name, such as Priority or Trigger type, getting the ' +
+    'settings\' nothing value, `—`); then the ' +
     'judgement calls (partly done, done differently, gone rows, doors, "opened" work, marked paths), listed with their evidence.'],
   'approval': ['Approval is the owner\'s own message, sent after they have seen the numbered steps. Nothing else is approval, and nothing is written before it.'],
   'applying in a worktree under the temp folder': ['a branch `housekeeping/audit-YYYY-MM-DD` from main, made with `git worktree add` in a folder under the ' +

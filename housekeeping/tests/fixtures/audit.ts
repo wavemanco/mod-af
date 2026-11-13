@@ -57,23 +57,52 @@ export function buildAudit(dir: string, duty: boolean): AuditFixture {
   if (duty) commit(['Add the audit duty'], { 'docs/playbook.md': under(playbook, 'Open', row(['P-2', 'Audit the records against the commits', '—', 'none', 'agent',
     'no: a standing duty', '—', 'Every 2 weeks: /housekeeping audit', '—', `Last done: 2026-09-01, through ${readme.slice(0, 7)}`, '2026-09-01'])) })
 
-  commit(['Fix B-1: retry a failed upload three times'], code('upload', 'export const RETRIES = 3'))
+  // the ten closings do their row's work in full and wire it in, so a skeptic reading the hunk can agree; the decoys
+  // are stubs, prep, a part, a revert or a mention (the acceptance run of 2026-11-12 found stubs here, rightly refused)
+  commit(['Fix B-1: retry a failed upload three times'], code('upload', [
+    'export const RETRIES = 3',
+    'export async function upload(send: () => Promise<void>): Promise<void> {',
+    '  for (let attempt = 1; ; attempt++) {',
+    '    try { return await send() } catch (err) { if (attempt >= RETRIES) throw err }',
+    '  }',
+    '}'].join('\n')))
   const rates = commit(['Fix B-3: cache the rate lookups'], code('rates', 'export const cache = new Map<string, number>()'))
   commit(['Prep for B-6: move the helpers into one module'], code('util', 'export const id = <T>(x: T) => x'))
-  commit(['B-2 done: trim spaces in imported names'], code('names', 'export const clean = (s: string) => s.trim()'))
-  commit(['Log how long an export takes; closes B-4'], code('export', 'export const timed = (ms: number) => `export took ${ms} ms`'))
+  commit(['B-2 done: trim spaces in imported names'], code('names', [
+    'export const clean = (s: string) => s.trim()',
+    'export const importNames = (names: string[]): string[] => names.map(clean)'].join('\n')))
+  commit(['Log how long an export takes; closes B-4'], code('export', [
+    'export async function exportReport(run: () => Promise<void>, log: (s: string) => void = console.log): Promise<void> {',
+    '  const started = Date.now()',
+    '  await run()',
+    '  log(`export took ${Date.now() - started} ms`)',
+    '}'].join('\n')))
   commit(['Tidy the logger (B-11 will build on it)'], code('log', 'export const log = (s: string) => console.log(s)'))
-  commit(['Land B-5: a health check route'], code('health', "export const health = () => 'ok'"))
+  commit(['Land B-5: a health check route'], code('health', [
+    'export const routes: Record<string, () => string> = {}',
+    "routes['/health'] = () => 'ok'"].join('\n')))
   git('revert', '--no-edit', rates)
   commit(["Land part 1 of B-9: read the ledger's header row", 'The rows themselves come in part 2.'], code('ledger', 'export const header = (l: string) => l.split(",")'))
-  commit(['Resolve B-7 by capping the page size at 100'], code('page', 'export const PAGE_MAX = 100'))
-  commit(['B-8 fixed: quote commas in CSV cells'], code('csv', "export const cell = (s: string) => s.includes(',') ? `\"${s}\"` : s"))
-  commit(['Fixes B-10, sorting the report by date'], code('report', 'export const byDate = (a: { at: number }, b: { at: number }) => a.at - b.at'))
-  commit(['Keep the parsed settings in memory', 'Closes B-12.'], code('settings', 'let parsed: unknown = null\nexport const settings = () => parsed'))
-  commit(['Closed B-13: split the report writer; B-16 builds on this'], code('writer', 'export const head = () => ""\nexport const body = () => ""'))
+  commit(['Resolve B-7 by capping the page size at 100'], code('page', [
+    'export const PAGE_MAX = 100',
+    'export const pageSize = (asked: number): number => Math.min(Math.max(1, asked), PAGE_MAX)'].join('\n')))
+  commit(['B-8 fixed: quote commas in CSV cells'], code('csv', [
+    "export const cell = (s: string) => s.includes(',') ? `\"${s}\"` : s",
+    "export const csvRow = (cells: string[]): string => cells.map(cell).join(',')"].join('\n')))
+  commit(['Fixes B-10, sorting the report by date'], code('report', [
+    'export const sortReport = <T extends { at: number }>(rows: T[]): T[] => [...rows].sort((a, b) => a.at - b.at)'].join('\n')))
+  commit(['Keep the parsed settings in memory', 'Closes B-12.'], code('settings', [
+    'let parsed: unknown',
+    'export const settings = (read: () => string): unknown => (parsed ??= JSON.parse(read()))'].join('\n')))
+  commit(['Closed B-13: split the report writer; B-16 builds on this'], code('writer', [
+    "export const head = (title: string): string => '# ' + title",
+    "export const body = (rows: string[]): string => rows.join('\\n')",
+    "export const write = (title: string, rows: string[]): string => head(title) + '\\n' + body(rows)"].join('\n')))
   // a closing commit on a branch that main merges
   git('checkout', '-q', '-b', 'theme')
-  commit(['Lands B-15: a dark theme'], code('theme', "export const dark = { background: '#111' }"))
+  commit(['Lands B-15: a dark theme'], code('theme', [
+    "export const themes = { light: { background: '#fff', color: '#111' }, dark: { background: '#111', color: '#eee' } }",
+    "export const applyTheme = (name: keyof typeof themes, style: Record<string, string>) => Object.assign(style, themes[name])"].join('\n')))
   git('checkout', '-q', 'main')
   git('merge', '-q', '--no-ff', '-m', "Merge branch 'theme'", 'theme')
   // a closing commit on a branch main never merges
