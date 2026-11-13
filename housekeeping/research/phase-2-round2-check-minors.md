@@ -128,7 +128,7 @@ every gating hook has a .catch; a full run of the Node specs leaves nothing in t
 - **Fixed** (this records pass). `BACKLOG.md`, HK-075: said twelve Git minors were open and the treeless case
   unchecked.
 
-## The re-check of the HK-091 round (HK-092)
+## The re-check of the HK-091 round (HK-092, fixed)
 
 The owner chose a narrow re-check of the four HK-091 commits ("Narrow re-check", 2026-11-12). It ran at 299562f
 over `bfa3c91..299562f`: three lenses (privacy, hooks, survey) and one skeptic per serious finding, with a cap of
@@ -141,26 +141,26 @@ rejection retry behave as their tests say; the note after a plan alone is gone; 
 told nothing; the reference repository gives the same output at the base and the tip; init's repositories check
 clean.
 
-- **Open** (older than the round). `hooks/core/privacy.ts:37`: an apostrophe is in neither the pattern nor the
+- **Fixed** (b1f578a; older than the round). `hooks/core/privacy.ts:37`: an apostrophe is in neither the pattern nor the
   widening, so in `michael.o'brien@corp.io` the letters before it show on masked surfaces; the address still
   stops the page from the records. Fix: add `'` to the widening's class.
-- **Open** (reproduced). `hooks/core/privacy.ts:25`: the widening can start the masked span just before an
+- **Fixed** (b1f578a, 394fd80). `hooks/core/privacy.ts:25`: the widening can start the masked span just before an
   astral character, and `mask()` keeps a lone high surrogate as its head; nothing leaks. Fix: never cut a pair.
-- **Open.** `DESIGN.md:255`: says the mask reaches out to a space or punctuation; it walks over `. _ % + -` and
+- **Fixed** (b1f578a). `DESIGN.md:255`: says the mask reaches out to a space or punctuation; it walks over `. _ % + -` and
   stops at other signs, symbols and format characters. Fix: say what stops it.
-- **Open.** `hooks/register.tsx:101`: a store write that rejects is still no failure, so the short view walks
+- **Fixed** (f2a7471). `hooks/register.tsx:101`: a store write that rejects is still no failure, so the short view walks
   at every prompt and says it is being built. Fix: record a refused write as a failure.
-- **Open.** `hooks/register.tsx:85`: the per-settings key never removes a view, so the user-wide store, capped at
+- **Fixed** (f2a7471: one key, at most four views). `hooks/register.tsx:85`: the per-settings key never removes a view, so the user-wide store, capped at
   4 MiB, grows by one view per settings text ever seen. Fix: keep a few views per repository under one key.
-- **Open.** `hooks/register.tsx:330`: a resumed fork's copy is replaced with the main conversation's current
+- **Fixed** (f2a7471). `hooks/register.tsx:330`: a resumed fork's copy is replaced with the main conversation's current
   record. Fix: record only new forks.
-- **Open** (reproduced). `hooks/core/markdown.ts:56`: a well-formed code block written straight after a row
+- **Fixed** (51ad954). `hooks/core/markdown.ts:56`: a well-formed code block written straight after a row
   table's last row is a false fence warning. Fix: warn only when the line after the opener is a pipe line.
-- **Open** (reproduced). `hooks/core/parse.ts:98`: the fence warning's advice, "the section belongs in
+- **Fixed** (51ad954). `hooks/core/parse.ts:98`: the fence warning's advice, "the section belongs in
   skipSections", cannot be followed in a file's intro or a Done section. Fix: give it only where it works.
-- **Open** (reproduced). `hooks/core/survey.ts:156`: a `../` in a script two folders down also credits the top
+- **Fixed** (51ad954: a ../ whose own-folder fold names a tracked file credits that file alone). `hooks/core/survey.ts:156`: a `../` in a script two folders down also credits the top
   candidate of that name. Fix: take the top fold only where it stays inside the repository.
-- **Open** (reproduced). `hooks/core/survey.ts:268`: on a guide line whose path is marked, the mark follows the
+- **Fixed** (51ad954). `hooks/core/survey.ts:268`: on a guide line whose path is marked, the mark follows the
   `...` that survey.md tells the agent to look for at the line's end. Fix: put the mark beside the path.
 - **Refuted, filed** (HK-070). Two addresses joined by a CJK, kana or Thai word: the first's top-level part takes
   the second's local part, so the second shows and a commit subject holding them refuses the page, which cannot
