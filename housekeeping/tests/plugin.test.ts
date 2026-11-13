@@ -62,6 +62,8 @@ type World = {
   // owed's git, as -z output: the range's changed paths, its commits, their paths; each path's -U0 section, and the
   // paths whose diff is cut short (a batch holding one is cut short)
   owed?: { names: string; log: string; paths: string; diffs: Record<string, string>; cut?: string[] }
+  // the audit's git: main's first-parent line, oldest first, and the commit on it that added the settings
+  audit?: { line: string[]; added?: string }
 }
 
 // the engine may hand a hook a Windows-style path
@@ -69,7 +71,7 @@ const posix = (p: string) => p.replaceAll('\\', '/').replace(/^[A-Za-z]:/, '')
 // stand-ins for prompts/*.md: the test kit imports code files only, so it cannot read the real ones
 // the survey's has a line that names the Node command, as the real one does
 const PROMPTS: Record<string, string> = { survey: '# the survey procedure\nRe-run: node <path to housekeeping>/cli.ts survey', plan: '# the plan procedure',
-  standin: '# a procedure that reads no tracked files' }
+  standin: '# a procedure that reads no tracked files', audit: '# the audit procedure' }
 const under = (p: string) => posix(p).replace(/^\/w\//, '')
 
 // The engine stand-ins: git answers from small.ts's files, tools are logged, the store is a map.
@@ -86,7 +88,7 @@ function world(on: On, w: World = {}) {
   on('fs.read', (_, e) => {
     w.reads?.push(posix(e.path))
     if (typeof w.failRead === 'function' ? w.failRead() : w.failRead) throw new Error('EIO')
-    const prompt = /\/prompts\/(survey|plan)\.md$/.exec(posix(e.path))
+    const prompt = /\/prompts\/(survey|plan|audit)\.md$/.exec(posix(e.path))
     if (prompt && w.badPrompt) return { value: 42 as never }
     return { value: prompt ? PROMPTS[prompt[1]] : w.tracked?.[under(e.path)] ?? w.settings ?? small.settings }
   })
@@ -94,6 +96,8 @@ function world(on: On, w: World = {}) {
     w.argv?.push([...e.argv])
     w.envs?.push(e.init?.env)
     const [, a, b] = e.argv
+    if (w.audit && a === 'rev-list' && b === '--first-parent') return ok(w.audit.line.map(x => x + '\n').join(''))
+    if (w.audit && a === 'log' && e.argv.includes('--diff-filter=A')) return ok(w.audit.added ? w.audit.added + '\n' : '')
     const o = w.owed
     if (o) {
       // HEAD and main resolve to SHA, their merge base is BASE, and main's tip is in the range
@@ -633,7 +637,7 @@ test('a command hook that fails is answered by its .catch, with exit 1 and the N
 
 // Phase 3: each slash command is named in the usage line, the description and the argument hint; each later task
 // adds its own
-const COMMANDS = ['map', 'map new', 'check', 'init', 'survey', 'plan', 'owed']
+const COMMANDS = ['map', 'map new', 'check', 'init', 'survey', 'plan', 'owed', 'audit']
 const named = (text: string | undefined, name: string) => new RegExp(`(^|[^a-z])${name}([^a-z]|$)`).test(text ?? '')
 
 test('each slash command is named in the usage line, the description and the argument hint', async ($, on) => {
@@ -662,6 +666,12 @@ test('the reply of a hook that fails names each command\'s Node form', async ($,
   expect(r.exitCode).toBe(1)
   expect(r.text).toMatch(new RegExp('^housekeeping: /housekeeping owed failed in the hook \\(.+\\); run /housekeeping owed again: ' +
     "housekeeping's Node command ignores the Read rules, and this run's Read checks did not all finish with nothing excluded$"))
+  // the audit's reply names its procedure, and the slash command, as owed's does
+  const a = await $.command.run({ command: 'housekeeping', args: 'audit', origin: { kind: 'composer' } } as never) as { text: string; exitCode?: number }
+  expect(a.exitCode).toBe(1)
+  expect(a.text).toMatch(new RegExp('^housekeeping: /housekeeping audit failed in the hook \\(.+\\); run /housekeeping audit again: ' +
+    "housekeeping's Node command ignores the Read rules, and this run's Read checks did not all finish with nothing excluded; " +
+    'the audit procedure is .+/prompts/audit\\.md$'))
 })
 
 test('the failed reply names the Node owed only after a run whose Read checks all finished with nothing excluded', () => {
@@ -669,6 +679,16 @@ test('the failed reply names the Node owed only after a run whose Read checks al
     text: 'housekeeping: /housekeeping owed --base x ran past the 10 s a hook may take; run node /h/cli.ts owed in the repository instead, which has no time limit' })
   expect(failedReply('/h', 'owed', 'ran past the 10 s a hook may take', false).text).toBe('housekeeping: /housekeeping owed ran past the 10 s a hook ' +
     "may take; run /housekeeping owed again: housekeeping's Node command ignores the Read rules, and this run's Read checks did not all finish with nothing excluded")
+})
+
+// Phase 3, Task 3: the audit's time-out reply names prompts/audit.md, and the Node owed only under Task 2's rule
+test('the audit\'s failed reply names its procedure, and the Node owed only after Read checks that all finished with nothing excluded', () => {
+  expect(failedReply('/h', 'audit', 'ran past the 10 s a hook may take', true)).toEqual({ exitCode: 1,
+    text: 'housekeeping: /housekeeping audit ran past the 10 s a hook may take; the audit procedure is /h/prompts/audit.md: follow it outside ' +
+      'Claude Code, with node /h/cli.ts owed in the repository, which has no time limit' })
+  expect(failedReply('/h', 'audit', 'ran past the 10 s a hook may take', false)).toEqual({ exitCode: 1,
+    text: 'housekeeping: /housekeeping audit ran past the 10 s a hook may take; run /housekeeping audit again: housekeeping\'s Node command ' +
+      "ignores the Read rules, and this run's Read checks did not all finish with nothing excluded; the audit procedure is /h/prompts/audit.md" })
 })
 
 test('a failed publish still says the partition line and the page path (HK-032)', async ($, on) => {
@@ -1372,4 +1392,59 @@ test('after /housekeeping owed a compaction goes on as it came; after plan, in t
   await $.session.compact({ trigger: 'manual', messages: MSGS, instructions: 'mine' })
   expect(told[1]).toContain("housekeeping: this conversation was handed housekeeping's plan procedure.")
   expect(told[1]).not.toContain('owed')
+})
+
+// Phase 3, Task 3: /housekeeping audit. main's first-parent line is F0, F1, F2 and SHA; F1 added the settings and the
+// playbook has no duty row, so the range starts after F1 and reads through SHA; the range is owed's world above
+const F = ['0', '1', '2'].map(c => c.repeat(40)), AUDIT_LINE = [...F, SHA]
+const AUDIT_SAID = (home: string) => `housekeeping is installed at ${home}; the audit procedure is ${home}/prompts/audit.md.`
+
+test('/housekeeping audit hands the procedure, the install sentence and owed\'s listing over auditStart\'s range, with a denied path never named', async ($, on) => {
+  const w: World = { backlog: OWED_BACKLOG, owed: OWED(), audit: { line: AUDIT_LINE, added: F[1] }, denied: ['secret/key.txt'], argv: [] }
+  world(on, w)
+  await $.session.start(START)
+  w.argv!.length = 0
+  const r = await run($, 'audit')
+  expect(r.exitCode ?? 0).toBe(0)
+  const first = `housekeeping audit: after ${F[1].slice(0, 7)} through ${SHA.slice(0, 7)} on main`
+  expect(r.text).toBe(first + '\nThe agent carries out the audit procedure on your next message, for example "go ahead".')
+  expect(r.context.length).toBe(3)
+  expect(r.context[0]).toBe(PROMPTS.audit)
+  const home = /^housekeeping is installed at (.+); /.exec(r.context[1])![1]
+  expect(r.context[1]).toBe(AUDIT_SAID(home))
+  expect(r.context[2].startsWith(first + '\nhousekeeping owed: 1234567..abcdef0, 1 commits, 3 changed paths; 1 excluded by the Read rules, never read or named\n')).toBe(true)
+  expect(r.context[2]).toContain('- B-001 Rate-limit the export endpoint\n  - ccccccc Fix B-001 now (in the subject; a closing word is next to the ID)\n')
+  expect(r.context[2].endsWith('\nLast commit read: ' + SHA)).toBe(true)
+  // the range is auditStart's: the first-parent line and the settings commit read, then owed from F1 to SHA
+  expect(w.argv!.filter(a => a[1] === 'rev-list' || a.includes('--diff-filter=A')).map(a => a[1])).toEqual(['rev-list', 'log'])
+  expect(w.argv!.filter(a => a[1] === 'merge-base' && !a.includes('--is-ancestor'))).toEqual([['git', 'merge-base', '--end-of-options', F[1], SHA]])
+  // the denied path: neither its name nor its lines reach the agent or the person
+  for (const no of ['secret', 'hidden-value']) expect([no, [r.text, ...r.context].some((c: string) => c.includes(no))]).toEqual([no, false])
+  expect(hunkCalls(w)).toEqual([[':(literal)src/a.ts', ':(literal)big.txt']])
+})
+
+test('after /housekeeping audit a compaction is told to keep its install sentence and its rule, and to re-read it; audit with more words is the usage line', async ($, on) => {
+  world(on, { backlog: OWED_BACKLOG, owed: OWED(), audit: { line: AUDIT_LINE, added: F[1] } })
+  const told = compacts(on)
+  await $.session.start(START)
+  const r = await run($, 'audit')
+  await $.session.compact({ trigger: 'auto', messages: MSGS })
+  expect(told[0]).toContain("housekeeping: this conversation was handed housekeeping's audit procedure. Keep in the summary, word for word, this sentence: " +
+    r.context[1] + " Keep the procedure's rule on approval: Approval is the owner's own message, sent after they have seen the numbered steps; only " +
+    "clear-cut cases the skeptic agreed with are proposed; after this summary, read the audit branch's commits before applying anything, so nothing is applied twice.")
+  expect(told[0]).toContain('re-read the audit procedure whole, in ')
+  const bad = await run($, 'audit now')
+  expect(bad.text).toMatch(/^housekeeping: \[map \| /)
+  expect(bad.context).toBeUndefined()
+})
+
+test('/housekeeping audit with no settings, or a first-parent line git cannot read, stops with exit 2 and hands nothing', async ($, on) => {
+  const w: World = { backlog: OWED_BACKLOG, owed: OWED(), audit: { line: [] } }
+  world(on, w)
+  await $.session.start(START)
+  const r = await run($, 'audit')
+  expect([r.exitCode, r.text, r.context]).toEqual([2, "housekeeping: cannot read the first-parent line of 'main' (the \"mainBranch\" setting)", undefined])
+  w.hasSettings = false
+  const none = await run($, 'audit')
+  expect([none.exitCode, none.text, none.context]).toEqual([2, 'housekeeping: no .housekeeping.json here (run /housekeeping init)', undefined])
 })
