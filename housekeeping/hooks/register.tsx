@@ -54,6 +54,8 @@ type View = { brief: string; status: string }
 // the rebuilds under way, by stamp: one walk however many ask; and the last that failed, with its first line, so a
 // prompt is told why and starts no second walk for it (HK-088)
 type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, { line: string; at: number }> }
+type Views = { order: string[]; views: Record<string, View & { sha: string; stamp: string }> }
+const VIEWS = 4 // views kept per repository, one per settings text
 const RETRY_MS = 60_000 // a failed rebuild is tried again after this, so the cure the stop names takes effect
 // FNV-1a: a short name for a settings text, for the store key
 const fnv = (s: string): string => {
@@ -81,10 +83,11 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   const r = await $.process.run(['git', 'rev-parse', '--git-common-dir', main, '--abbrev-ref', 'HEAD'], { cwd: root, timeoutMs: 10_000 })
   const [dir, sha, branch] = r.stdout.split('\n').map(x => x.trim())
   const remote = (await $.process.run(['git', 'rev-parse', '--verify', '--quiet', `refs/remotes/origin/${main}`], { cwd: root, timeoutMs: 10_000 }).catch(() => null))?.stdout.trim() ?? ''
-  // one stored view per settings text, so worktrees whose settings differ do not rebuild over each other (HK-091)
-  const key = `brief:${commonDir(root, dir)}#${fnv(text)}`, stamp = [sha, remote, text].join('\n')
+  // a repository's views under one key, one per settings text, the latest VIEWS of them, so worktrees whose settings
+  // differ keep theirs and the store stays bounded (HK-091, HK-092); an entry of an older form is read as none
+  const key = `brief:${commonDir(root, dir)}`, id = fnv(text), stamp = [sha, remote, text].join('\n')
   const keep = r.exitCode === 0 && !!sha // main resolves, so the view can be stored
-  const hit = keep ? (await $.store.get(key)) as (View & { sha: string; stamp: string }) | undefined : undefined
+  const hit = keep ? ((await $.store.get(key)) as Views | undefined)?.views?.[id] : undefined
   // stored with no branch line, served with this checkout's (second check, finding 15); with nothing to store (an
   // unborn HEAD, say, whose rev-parse names no branch) the load's own line stands
   const on = (view: string) => keep ? withBranch(view, branch, main) : view
@@ -98,7 +101,17 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
     }
     builds.failed.delete(stamp)
     const v = { brief: l.out.brief, status: statusLine(l.out) }
-    if (keep) await $.store.set(key, { sha, stamp, ...v })
+    if (keep) {
+      // shortcut: two builds at once for two settings texts each write over the other's list, so one view is lost and
+      // built again at its next prompt; fine while such builds are rare, a lock per key if they are not
+      const now = (await $.store.get(key)) as Views | undefined
+      const views = { ...(now?.views ?? {}), [id]: { sha, stamp, ...v } }
+      const order = [id, ...(now?.order ?? []).filter(x => x !== id && views[x])].slice(0, VIEWS)
+      // a refused write (a full store, say) is a failure too, so prompts do not walk again at every turn (HK-092)
+      const refused = await $.store.set(key, { order, views: Object.fromEntries(order.map(x => [x, views[x]])) })
+        .then(() => null, (err: unknown) => `housekeeping: the short view could not be stored: ${err instanceof Error ? err.message : String(err)}`)
+      if (refused) builds.failed.set(stamp, { line: refused, at: await $.clock.now() })
+    }
     return { ...v, brief: on(v.brief) }
   }
   if (!keep) return fresh() // nothing to store or serve: main does not resolve, so the load stops before any walk
@@ -327,7 +340,8 @@ export const register: Register = on => {
   on('agent.spawn', async ($, e, next) => {
     const got = await next(e)
     const from = e.parentAgentId ? forks.get(e.parentAgentId) : sent
-    if (e.fork && from?.size && got && 'agentId' in got && got.agentId) forks.set(got.agentId, new Map(from))
+    // only a new fork: a resumed one goes on from its own transcript and keeps the record it had, or none (HK-092)
+    if (e.fork && !e.resume && from?.size && got && 'agentId' in got && got.agentId) forks.set(got.agentId, new Map(from))
     return got
   }).catch(($, e, next) => next(e)) // it gates every spawn: a failure here never stops one
 

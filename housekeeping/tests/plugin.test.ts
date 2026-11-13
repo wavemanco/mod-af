@@ -22,6 +22,7 @@ type World = {
   status?: (string | undefined)[]
   calls?: { tool: string; action?: string; url?: string; file_path?: string; title?: string }[]
   stored?: Record<string, unknown>
+  storeFull?: boolean // a write of the short view is refused, as a store over 4 MiB refuses it
   argv?: string[][]
   noBranch?: boolean
   gitFail?: string // git log and rev-parse --verify exit 128 with this stderr: the repository does not open
@@ -115,7 +116,11 @@ function world(on: On, w: World = {}) {
     return ok('', 1)
   })
   on('store.get', (_, e) => ({ value: stored[e.key] }))
-  on('store.set', (_, e) => { stored[e.key] = e.value; return { value: undefined } })
+  on('store.set', (_, e) => {
+    if (w.storeFull && e.key.startsWith('brief:')) throw new Error('the store is over 4 MiB')
+    stored[e.key] = e.value
+    return { value: undefined }
+  })
   on('store.delete', (_, e) => { delete stored[e.key]; return { value: undefined } })
   on('tool.list', () => ({ value: w.noArtifact ? [{ name: 'Write', description: '', mcp: false }] : [{ name: 'Write', description: '', mcp: false }, { name: 'Artifact', description: '', mcp: false }] }))
   on('ui.open', () => ({ value: { isPlaced: w.placed !== false } }))
@@ -354,7 +359,10 @@ const until = async (done: () => boolean) => { for (let i = 0; i < 200 && !done(
 const late = <T>(p: Promise<T>) => Promise.race([p, new Promise<'late'>(r => setTimeout(() => r('late'), 1000))])
 // session start's view stored, for the tests of what a prompt then gets
 // the stored view, under its repository and settings text (HK-091)
-const entry = (w: World, dir = '/w/.git') => Object.entries(w.stored ?? {}).find(([k]) => k.startsWith(`brief:${dir}#`))?.[1] as { sha?: string } | undefined
+type Kept = { order?: string[]; views?: Record<string, { sha?: string }> }
+const kept = (w: World, dir = '/w/.git') => (w.stored ?? {})[`brief:${dir}`] as Kept | undefined
+// the latest stored view of the repository (HK-092: one key, a view per settings text)
+const entry = (w: World, dir = '/w/.git') => { const k = kept(w, dir); return k?.views?.[k.order?.[0] ?? ''] }
 const stored = (w: World, sha = SHA) => until(() => entry(w)?.sha === sha)
 
 test('prompt.context adds the short view', async ($, on) => {
@@ -845,11 +853,57 @@ test('two settings texts keep two stored views, so worktrees whose settings diff
   w.settings = small.settings.replace('"Small"', '"Other"') // the other worktree's settings
   await $.prompt.context({ blocks: [] })
   await until(() => walks(w) === 2)
-  await until(() => Object.keys(w.stored!).filter(k => k.startsWith('brief:/w/.git#')).length === 2)
+  await until(() => Object.keys(kept(w)?.views ?? {}).length === 2)
   w.settings = undefined // back: its own view is still stored, so no walk
   w.argv!.length = 0
   expect(brief(await $.prompt.context({ blocks: [] }))).not.toContain('shown while a new one is built')
   expect(walks(w)).toBe(0)
+})
+
+// the re-check (HK-092)
+test('a repository keeps at most four stored views, the latest settings texts, under one key', async ($, on) => {
+  const w: World = { argv: [], stored: { 'brief:/w/.git': { sha: SHA, stamp: 'an older form', brief: 'old', status: '' } } }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await until(() => !!entry(w)) // the start's own build first: two builds at once each write over the other's list
+  for (let i = 1; i <= 6; i++) {
+    w.settings = small.settings.replace('"Small"', `"P${i}"`)
+    await $.prompt.context({ blocks: [] })
+    await until(() => walks(w) === i + 1 && (kept(w)?.order?.length ?? 0) === Math.min(i + 1, 4))
+  }
+  expect(kept(w)!.order!.length).toBe(4)
+  expect(Object.keys(kept(w)!.views!).sort()).toEqual([...kept(w)!.order!].sort())
+  expect(Object.keys(w.stored!).filter(k => k.startsWith('brief:'))).toEqual(['brief:/w/.git'])
+})
+
+test('a refused write of the short view is said, and prompts do not walk again at every turn', async ($, on) => {
+  const w: World = { argv: [], storeFull: true }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await until(() => walks(w) === 1)
+  let text = ''
+  for (let i = 0; i < 100 && !text.includes('could not be stored'); i++) {
+    text = brief(await $.prompt.context({ blocks: [] }))
+    await new Promise(r => setTimeout(r, 5))
+  }
+  expect(text.startsWith('housekeeping: the short view could not be built: housekeeping: the short view could not be stored: ')).toBe(true)
+  for (let i = 0; i < 3; i++) await $.prompt.context({ blocks: [] })
+  expect(walks(w)).toBeLessThanOrEqual(2)
+})
+
+test("a resumed fork keeps the record it had, not the main conversation's current one", async ($, on) => {
+  const w: World = { tracked: { ...TRACKED } }
+  world(on, w)
+  const told = compacts(on)
+  on('agent.spawn', (_: unknown, e: { resume?: { agentId: string } }) => ({ model: 'm', agentId: e.resume?.agentId ?? 'f1' }))
+  await $.session.start(START)
+  await ($ as any).agent.spawn({ prompt: 'x', subagentType: 'fork', fork: true }) // f1, before any procedure: none
+  await run($, 'plan')
+  await ($ as any).agent.spawn({ prompt: 'go on', subagentType: 'fork', fork: true, resume: { agentId: 'f1' } })
+  await $.session.compact({ trigger: 'auto', messages: MSGS, agentId: 'f1' })
+  expect(told[0]).toBeUndefined()
 })
 
 test('a compaction with odd input still goes ahead (HK-090)', async ($, on) => {
