@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { addedArgs, firstParentArgs } from '../hooks/core/history.ts'
-import { auditStart, scanDiff, tokens } from '../hooks/core/owed.ts'
+import { auditStart, owed, type OwedRead, parseCommitPaths, parseCommits, parseNames, scanDiff, tokens } from '../hooks/core/owed.ts'
+import { once } from './fixtures/page-data.ts'
 import { parseFiles } from '../hooks/core/parse.ts'
 import { parseSettings } from '../hooks/core/settings.ts'
 import * as small from './fixtures/small.ts'
@@ -90,4 +91,80 @@ test('a token is a whole word on an added or removed line, numbered on its own s
     { token: 'PRICES_CHECKED', path: 's p.ts', line: 1, removed: false },
     { token: 'PRICES_CHECKED', path: 'q"t.ts', line: 7, removed: true },
   ])
+})
+
+// What owed lists (Phase 3, Task 2): a base and a head of the small fixture's records, and what git gave for the range
+const line2 = (text: string, id: string) => text.split('\n').find(l => l.startsWith(`| ${id} `))!
+const HEAD_BACKLOG = once(once(once(once(small.backlog,
+  // B-001 settled: moved to Done
+  `${line2(small.backlog, 'B-001')}\n`, ''), '| Sign the hosting contract (PB-02) | 2026-09-10 | Closed |\n',
+  '| Sign the hosting contract (PB-02) | 2026-09-10 | Closed |\n| Rate-limit the export (B-001) | 2026-09-11 | Closed |\n'),
+  // B-003 gone: absent, in no Done table; B-006 opened, which main's tip also holds
+  `${line2(small.backlog, 'B-003')}\n`, '| B-006 | Cache the prices | open | low | none | agent | yes | S | chore | now | When an agent picks it up. | — | — | — | 2026-09-12 |\n'),
+  // B-005 waits on two code names; a checklist line names it
+  'Whenever an agent picks it up.', 'When `PRICES_CHECKED` or prices.ts changes.')
+  .replace('- [ ] **Owner.** Book the beta testers. *Settles:* PB-01.', '- [ ] **Owner.** Book the beta testers. *Settles:* PB-01.\n- [ ] **Agent.** Check the prices. *Settles:* B-005.')
+// PB-03 is a duty row whose Trigger names prices.ts: it never fires
+const HEAD_PLAYBOOK = small.playbook.replace('When the renewal notice arrives.', 'Every month: check `prices.ts`.')
+const MAIN_TIP = small.backlog.replace('| B-005 |', '| B-006 | Cache the rates | open | low | none | agent | yes | S | chore | now | Later. | — | — | — | 2026-09-12 |\n| B-005 |')
+const sha = (c: string) => c.repeat(40)
+const READ: OwedRead = {
+  base: sha('b'), head: sha('e'),
+  files: { base: { backlog: small.backlog, playbook: small.playbook }, head: { backlog: HEAD_BACKLOG, playbook: HEAD_PLAYBOOK },
+    main: { backlog: MAIN_TIP, playbook: small.playbook } },
+  commits: [
+    { sha: sha('1'), subject: 'Fix B-005 in the price check', body: '' },
+    // B-002 only in the body; PB-01 only in a trailer, beside an address and a name
+    { sha: sha('2'), subject: 'Tidy the CSV code', body: 'Prep for B-002.\n\nRefs: PB-01\nSigned-off-by: A Person <someone@example.com>\n' },
+    { sha: sha('3'), subject: 'Unrelated', body: 'Mentions B-001, now settled.' },
+  ],
+  paths: { [sha('1')]: ['src/prices.ts', 'src/$(x).ts', 'secret.txt'], [sha('2')]: ['src/csv/a.ts'], [sha('3')]: ['x.ts'] },
+  changed: ['src/prices.ts', 'src/myprices.ts', 'src/$(x).ts', 'secret.txt', 'src/csv/a.ts', 'backlog.md'],
+  denied: ['secret.txt'],
+  hits: [{ token: 'PRICES_CHECKED', path: 'src/a.ts', line: 4, removed: true }],
+  notRead: 1, notes: [],
+}
+const MARK = ' (a shell can read this path as commands: put it in no command)'
+
+test('owed lists each group, ends with the last commit read, and counts what it did not read', () => {
+  const t = owed(s, READ).split('\n')
+  expect(t[0]).toBe('housekeeping owed: bbbbbbb..eeeeeee, 3 commits, 6 changed paths; 1 excluded by the Read rules, never read or named; 1 not read (cut short or unreadable)')
+  const after = (title: string) => t.slice(t.indexOf(title) + 1, t.findIndex((l, i) => i > t.indexOf(title) && !/^ *- |^none$/.test(l)))
+  // the path matches on a "/" boundary only (src/prices.ts, not src/myprices.ts); the line, with its side and number
+  expect(after('Rows whose Trigger fired:')).toEqual(['- B-005 Tidy the build scripts: `PRICES_CHECKED` matched src/a.ts removed line 4; `prices.ts` matched src/prices.ts'])
+  expect(after('Rows the commits name by ID:')).toEqual([
+    '- B-005 Tidy the build scripts', '  - 1111111 Fix B-005 in the price check (in the subject; a closing word is next to the ID)',
+    '- B-002 CSV export of reports', '  - 2222222 Tidy the CSV code (in the body)'])
+  expect(after('Paths of those commits that the Read rules allow:')).toEqual([`- 1111111: src/prices.ts, src/$(x).ts${MARK}; 1 excluded`, '- 2222222: src/csv/a.ts'])
+  expect(after('Checklist lines that name these rows:')).toEqual(['- backlog.md:15 [ ] B-005'])
+  expect(after('Rows gone over the range (open at the base, absent at the head, in no Done table):')).toEqual(['- B-003 Pick a chart library'])
+  expect(after('Rows already settled (moved to Done at the head):')).toEqual(['- B-001 Rate-limit the export endpoint'])
+  expect(after('IDs the branch adds that are already taken:')).toEqual(["- B-006: main's tip holds it"])
+  expect(t.at(-1)).toBe(`Last commit read: ${sha('e')}`)
+})
+
+test('owed shows no trailer, address, author or denied path, and no line\'s text', () => {
+  const t = owed(s, READ)
+  for (const no of ['PB-01 Book', 'Refs', 'Signed-off-by', 'someone@example.com', 'A Person', 'secret.txt', 'const ', 'Prep for'])
+    expect([no, t.includes(no)]).toEqual([no, false])
+  // a duty row whose Trigger names a changed path does not fire
+  expect(t).not.toContain('- PB-03')
+})
+
+test('an ID the base holds in a Done table is taken; with nothing to list, each group says none', () => {
+  const reused = once(small.backlog, '| B-005 |', '| B-004 | Reuse an ID | open | low | none | agent | yes | S | chore | now | Later. | — | — | — | 2026-09-12 |\n| B-005 |')
+  const t = owed(s, { ...READ, files: { base: READ.files.base, head: { backlog: reused, playbook: small.playbook }, main: null },
+    commits: [], paths: {}, changed: [], denied: [], hits: [], notRead: 0 }).split('\n')
+  expect(t[0]).toBe('housekeeping owed: bbbbbbb..eeeeeee, 0 commits, 0 changed paths')
+  expect(t).toContain('- B-004: the base holds it in a Done table')
+  expect(t.filter(l => l === 'none').length).toBe(6)
+})
+
+test('the parsers: both sides of a rename, a merge with no paths, and a cut-short entry left out', () => {
+  expect(parseNames('M\0a.ts\0R100\0old.ts\0new.ts\0A\0cut')).toEqual(['a.ts', 'old.ts', 'new.ts'])
+  expect(parseCommitPaths(`${sha('1')}\0${sha('2')}\0\nM\0a.ts\0R090\0o.ts\0n.ts\0${sha('3')}\0\nA\0b.ts\0`))
+    .toEqual({ [sha('1')]: [], [sha('2')]: ['a.ts', 'o.ts', 'n.ts'], [sha('3')]: ['b.ts'] })
+  const log = `${sha('1')}\tone\tsubject\0body one\n\0${sha('2')}\ttwo\0\0`
+  expect(parseCommits(log, false)).toEqual([{ sha: sha('1'), subject: 'one\tsubject', body: 'body one\n' }, { sha: sha('2'), subject: 'two', body: '' }])
+  expect(parseCommits(log, true).length).toBe(1)
 })

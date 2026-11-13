@@ -45,7 +45,7 @@ const DATA = /\.(?:ya?ml|json|csv|toml)$/i
 const PENDING_HEADING = /^#{1,6}[ \t]+(?:to[ -]?dos?|roadmap|next[ -]steps?)\b/im
 const TOP = 15, REFS = 5, SUSPECTS = 15
 // letters, digits, space, dot, dash, underscore and slash: a path of these alone no shell reads as more than a word
-const SHELL_SAFE = /^[\p{L}\p{Nd} ._/-]*$/u
+export const SHELL_SAFE = /^[\p{L}\p{Nd} ._/-]*$/u
 // a path the procedure sends through the slash route, which uses no shell, wherever the inventory names it (second
 // check, finding 3; HK-088)
 const unsafe = (path: string): string => SHELL_SAFE.test(path) ? '' : ' (name it only through /housekeeping survey: a shell can read this path as commands)'
