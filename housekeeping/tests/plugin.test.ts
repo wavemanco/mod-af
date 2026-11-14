@@ -1774,6 +1774,55 @@ test('a rebuild a prompt retries after a failure refreshes the status line, and 
   expect(w.status!.at(-1)).toContain('land now')
 })
 
+// the second re-check (HK-107): the debug line says what the rebuild for this commit did, and a rebuild that lands after a
+// newer one leaves the status line to the newer
+test("the after-commit debug line says what this commit's rebuild did: running already, or started where another's failure is recent", async ($, on) => {
+  let open!: () => void
+  const w: World = { argv: [], status: [], ran: [], logs: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true, gate: new Promise<void>(r => { open = r }) })
+  await shell($, 'git commit -m a')
+  await shell($, 'git status')
+  await until(() => debugs(w).length > 2)
+  expect(debugs(w).slice(-2)).toEqual([
+    'housekeeping Bash call: main at fffffff, the records changed since abcdef0: rebuilding, line added (0 ms)',
+    'housekeeping Bash call: main at fffffff, the records changed since abcdef0: a rebuild is running, already said (0 ms)'])
+  open()
+  await stored(w, NEW)
+  // the next change's rebuild fails; then origin/main moves, so the rebuild for this commit is another one, and it runs
+  Object.assign(w, { mainSha: OTHER, logFail: 'fatal: bad object\n' })
+  const n = walks(w)
+  await shell($, 'git commit -m b')
+  await until(() => walks(w) === n + 1)
+  await new Promise(r => setTimeout(r, 50))
+  Object.assign(w, { remoteSha: 'd'.repeat(40) })
+  await shell($, 'git fetch')
+  await until(() => debugs(w).length > 4)
+  expect(debugs(w).at(-1)).toBe('housekeeping Bash call: main at eeeeeee, the records changed since fffffff: rebuilding, already said (0 ms)')
+})
+
+test('a rebuild that lands after a newer one leaves the status line to the newer', async ($, on) => {
+  let open1!: () => void, open2!: () => void
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true, gate: new Promise<void>(r => { open1 = r }) })
+  await shell($, 'git commit -m a')
+  await until(() => walks(w) === 2)
+  Object.assign(w, { mainSha: OTHER, gate: new Promise<void>(r => { open2 = r }), status: [] })
+  await shell($, 'git commit -m b')
+  await until(() => walks(w) === 3)
+  open2()
+  await stored(w, OTHER)
+  await until(() => w.status!.length === 1)
+  open1()
+  await new Promise(r => setTimeout(r, 50))
+  expect(w.status!.length).toBe(1)
+})
+
 test('after /clear, the next conversation is told of a change of the records still being rebuilt', async ($, on) => {
   const w: World = { argv: [], status: [], ran: [] }
   world(on, w)

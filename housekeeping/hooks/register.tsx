@@ -58,8 +58,9 @@ type View = { brief: string; status: string; duties?: PageData['duties'] }
 // the rebuilds under way, by stamp: one walk however many ask; and the last that failed, with its first line, so a
 // prompt is told why and starts no second walk for it (HK-088)
 // announced: by store key and settings text, the main commit the after-commit line last named, so one change of the
-// records is said once however many git commands follow it (the Phase 3 check)
-type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, { line: string; at: number; view?: View }>; announced: Map<string, string> }
+// records is said once however many git commands follow it (the Phase 3 check); gen: the latest rebuild started, so
+// only it sets the status line (the second re-check)
+type Builds = { running: Map<string, Promise<View | null>>; failed: Map<string, { line: string; at: number; view?: View }>; announced: Map<string, string>; gen: number }
 type Kept = View & { sha: string; stamp: string }
 type Views = { order: string[]; views: Record<string, Kept> }
 // shortcut: more than VIEWS settings texts in use at once (worktrees, say) rebuild at every prompt; raise VIEWS if
@@ -91,7 +92,9 @@ const BUILDING = 'housekeeping: the short view is being built and is not ready y
 // wait false, for prompt.context (finding 20): the walk is never awaited, since its time would count against that
 // hook's budget; the last stored view stands in, labelled with its commit, while the rebuild runs, or with nothing
 // stored the view says it is being built.
-async function cachedView($: EngineInterface, builds: Builds, wait = true): Promise<View | null> {
+// told hears, before any walk is awaited, what this call did for its own stamp, for the after-commit debug line (the
+// second re-check)
+async function cachedView($: EngineInterface, builds: Builds, wait = true, told: (did: string) => void = () => {}): Promise<View | null> {
   const root = await repoRoot($)
   const file = `${root}/${SETTINGS}`
   if (!(await $.fs.exists(file))) return null
@@ -112,7 +115,7 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
   // the day's duties; with nothing to store (an unborn HEAD, say, whose rev-parse names no branch) the load's own lines stand
   const today = new Date(await $.clock.now()).toISOString().slice(0, 10)
   const on = (v: View) => keep ? withBranch(v.duties ? withDuties(v.brief, v.duties, today) : v.brief, branch, main) : v.brief
-  if (hit?.stamp === stamp) return { brief: on(hit), status: hit.status }
+  if (hit?.stamp === stamp) { told('the stored view is current'); return { brief: on(hit), status: hit.status } }
   const fresh = async () => {
     // a load that rejects (git past its time, a store that fails) is a failure too, said and retried as one (HK-091)
     const l = await load($, !keep).catch(err => ({ error: `housekeeping: ${err instanceof Error ? err.message : String(err)}` }))
@@ -136,19 +139,23 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
     }
     return { ...v, brief: on(v) }
   }
-  if (!keep) return fresh() // nothing to store or serve: main does not resolve, so the load stops before any walk
+  // nothing to store or serve: main does not resolve, so the load stops before any walk
+  if (!keep) { told('rebuilding'); return fresh() }
   // a recent failure is said, with no walk; one older than RETRY_MS is said while it is tried again, on every route,
   // so git commands after a failure do not each walk the history again (the Phase 3 check)
-  const failed = builds.failed.get(stamp)
-  const retry = !failed || (await $.clock.now()) - failed.at >= RETRY_MS
+  const failed = builds.failed.get(stamp), now = await $.clock.now()
+  const retry = !failed || now - failed.at >= RETRY_MS
   let build = builds.running.get(stamp)
   if (!build && retry) {
     build = fresh().finally(() => builds.running.delete(stamp))
     build.catch(() => {}) // handled where it is made: a prompt may return before it settles (HK-091)
     builds.running.set(stamp, build)
-    // every route's rebuild refreshes the status line when it lands, a prompt's retry included (the Phase 3 re-check)
-    build.then(v => { if (v) $.ui.status(v.status) }).catch(() => {})
-  }
+    // every route's rebuild refreshes the status line when it lands, a prompt's retry included, unless a newer rebuild
+    // started since (the re-checks; HK-104)
+    const gen = ++builds.gen
+    build.then(v => { if (v && gen === builds.gen) $.ui.status(v.status) }).catch(() => {})
+    told('rebuilding')
+  } else told(build ? 'a rebuild is running' : `a rebuild failed ${Math.round((now - failed!.at) / 1000)} s ago, so none runs before its minute`)
   if (!wait && failed?.view) return { brief: `housekeeping: ${failed.line}\n${on(failed.view)}`, status: failed.view.status }
   if (!wait && failed) return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}; a new one could not be built: ${failed.line}\n${on(hit)}`, status: hit.status }
     : { brief: `housekeeping: the short view could not be built: ${failed.line}`, status: '' }
@@ -203,12 +210,10 @@ async function afterGit($: EngineInterface, builds: Builds, e: { agentId?: strin
   if (old === sha) return [got, `main at ${at7(sha)}, as the stored view`]
   const d = (await quietDiff($, root, s, old, sha)).exitCode
   if (d !== 1) return [got, `main at ${at7(sha)}, ${d === 0 ? `the records unchanged since ${at7(old)}` : `git diff exited ${d}`}`]
-  // not awaited: the agent's next step never waits on the walk, which one already running or a recent failure skips;
-  // the rebuild sets the status line when it lands
-  cachedView($, builds).catch(() => {})
-  const now = await $.clock.now(), failed = [...builds.failed.values()].find(f => now - f.at < RETRY_MS)
-  const said = `main at ${at7(sha)}, the records changed since ${at7(old)}: ` +
-    (failed ? `a rebuild failed ${Math.round((now - failed.at) / 1000)} s ago, so none runs before its minute` : 'rebuilding')
+  // the agent's next step never waits on the walk, which one already running or a recent failure skips: only on what
+  // the rebuild for this commit did, which cachedView says before any walk; the rebuild sets the status line when it lands
+  const did = await new Promise<string>(res => { cachedView($, builds, true, res).catch(() => {}).finally(() => res('no rebuild ran')) })
+  const said = `main at ${at7(sha)}, the records changed since ${at7(old)}: ${did}`
   if (e.agentId !== undefined) return [got, `${said}, in a subagent: no line`]
   if (builds.announced.get(`${key}#${id}`) === sha) return [got, `${said}, already said`]
   builds.announced.set(`${key}#${id}`, sha)
@@ -529,7 +534,7 @@ export const register: Register = (on, options) => {
   // off, false, no or 0, in any case and with spaces around it, all read as off (the Phase 3 check)
   const automatic = !/^(off|false|no|0)$/i.test(String(options?.automatic ?? 'on').trim())
   let view = 'housekeeping: run /housekeeping to build the short view.'
-  const builds: Builds = { running: new Map(), failed: new Map(), announced: new Map() }
+  const builds: Builds = { running: new Map(), failed: new Map(), announced: new Map(), gen: 0 }
   // the procedures sent in this conversation, each with its install sentence (second check, finding 13)
   const sent = new Map<string, Sent>()
   // per run of the command: whether owed's Read checks all finished with nothing excluded, for the failed reply
