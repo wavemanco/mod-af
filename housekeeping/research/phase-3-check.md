@@ -245,3 +245,54 @@ tag at 6124015 too.
   - Live check 7 does not explain the new "not shown" debug line.
 
 They are HK-105.
+
+## The second narrow re-check (2026-11-13)
+
+The owner chose "Narrow re-check" again. It ran at 96ede4c over `1176c4c..96ede4c`, the round that fixed the 25. Three
+lenses each worked in their own clone (the audit's guard and procedure, `owed`, the automatic parts with the
+records), and one skeptic voted on each serious finding. It used 6 agents of the 9 its script allowed, ran for about
+25 minutes, and started no live session. The before and after lists of untracked files showed nothing new. It found
+17 findings, one of them twice, so 16 in all; none critical. Of the three put to a skeptic, two held and one was
+refuted. None is fixed yet: the owner decides the round.
+
+**Held by its skeptic:**
+1. **Important, a record: live check 15's new step cannot fail.** Its example rule, `"ask": ["Edit(//**)"]`, asks
+   before every edit, the repository's own included, not only those outside it, so it tells nothing about the
+   worktree. Smallest fix: a rule scoped the way a person scopes one to the repository, and a pass and a fail that
+   differ.
+2. **`untrailed()` drops prose that shares a paragraph with a Signed-off-by,** so "This fixes B-001 ...", followed
+   by a Signed-off-by line with no blank line between, no longer names B-001, where 1176c4c did. Git reads that
+   paragraph as its trailer block too, so the headline case is as intended; a list of changes ending in a
+   Signed-off-by is the narrow case that holds. Rated minor. Smallest fix: drop only the block's Key: value lines and
+   keep its other lines for matching.
+
+**Refuted:** `bare()` shows a co-author's name when the trailer in the subject has no angle-bracket address. It does,
+but the cut was narrowed on purpose (a name and an address), the address is still masked, and the case is older.
+
+**Minor, not put to a skeptic:**
+- The audit's guard and procedure:
+  - The Node `owed` command outside Claude Code passes `--head '<main>'`, which still reads a tag named like the
+    branch: `owed`'s head does not go through branchRef. Found by two lenses. HK-103 says otherwise.
+  - Quoting "each file in the system temp folder" keeps a variable such as `$TMP` from expanding, so an agent that
+    writes the variable puts the worktree and the page inside the person's checkout.
+  - The install-folder stop blocks a user whose profile folder holds an apostrophe, gives no way on, and has no test.
+  - The settings-name stop calls harmless names code and offers only renaming: records paths in Devanagari, Thai or
+    Tamil (whose combining marks are not letters) and `@`-scoped folders now stop, where they ran at 1176c4c.
+- `owed`:
+  - `bare()` is still slow on a long subject paragraph of repeated `Cc: ` or `x-by: `.
+  - Ordinary subjects are still cut after a word ending in `-by:` when angle brackets follow later, and after any
+    `Cc:`.
+  - Reading the whole subject lets a cut trailer key (`Fixed-by:`) count as a closing word, and the ID can sit only
+    in the cut part, which the shown subject does not hold.
+  - `__tests__/__snapshots__` in a Trigger fired at 1176c4c and no longer does; `___x___` and `_**x**_` never do.
+- The automatic parts and the records:
+  - The after-commit debug line can say a failure held a rebuild back when one runs: it reads failures across every
+    settings text.
+  - Every route's rebuild now sets the status line, so an older one landing late overwrites a newer line; HK-104
+    names the after-commit route only.
+  - A resumed conversation that was already told of a change is told again.
+  - The README and DESIGN 3.9 say the audit stops on "a quote of any kind" in the install folder; the code stops on
+    single-quote characters and control characters, and no test covers it.
+  - DESIGN 3.9 and 7 leave out e7a1638's change to Proposing: no duty-row step when the commits are cut short.
+
+They are HK-107.
