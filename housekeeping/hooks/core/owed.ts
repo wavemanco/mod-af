@@ -23,13 +23,22 @@ const W = '\\p{L}\\p{N}_'
 // The code-name rule (FORMAT, "Code names in a Trigger"): a backticked span, or a word that holds "/" or ends in "." and
 // letters once the punctuation around it is dropped; a slash command is none
 const SLASH = /^\/[^/\s]+(?:\s|$)/
+// the punctuation and the emphasis around a word, dropped until none is left: a pair of _ to ___ around a path goes,
+// unless a segment of what is left starts or ends with _, so __init__.py and __tests__/__snapshots__ stay names
+// (the re-checks)
+const PATHLIKE = (w: string) => w.includes('/') || /\.\p{L}+$/u.test(w)
+function unwrap(word: string): string {
+  for (let w = word; ;) {
+    const t = w.replace(/^[("'[{<*]+|[)"'\]}>,;:!?.*]+$/g, ''), m = /^(_{1,3})(.+)\1$/.exec(t)
+    const next = m && PATHLIKE(m[2]) && !m[2].split('/').some(x => /^_|_$/.test(x)) ? m[2] : t
+    if (next === w) return w
+    w = next
+  }
+}
 export function tokens(trigger: string): string[] {
-  // a Markdown link gives its text and its target as words; bold and italics are dropped, an underscore only in a pair
+  // a Markdown link gives its text and its target as words; bold and italics are dropped
   const words = trigger.replace(/`[^`]*`/g, ' ').replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, ' $1 $2 ').split(/\s+/)
-    .map(w => w.replace(/^[("'[{<*]+|[)"'\]}>,;:!?.*]+$/g, ''))
-    // a pair of _ or __ around a path is dropped, so __init__.py stays a name (the re-check)
-    .map(w => { const m = /^(__?)(.+)\1$/.exec(w); return m && (m[2].includes('/') || /\.\p{L}+$/u.test(m[2])) ? m[2] : w })
-    .filter(w => w.includes('/') || /\.\p{L}+$/u.test(w))
+    .map(unwrap).filter(PATHLIKE)
   const all = [...[...trigger.matchAll(/`([^`]+)`/g)].map(m => m[1].trim()), ...words].map(t => t.replace(/^\.\//, ''))
   return [...new Set(all.filter(t => t && !SLASH.test(t)))]
 }
@@ -104,20 +113,36 @@ export function parseCommits(out: string, cut: boolean): Commit[] {
   return got
 }
 
-// git's trailer block is dropped before matching, read as git reads it: the body's last paragraph, CRLF or not, when
-// each of its lines is Key: value or a continuation, or when a quarter of them are and one is a Signed-off-by; a
-// Key: value line inside prose is read (the Phase 3 check and re-check)
+// git's trailer block is read as git reads it: the body's last paragraph, CRLF or not, when each of its lines is
+// Key: value or a continuation, or when a quarter of them are and one is git's own (Signed-off-by, a cherry-pick
+// line). Its Key: value lines and their continuations are dropped before matching; prose beside them, and a Key: value
+// line inside prose, is read (the Phase 3 check and re-checks)
 const TRAILER = /^[A-Za-z][\w-]*\s*:/
+const GIT_MADE = (l: string) => l.startsWith('Signed-off-by: ') || l.startsWith('(cherry picked from commit ')
 const untrailed = (body: string) => {
   const paras = body.replace(/\r\n?/g, '\n').trimEnd().split(/\n[ \t]*\n/)
-  const lines = paras.at(-1)!.split('\n'), keys = lines.filter(l => TRAILER.test(l))
-  const block = keys.length > 0 && (lines.every(l => TRAILER.test(l) || /^\s/.test(l)) ||
-    (keys.length * 4 >= lines.length && keys.some(l => /^Signed-off-by\s*:/i.test(l))))
-  return (block ? paras.slice(0, -1) : paras).join('\n\n')
+  const lines = paras.at(-1)!.split('\n'), key = (l: string) => TRAILER.test(l) || GIT_MADE(l), keys = lines.filter(key)
+  const block = keys.length > 0 && (lines.every(l => key(l) || /^\s/.test(l)) || (keys.length * 4 >= lines.length && lines.some(GIT_MADE)))
+  if (!block) return paras.join('\n\n')
+  const kept: string[] = []
+  let inKey = false
+  for (const l of lines) {
+    if (key(l)) { inKey = true; continue }
+    if (inKey && /^\s/.test(l)) continue
+    inKey = false
+    kept.push(l)
+  }
+  return [...paras.slice(0, -1), kept.join('\n')].join('\n\n')
 }
-// git's subject is the message's whole first paragraph, so a -by: or Cc: trailer written in it, with a name and an
-// address, is cut off where the subject is shown; IDs are read in the whole subject (the re-check)
-const bare = (subject: string) => subject.replace(/(?:^|\s)(?:[A-Za-z][\w-]*-by|Cc)\s*:[^<\n]*<[^<>\n]*>.*$/is, '').trimEnd()
+// git's subject is the message's whole first paragraph, so a trailer written in it is cut off where the subject is
+// shown: a known -by: key with whatever follows, a Cc: only with an address; the first such key, found in one linear
+// scan (the re-checks)
+const BY = /(?:^|\s)((?:Signed-off|Co-authored|Co-developed|Reviewed|Acked|Tested|Reported|Suggested|Helped|Requested)-by|Cc)\s*:/gi
+const bare = (subject: string) => {
+  for (const m of subject.matchAll(BY))
+    if (m[1].toLowerCase() !== 'cc' || /<[^<>\s@]+@[^<>\s]+>/.test(subject.slice(m.index))) return subject.slice(0, m.index).trimEnd()
+  return subject
+}
 // the closing words, any case, next to the ID on either side
 const CLOSING = '(?:close[sd]?|fix(?:e[sd])?|done|land(?:s|ed)?|resolve[sd]?)'
 const closing = (text: string, id: string) => new RegExp(`(?<![${W}])${CLOSING}[^\\p{L}\\p{N}]{1,3}${esc(id)}(?![${W}])|` +
@@ -157,12 +182,15 @@ export function owed(s: Settings, r: OwedRead): string {
   const named = new Map<string, string[]>(), listed = new Set<string>(), hide = hider(denied)
   const subject = (t: string) => oneLine(hide ? t.replace(hide, '[a path the Read rules deny]') : t)
   for (const c of r.commits) {
-    const body = untrailed(c.body), inSubject = idsIn(c.subject, s)
-    for (const id of new Set([...inSubject, ...idsIn(body, s)])) {
+    // the shown subject and the trailer cut from it are read apart: an ID only in the trailer says so, and a trailer's
+    // key is no closing word (the second re-check)
+    const body = untrailed(c.body), shown = bare(c.subject), inShown = idsIn(shown, s), inBody = idsIn(body, s)
+    for (const id of new Set([...inShown, ...inBody, ...idsIn(c.subject.slice(shown.length), s)])) {
       if (!open.has(id)) continue
       listed.add(c.sha)
-      const close = closing(c.subject, id) || closing(body, id) ? '; a closing word is next to the ID' : ''
-      named.set(id, [...(named.get(id) ?? []), `  - ${c.sha.slice(0, 7)} ${subject(bare(c.subject))} (in the ${inSubject.includes(id) ? 'subject' : 'body'}${close})`])
+      const close = closing(shown, id) || closing(body, id) ? '; a closing word is next to the ID' : ''
+      const where = inShown.includes(id) ? 'subject' : inBody.includes(id) ? 'body' : "subject's trailer"
+      named.set(id, [...(named.get(id) ?? []), `  - ${c.sha.slice(0, 7)} ${subject(shown)} (in the ${where}${close})`])
     }
   }
   const paths = r.commits.filter(c => listed.has(c.sha)).map(c => {

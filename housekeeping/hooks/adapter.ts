@@ -60,7 +60,8 @@ async function owedRead(git: Git, s: Settings, o: { base?: string; head?: string
   const said = (r: { stderr: string }) => r.stderr.split('\n')[0].trim()
   const resolve = async (ref: string) => { const r = await run(resolveArgs(ref)); return r.exitCode === 0 ? r.stdout.trim() : null }
   if ((await run(SHALLOW)).stdout.trim() === 'true') return { error: SHALLOW_OWED }
-  const head = await resolve(o.head ?? 'HEAD')
+  // a head given by name reads the branch before a tag of that name, as the base does (the second re-check)
+  const head = await resolve(o.head ? await branchRef(git, o.head) : 'HEAD')
   if (!head) return { error: `housekeeping: '${o.head ?? 'HEAD'}' names no commit here` }
   const mref = await branchRef(git, s.mainBranch), main = await resolve(mref)
   if (!o.base && !main) return { error: `housekeeping: no branch '${s.mainBranch}' here (the "mainBranch" setting): ${BASE}` }

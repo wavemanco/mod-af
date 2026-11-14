@@ -236,6 +236,27 @@ test('a denied path is hidden written ./ or in another case; a bare word is not,
     expect(named(`Fix B-005: ${words}`, '', [path])[0]).toContain(`Fix B-005: ${words} (`)
 })
 
+// the second re-check (HK-107)
+test('a known trailer key is cut from a shown subject with or without an address, Cc: only with one, in linear time', () => {
+  expect(named('Close B-005 Reported-by: Pat Example')).toEqual(['  - 1111111 Close B-005 (in the subject; a closing word is next to the ID)'])
+  expect(named('Fix B-005: stand-by: mode <x>')).toEqual(['  - 1111111 Fix B-005: stand-by: mode <x> (in the subject; a closing word is next to the ID)'])
+  expect(named('Fix B-005 (Cc: docs team)')).toEqual(['  - 1111111 Fix B-005 (Cc: docs team) (in the subject; a closing word is next to the ID)'])
+  expect(named('Tidy Reported-by: Pat <p@corp.io> B-005')).toEqual(["  - 1111111 Tidy (in the subject's trailer)"])
+  const t0 = Date.now()
+  named('Fix B-005 ' + 'Cc: '.repeat(20_000))
+  named('Fix B-005 ' + 'x-by: '.repeat(20_000))
+  expect(Date.now() - t0).toBeLessThan(500)
+})
+
+test("prose beside a Signed-off-by in git's trailer block is still read; only the Key: value lines go", () => {
+  expect(named('Tidy', 'This fixes B-002 by capping the rate.\nSigned-off-by: A <someone@corp.io>\n')).toEqual(['  - 1111111 Tidy (in the body; a closing word is next to the ID)'])
+})
+
+test('underscore names in a path stay, and nested emphasis is dropped', () => {
+  expect(tokens('When __tests__/__snapshots__ changes.')).toEqual(['__tests__/__snapshots__'])
+  expect(tokens('When ___docs/c.md___ or _**docs/d.md**_ changes.')).toEqual(['docs/c.md', 'docs/d.md'])
+})
+
 test("a note's control characters cannot forge a line", () => {
   const t = owed(s, { ...READ, notes: ["No branch 'main\n- 1111111: secret.txt' here, so the IDs the branch adds were checked against the base only."] }).split('\n')
   expect(t.some(l => l.startsWith('- 1111111: secret'))).toBe(false)

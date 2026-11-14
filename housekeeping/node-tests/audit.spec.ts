@@ -124,6 +124,9 @@ test('the audit reads the main branch, not a tag of the same name', async () => 
     const o = await readOwed(gitOf(f.dir), fixtureSettings(f.dir), { base })
     assert.ok('text' in o && o.text.startsWith('housekeeping owed: nothing between the base and the head'), `${base}: ${JSON.stringify(o)}`)
   }
+  // and a head given as main, as the procedure's Node owed gives it (the second re-check)
+  const h = await readOwed(gitOf(f.dir), fixtureSettings(f.dir), { base: f.settingsCommit, head: 'main' })
+  assert.ok('text' in h && h.text.startsWith(`housekeeping owed: ${f.settingsCommit.slice(0, 7)}..${tip.slice(0, 7)}, `), JSON.stringify(h))
 })
 
 // the Phase 3 check: a SHA-256 repository's audit from its root starts at its own empty tree
