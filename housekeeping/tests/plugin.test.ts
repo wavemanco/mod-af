@@ -1505,6 +1505,18 @@ test('owed counts a path holding a backslash as not read and diffs none of it; a
 
 const F = ['0', '1', '2'].map(c => c.repeat(40)), AUDIT_LINE = [...F, SHA]
 
+// the Phase 3 re-check: in PowerShell a curly quote ends a single-quoted string, so a settings name the audit's
+// commands carry must be plain, or the audit stops before handing its procedure
+for (const [key, settings] of [['mainBranch', { mainBranch: 'main’;Write-Output(1);#' }], ['files.backlog.path', { files: { backlog: { path: 'b$(x).md' }, playbook: { path: 'playbook.md' } } }]] as const)
+  test(`/housekeeping audit stops before handing its procedure when ${key} is not a plain name`, async ($, on) => {
+    world(on, { backlog: OWED_BACKLOG, owed: OWED(), audit: { line: AUDIT_LINE, added: F[1] }, settings: JSON.stringify({ ...JSON.parse(small.settings), ...settings }) })
+    await $.session.start(START)
+    const r = await run($, 'audit')
+    expect([r.exitCode, r.context]).toEqual([2, undefined])
+    expect(r.text).toBe(`housekeeping: the audit's commands would carry the "${key}" setting, which holds a character a shell can read as code; ` +
+      'the audit stops. Rename it to letters, digits, spaces, ".", "_", "/" and "-" only.')
+  })
+
 test('/housekeeping audit with nothing on main after its start says so and hands no procedure', async ($, on) => {
   world(on, { backlog: OWED_BACKLOG, owed: OWED(), audit: { line: [F[0], F[1]], added: F[1] } })
   await $.session.start(START)

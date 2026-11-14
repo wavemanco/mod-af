@@ -9,7 +9,7 @@ import { auditStart, type Hit, owed, parseCommitPaths, parseCommits, parseNames,
 import { parseFiles } from './core/parse.ts'
 import { maskPrivacy } from './core/privacy.ts'
 import { parseSettings } from './core/settings.ts'
-import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
+import { checkNamed, collect, CUT_LIST, SHELL_SAFE, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Settings, Snapshot } from './core/types.ts'
 
 type Dollar = EngineInterface
@@ -129,6 +129,11 @@ async function owedRead(git: Git, s: Settings, o: { base?: string; head?: string
 export const readAudit = async (...a: Parameters<typeof auditRead>) => masked(await auditRead(...a))
 async function auditRead(git: Git, s: Settings, o: { allow?: (path: string) => Promise<boolean>; checked?: (excluded: number) => void } = {}):
   Promise<{ text: string; idle?: boolean } | { error: string }> {
+  // the procedure's commands carry these names, and in PowerShell a curly quote ends a single-quoted string, so each must
+  // be plain or the audit stops (the Phase 3 re-check); the name itself is never put in the reply
+  for (const [key, name] of [['mainBranch', s.mainBranch], ['files.backlog.path', s.files.backlog.path], ['files.playbook.path', s.files.playbook.path]])
+    if (!SHELL_SAFE.test(name)) return { error: `housekeeping: the audit's commands would carry the "${key}" setting, which holds a character a shell can read as code; ` +
+      'the audit stops. Rename it to letters, digits, spaces, ".", "_", "/" and "-" only.' }
   const run = (argv: string[]) => git(argv.slice(1)), main = s.mainBranch, ref = await branchRef(git, main)
   const line = await run(firstParentArgs(ref)), fp = line.stdout.split('\n').map(x => x.trim()).filter(Boolean)
   if (line.exitCode !== 0 || !fp.length) return { error: `housekeeping: cannot read the first-parent line of '${main}' (the "mainBranch" setting)` +

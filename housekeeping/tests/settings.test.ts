@@ -24,6 +24,15 @@ test('fills defaults', () => {
   expect(s.done).toEqual([])
 })
 
+// the Phase 3 re-check: a control character in mainBranch or a file path could forge a line of what is shown
+test('a control character in mainBranch or a file path is an error', () => {
+  for (const b of [{ ...base(), mainBranch: 'main\n- 1234567: x' }, { ...base(), files: { backlog: { path: 'b.md x' }, playbook: { path: 'p.md' } } }]) {
+    const r = parse(b)
+    expect(r.settings).toBe(null)
+    expect(r.findings.some(f => f.level === 'error' && /control character/.test(f.message))).toBe(true)
+  }
+})
+
 test('rejects bad JSON', () => {
   const r = parseSettings('{')
   expect(r.settings).toBe(null)

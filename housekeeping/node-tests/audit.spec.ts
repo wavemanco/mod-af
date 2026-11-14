@@ -97,15 +97,18 @@ for (const duty of [true, false]) test(`the audit's reader ${duty ? 'starts at t
 // the Phase 3 check: the audit's first line and the readers' stops quote the settings and the refs, so they are masked too
 test('the audit\'s first line and owed\'s stops mask an address in the mainBranch setting or a ref', async () => {
   // not an example.com address, which the mask leaves as made up
-  const f = buildAudit(tmp(), false), addr = 'someone@corp.io'
+  const f = buildAudit(tmp(), false), addr = 'someone@corp.io', key = 'sk-ant-FAKEFAKEFAKEFAKEFAKEFAKE'
   const s = { ...fixtureSettings(f.dir), mainBranch: addr }
   git(f.dir, 'branch', '-m', 'main', addr)
+  // since the re-check, a name that is not plain stops the audit, and the stop never names it
   const r = await readAudit(gitOf(f.dir), s)
-  assert.ok('text' in r, JSON.stringify(r))
-  assert.match(r.text.split('\n')[0], / on so\*+io$/)
-  assert.ok(!r.text.includes(addr), r.text)
+  assert.ok('error' in r && r.error.includes('"mainBranch"') && !r.error.includes(addr), JSON.stringify(r))
   const e = await readOwed(gitOf(f.dir), s, { base: 'x' + addr })
   assert.ok('error' in e && !e.error.includes(addr), JSON.stringify(e))
+  // a plain name of a key's shape is masked in the audit's first line
+  git(f.dir, 'branch', '-m', addr, key)
+  const k = await readAudit(gitOf(f.dir), { ...s, mainBranch: key })
+  assert.ok('text' in k && !k.text.includes(key), JSON.stringify(k))
 })
 
 // the Phase 3 check: a tag named like the main branch is not read for it, which git would do first
@@ -183,7 +186,7 @@ const RULES: Record<string, string[]> = {
   'the start outside Claude Code': ['the latest "Last done: ..., through <sha>" of the duty row whose Trigger holds "/housekeeping audit", if git verifies the ' +
     'sha and it is an ancestor of main', 'else, and whenever more than 50 first-parent commits follow it, the oldest 50 after it.'],
   'the evidence': ['in Claude Code, only the listing handed with this procedure; never run owed over the range in this session. Outside Claude Code, ' +
-    '`node <home>/cli.ts owed --base <start> --head <main>`.', 'for at most 25 row-and-commit pairs, strongest first (a closing word next to the ID, ' +
+    '`node \'<home>/cli.ts\' owed --base \'<start>\' --head \'<main>\'`.', 'for at most 25 row-and-commit pairs, strongest first (a closing word next to the ID, ' +
     'then the ID in the subject, then in the body), read only the hunks of that commit\'s allowed paths: ' +
     '`git show --format= --end-of-options <sha> -- \':(literal)<path>\' ...`, never a whole commit, never `--stat`.', 'Pairs past 25 are counted.'],
   'the marked path': ['A pair with a marked path is a judgement call and goes into no command.'],
@@ -206,15 +209,19 @@ const RULES: Record<string, string[]> = {
     'where that line says none, the commits were cut short, so Last done stays where it is and the report says why.',
     'The worktree is removed at the end, and before any branch is deleted.'],
   'never pushing': ['The branch is never pushed: it is the owner\'s.'],
-  'the check after applying': ['before and after, `node <home>/cli.ts map --settings <a copy whose mainBranch is the audit branch> --out <a file in the ' +
-    'system temp folder>`', 'Expected: closed up by N and open down by N; when the duty row was added, open down by N - 1 and the total up by 1. ' +
-    '`node <home>/cli.ts owed --base <main> --head <audit branch>` lists no gone row. Both commands read only the records and the audit\'s own commits, ' +
+  'the check after applying': ['before and after, `node \'<home>/cli.ts\' map --settings \'<a copy whose mainBranch is the audit branch>\' --out \'<a file in the ' +
+    'system temp folder>\'`', 'Expected: closed up by N and open down by N; when the duty row was added, open down by N - 1 and the total up by 1. ' +
+    '`node \'<home>/cli.ts\' owed --base \'<main>\' --head \'<audit branch>\'` lists no gone row. Both commands read only the records and the audit\'s own commits, ' +
     'so they are allowed whatever owed excluded. If `map` exits 1 before applying, apply nothing and list the cases. Any other result: remove the ' +
     'worktree, delete the branch and report.'],
   'the settings copy outside the repository': ['the settings copy also lives there, outside the repository.'],
   // the Phase 3 check (HK-102): quoting before the first command, a partial clone, the SHA-256 empty tree
-  'quoting': ['in a shell, put each name the settings give (`<main>`, `<backlog>`, `<playbook>`), each `:(literal)<path>` and each `<main>:<path>` in ' +
-    'single quotes, as the commands below do: a shell reads the brackets and the spaces. A name from the settings that holds a single quote goes into no command: say so and stop.'],
+  'quoting': ['in a shell, put each name the settings give (`<main>`, `<backlog>`, `<playbook>`), each `:(literal)<path>` and `<main>:<path>`, `<home>`, ' +
+    '`<folder>` and each file in the system temp folder in single quotes, as the commands below do: a shell reads the brackets and the spaces.',
+    'A name from the settings holding anything but letters, digits, spaces, `.`, `_`, `/` and `-` goes into no command, nor does a `<home>` or `<folder>` ' +
+    'holding a single-quote character of any kind (`\'`, `‘`, `’`, `‚`, `‛`: PowerShell ends a string at each): say so and stop.',
+    "Where `git rev-parse --verify --quiet 'refs/heads/<main>'` prints a commit, write `refs/heads/<main>` for `<main>` in every git command, so a tag of the same name is not read."],
+  'no duty step when the commits were cut': ['When the listing\'s "Last commit read" says none, the commits were cut short: propose no duty-row step and no duty-row addition, and say why.'],
   'a partial clone': ['if `git config --get extensions.partialClone` prints a name, git would fetch what the clone lacks, and housekeeping never fetches: propose nothing and say so.'],
   'the SHA-256 empty tree': ['or in a SHA-256 repository `6ef19b41225c5369f1c104d45d8d85efa9b057b53b14b4b9b939dd74decc5321` (`git rev-parse --show-object-format` says which).'],
 }
@@ -222,6 +229,17 @@ const RULES: Record<string, string[]> = {
 test('the audit procedure holds each rule the plan writes out, word for word', () => {
   const a = AUDIT()
   for (const [name, parts] of Object.entries(RULES)) for (const p of parts) assert.ok(a.includes(p), `${name}: ${p}`)
+})
+
+// the Phase 3 re-check: every command the procedure gives holds each name from the settings or the session in single
+// quotes, never bare where a shell reads it
+test('every command in the audit procedure single-quotes the names it carries', () => {
+  const commands = [...AUDIT().matchAll(/`((?:git|node) [^`]+)`/g)].map(m => m[1])
+  assert.ok(commands.length >= 10, String(commands.length))
+  for (const c of commands) {
+    const bare = c.split("'").filter((_, i) => i % 2 === 0).join(' ')
+    assert.doesNotMatch(bare, /<(main|backlog|playbook|home|folder|start|path)>|:\(literal\)/, c)
+  }
 })
 
 // the controller's call on Task 2's stops: the start's commands as the plugin's readers build them, so the two

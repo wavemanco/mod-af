@@ -24,6 +24,9 @@ export function parseSettings(text: string): { settings: Settings | null; findin
   // it reaches git as a revision: "-..." would be read as an option
   if (isStr(raw.mainBranch) && (raw.mainBranch === '' || raw.mainBranch.startsWith('-')))
     err(`"mainBranch" must name a branch: not empty, and not starting with "-"`)
+  // a control character or a line separator would forge a line of what housekeeping shows (the Phase 3 re-check)
+  const CONTROL = /[\p{Cc}\p{Zl}\p{Zp}]/u
+  if (isStr(raw.mainBranch) && CONTROL.test(raw.mainBranch)) err('"mainBranch" must hold no control character or line separator')
 
   // files
   const files = {} as Settings['files']
@@ -31,6 +34,7 @@ export function parseSettings(text: string): { settings: Settings | null; findin
   else for (const k of FILE_KEYS) {
     const f = (raw.files as Obj)[k]
     if (!isObj(f) || !isStr(f.path) || !f.path) { err(`"files.${k}.path" must be a non-empty string`); continue }
+    if (CONTROL.test(f.path)) { err(`"files.${k}.path" must hold no control character or line separator`); continue }
     const skip = f.skipSections === undefined ? [] : strs(f.skipSections)
     if (!skip) { err(`"files.${k}.skipSections" must be a list of strings`); continue }
     // git wants forward slashes: docs\backlog.md would read as not on the main branch
