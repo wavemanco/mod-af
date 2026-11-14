@@ -53,7 +53,7 @@ as it was.
 
 ## Fixed at once, under the plan's rule
 
-In 9effe92, with tests:
+In d8cacbf, with tests:
 
 1. **A newline in a changed path forged listing lines.** The lines could show a denied path as an allowed one of a
    real commit, and the procedure then reads such a path with `git show`.
@@ -82,7 +82,8 @@ In 9effe92's DESIGN commit and the commit that adds this file:
 - DESIGN 3.9 and `owed.ts` no longer call `owed` a pure function of the base and the head: it also reads main's tip.
 - The README now says the automatic hooks run `git rev-parse`, and write their debug line, in any repository, and the
   rest only where `.housekeeping.json` exists.
-- The README now says the suggestion's "once per HEAD" keeps only the last HEAD.
+- The README said the suggestion's "once per HEAD" kept only the last HEAD (since changed: the latest 32 are kept,
+  item 11, 2d80353).
 - `research/live-checks.md`:
   - "Before the sitting" now builds a milestone and a survey suspect, so checks 4 and 12 can be done.
   - Check 1 no longer looks for an install folder in the reply.
@@ -92,7 +93,8 @@ In 9effe92's DESIGN commit and the commit that adds this file:
   - A new check 16 covers where the stale-map line and the debug lines go.
   - A missing debug line can now mean a failure.
 - HK-094's and HK-095's Triggers no longer name `DESIGN.md`, which the code-name rule read as a file to watch.
-- The audit fixture's comment says B-1's code retries twice, so it acts as a seventh decoy.
+- The audit fixture's comment said B-1's code retried twice, so it acted as a seventh decoy (since fixed: item 18,
+  a542563).
 
 ## The owner's fix round (2026-11-13)
 
@@ -170,7 +172,9 @@ reading:
   order two walks in the kit, so it is unconfirmed: filed as HK-104.
 - **What only a live session shows,** from the lenses' notes: whether the person's path-scoped permission rules
   reach the audit's worktree under the system temp folder, how the engine's Read rules match a path holding a newline,
-  and PowerShell's quoting of the audit's commands. They go to the owner's sitting with live check 15.
+  and PowerShell's quoting of the audit's commands. Since the re-check's round: the first is a step of live check
+  15; the second is HK-106; the third needs no live session, since the audit stops on a name PowerShell could read
+  as code (e7a1638).
 
 ## Refuted
 
@@ -184,8 +188,12 @@ The owner chose "Narrow re-check". It ran at 14df3ff over `6124015..14df3ff`: th
 CALLS.md and the owner's round. Three lenses each worked in their own clone (`owed` and its privacy, the automatic
 parts, the audit procedure and the records), and one skeptic voted on each serious finding. It used 7 agents of the 9
 its script allowed, ran for about 31 minutes, and started no live session. The before and after lists of untracked
-files showed nothing new. It found 25 findings. Of the four put to a skeptic, three held and one was refuted. None is
-fixed yet: the owner decides the round.
+files showed nothing new. It found 25 findings. Of the four put to a skeptic, three held and one was refuted.
+
+The owner chose "Yes, all 25" (2026-11-13). All 25 are fixed, the refuted one included, each code finding with a test
+seen failing first: the critical one, the procedure's and the settings' in e7a1638; `owed`'s in 16f68c1; the
+automatic parts' in 022634d; the records in the commit after it. The gate after them: 365 kit tests and 55 Node tests
+pass, and validate passes. As filed:
 
 **Held by its skeptic:**
 1. **Critical: in Windows PowerShell, a curly single quote ends a single-quoted string.** The quoting rule in

@@ -96,7 +96,9 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
   the answer.
 - **Pass.** `/loose-ends` shows dim in the empty prompt box after the answer, and Tab takes it.
 - **A fail,** with the debug log saying `housekeeping turn end: /loose-ends suggested at <sha7>, 3 commits since the
-  records`, means the engine did not show the suggestion there: call 5 needs another place, a row.
+  records`, means the engine said it showed the suggestion and did not: call 5 needs another place, a row. With the
+  log saying `/loose-ends not shown at <sha7>`, the engine declined to show it, as it does when the box holds text:
+  empty the box and send another message; the next turn end tries again. If it is never shown, a row.
 
 ### 8. A line added to a tool's result reaches the agent
 
@@ -166,6 +168,10 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
   'housekeeping/audit-*'` in another terminal; then send one message approving the steps.
 - **Pass.** Before your approval both commands print nothing; after it, the branch holds one commit per approved step,
   `git worktree list` shows no audit worktree, and the branch is on no remote.
+- **Then, the worktree and your permission rules.** Add to your settings a rule that asks before any edit outside the
+  repository (for example `"ask": ["Edit(//**)"]`, beside your allow rules for the repository) and run the audit
+  again on a fresh clone. **Pass:** Claude Code asks before the audit writes in its worktree under the system temp
+  folder. **A fail** (no question) means a path-scoped rule does not reach the worktree: say so in the README, a row.
 - **A fail** means the audit's bar on a real repository (DESIGN section 7) is not met: a write before approval is
   HK-077's case too (call 14), and a wrong step is a finding for the owner.
 

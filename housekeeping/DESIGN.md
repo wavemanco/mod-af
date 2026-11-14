@@ -454,7 +454,10 @@ tables, one path, the settings file and the `.gitignore` line.
     that range, read under the person's Read rules;
   - **before anything:** where a rule says who writes the records (in AGENTS.md, CLAUDE.md, CONTRIBUTING.md or
     the backlog's "How this file is kept"), or either file has uncommitted edits, it proposes nothing and lists
-    every case (call 11); an unmerged `housekeeping/audit-*` branch from before stops it;
+    every case (call 11); an unmerged `housekeeping/audit-*` branch from before stops it; so does a partial
+    clone, and `/housekeeping audit` stops before handing the procedure when `mainBranch` or a records path is
+    not a plain name or the install folder holds a quote of any kind, since its commands carry them and
+    PowerShell ends a quoted string at a curly quote too (the Phase 3 re-check);
   - for at most 25 row-and-commit pairs from the listing, strongest first, read only the hunks of the commit's
     allowed paths; a pair with a path a shell can read as commands is a judgement call;
   - a case is clear-cut when a closing word is next to the ID, the change is still at main's tip, and a
@@ -753,9 +756,11 @@ named limit.
   down 9; without it, closed up 9, open down 8 and the total up 1, the duty row added. `owed` after applying
   listed no gone row, the worktrees were removed, and nothing was pushed. Both skeptics refused the tenth on a
   real off-by-one in the fixture's code, fixed since (HK-102). The bar is met on both fixtures, for `prompts/audit.md` as it was at
-  9608adc. Three later commits changed it and the run was not repeated: b17f211 (read nothing of a commit
-  beyond what the listing quotes), 56c2630 (a commit message names only its own row and its proof) and the
-  narrow check's fix of the check after applying (`--base <main>`, not `main`).
+  9608adc. Later commits changed it and the run was not repeated: b17f211 (read nothing of a commit beyond
+  what the listing quotes), 56c2630 (a commit message names only its own row and its proof), d8cacbf (the
+  check after applying runs `--base <main>`, not `main`), a542563 (quoting, the partial-clone stop, Last done
+  when the commits are cut short) and e7a1638 (no settings name that is not plain in any command, every
+  command quoted, `refs/heads/<main>`). a542563 also made the fixture's B-1 a real closing.
 - **`owed`:** its named tests, taken by the gate (`tests/owed.test.ts`, the owed tests in
   `tests/plugin.test.ts` and `node-tests/cli.spec.ts`). The comparison with the reference repository's
   fired-triggers script waits on its backlog row (call 13).
@@ -852,7 +857,6 @@ Only the "Chosen" column holds the owner's words, quoted exactly. The other colu
 | 2026-11-12 | A session started in a subfolder (second check, finding 4) | "Treat 'ask' as refused (Recommended)" | In a session started below the repository's top, the top's project settings are not in force, so the permission check answered ask, with no rule, for files the top denies, and the survey read them: the denied line reached the model's request. Such an ask, for a file outside the session's folder, now counts as not granted and is counted in Not measured, and the reply says to start the session at the top (section 4) | "Keep the read, reword promise": the denied text would keep reaching the agent from a subfolder, and section 4 would promise only the rules in force in the session | A file inside the subfolder under the top's rule is still read, and an explicit ask rule passes (a parked minor). A difference in a drive letter's case between the session's folder and git's top treats an inside file as outside, which fails closed. The live subfolder check is the owner's (HK-080) |
 | 2026-11-12 | A lone ID table (second check, finding 17) | "Widen the suspects (Recommended)" | A 50-row ID table with lowercase statuses scored 2 and got "Suspects: none", and beside a thin candidate the agent never named it in 5 of 9 runs. The scored signs below 3 (ID headings, ID tables, status words) are now suspect reasons in a prose file; the 15-name cap and `--json` stay as they are (3.8) | "Keep the design, file it": `--tracker` would stay the only remedy, and only for a person who already knows the file | More suspects for the person to answer: in the check's trial on the reference repository they went from 2 to 8. Past 15 the rest are a count, cut in path order (a parked minor) |
 | 2026-11-12 | A blobless clone (second check, finding 18) | "Keep the stop, add next step (Recommended)" | In a blobless clone `check`, `map` and the short view stop at the first old version of the two files that the clone does not hold, since housekeeping never fetches, and the message named no way on. It now names the cure on both routes, `git log -p -m --first-parent` over the two files on main, and the README says so (3.4). The first wording, `git backfill` or `git log -p`, did not cure a main with merges and put the settings' names into a line to paste, so after the small check of 2026-11-12 it was corrected (HK-087) | "Treat it like a shallow clone": no history would be read and `check` would only warn, so the page would lose its history in a clone that one command can complete | A later pull with two record commits can bring the stop back, and the cure is run again. A treeless clone stops on the walk itself, with git's first line (finding 11) |
-
 | 2026-11-13 | Phase 3's calls | "the calls you made are fine by me for now." | The owner read calls 1 to 7 and their implications, and asked for them in one document, "in case we want to change anything back (maybe the harness changes shape or we change consent posture - for example)" | Going back to the earlier choices that calls 3 to 7 replaced | [`CALLS.md`](CALLS.md): each call's earlier choice, why it was set aside, and when to revisit it |
 
 ## 10. Calls Claude made, for the owner to check
