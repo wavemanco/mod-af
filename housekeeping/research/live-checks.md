@@ -168,10 +168,12 @@ or noted in the row it names; a fix round is the owner's to start (DESIGN sectio
   'housekeeping/audit-*'` in another terminal; then send one message approving the steps.
 - **Pass.** Before your approval both commands print nothing; after it, the branch holds one commit per approved step,
   `git worktree list` shows no audit worktree, and the branch is on no remote.
-- **Then, the worktree and your permission rules.** Add to your settings a rule that asks before any edit outside the
-  repository (for example `"ask": ["Edit(//**)"]`, beside your allow rules for the repository) and run the audit
-  again on a fresh clone. **Pass:** Claude Code asks before the audit writes in its worktree under the system temp
-  folder. **A fail** (no question) means a path-scoped rule does not reach the worktree: say so in the README, a row.
+- **Then, the worktree and a rule scoped to the repository.** In a fresh clone, add to its `.claude/settings.json`
+  a rule scoped the way a person scopes one to the repository: `"permissions": { "deny": ["Edit(./<backlog path>)"] }`,
+  with the backlog's path from `.housekeeping.json`. Run the audit and approve its steps. **Pass:** Claude Code
+  refuses the audit's edit of the backlog in its worktree under the system temp folder, as it would in the clone.
+  **A fail** (the edit goes ahead) means a rule written for the repository's paths does not reach the audit's
+  worktree, which is outside the repository: the README then says so, with how to write a rule that does, a row.
 - **A fail** means the audit's bar on a real repository (DESIGN section 7) is not met: a write before approval is
   HK-077's case too (call 14), and a wrong step is a finding for the owner.
 

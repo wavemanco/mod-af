@@ -253,7 +253,12 @@ lenses each worked in their own clone (the audit's guard and procedure, `owed`, 
 records), and one skeptic voted on each serious finding. It used 6 agents of the 9 its script allowed, ran for about
 25 minutes, and started no live session. The before and after lists of untracked files showed nothing new. It found
 17 findings, one of them twice, so 16 in all; none critical. Of the three put to a skeptic, two held and one was
-refuted. None is fixed yet: the owner decides the round.
+refuted.
+
+The owner chose "Closing round, all 16" (2026-11-13), with no further re-check. All 16 are fixed, the refuted one
+included, each code finding with a test seen failing first: `owed`'s in bb53aa4; the audit's stops and procedure in
+dffbc85; the automatic parts' in 39db70c, which closes HK-104 too; the records in the commit after it. The gate after
+them: 370 kit tests and 56 Node tests pass, and validate passes. As filed:
 
 **Held by its skeptic:**
 1. **Important, a record: live check 15's new step cannot fail.** Its example rule, `"ask": ["Edit(//**)"]`, asks

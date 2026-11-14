@@ -310,7 +310,9 @@ The short view comes from the same core and runs to about 2,000 tokens at most:
   session-start context block cannot be changed once sent, so after a git command on the Bash or PowerShell
   tool that leaves the records on main changed since the stored view's commit, the view is rebuilt without
   waiting, the status line follows it, and one line rides on that tool call's result, on the main loop only:
-  "The records on <main> changed at <sha7>; /housekeeping shows the new view." (Phase 3, Task 4). The
+  "The records on <main> changed at <sha7>; /housekeeping shows the new view." (Phase 3, Task 4). It comes
+  once per change in a conversation; after a resume, which the plugin cannot tell from a new conversation, it
+  can come once more (the second re-check). The
   context never waits for the history walk, whose time would count against its hook's budget: while the view is rebuilt it carries the last stored view, labelled with its commit, or with
   nothing stored says the view is being built (finding 20 of the Phase 2 check). The view is stored without
   its branch line, and the current checkout's line is put in each time it is served, so a view stored on one
@@ -455,9 +457,11 @@ tables, one path, the settings file and the `.gitignore` line.
   - **before anything:** where a rule says who writes the records (in AGENTS.md, CLAUDE.md, CONTRIBUTING.md or
     the backlog's "How this file is kept"), or either file has uncommitted edits, it proposes nothing and lists
     every case (call 11); an unmerged `housekeeping/audit-*` branch from before stops it; so does a partial
-    clone, and `/housekeeping audit` stops before handing the procedure when `mainBranch` or a records path is
-    not a plain name or the install folder holds a quote of any kind, since its commands carry them and
-    PowerShell ends a quoted string at a curly quote too (the Phase 3 re-check);
+    clone, and `/housekeeping audit` stops before handing the procedure when `mainBranch` or a records path
+    holds anything but letters, combining marks, digits, spaces and `. _ / @ + -`, or the install folder holds
+    a curly quote, a control character or an invisible format character, since its commands carry them and
+    PowerShell ends a quoted string at a curly quote too; a straight quote in the install folder is written
+    closed and reopened (the Phase 3 re-checks);
   - for at most 25 row-and-commit pairs from the listing, strongest first, read only the hunks of the commit's
     allowed paths; a pair with a path a shell can read as commands is a judgement call;
   - a case is clear-cut when a closing word is next to the ID, the change is still at main's tip, and a
@@ -465,7 +469,7 @@ tables, one path, the settings file and the `.gitignore` line.
     judgement call;
   - propose the clear-cut cases as numbered steps, each with the commit that proves it (a row plainly done
     moves to Done, and a checklist line whose rows are all closed gets ticked), the duty row's update or its
-    addition last; then list the judgement calls (partly done, done differently, gone rows, doors, "opened"
+    addition last, none when the listing's "Last commit read" says none; then list the judgement calls (partly done, done differently, gone rows, doors, "opened"
     work, marked paths). Nothing is written before the owner's own message approving the steps;
   - after approval, apply them on a branch `housekeeping/audit-YYYY-MM-DD`, made with `git worktree add` in a
     folder under the system temp folder, one commit per step; the branch is never pushed, and the worktree is
@@ -759,8 +763,10 @@ named limit.
   9608adc. Later commits changed it and the run was not repeated: b17f211 (read nothing of a commit beyond
   what the listing quotes), 56c2630 (a commit message names only its own row and its proof), d8cacbf (the
   check after applying runs `--base <main>`, not `main`), a542563 (quoting, the partial-clone stop, Last done
-  when the commits are cut short) and e7a1638 (no settings name that is not plain in any command, every
-  command quoted, `refs/heads/<main>`). a542563 also made the fixture's B-1 a real closing.
+  when the commits are cut short), e7a1638 (no settings name that is not plain in any command, every command
+  quoted, `refs/heads/<main>`, no duty-row step when the commits are cut short) and dffbc85 (the wider plain
+  set, a straight quote in the install folder written closed and reopened, the temp folder as a full path).
+  a542563 also made the fixture's B-1 a real closing.
 - **`owed`:** its named tests, taken by the gate (`tests/owed.test.ts`, the owed tests in
   `tests/plugin.test.ts` and `node-tests/cli.spec.ts`). The comparison with the reference repository's
   fired-triggers script waits on its backlog row (call 13).
