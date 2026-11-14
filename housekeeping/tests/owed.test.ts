@@ -204,6 +204,41 @@ test('a denied path\'s file name alone in a subject is hidden too', () => {
 test('a path in bold, in italics or as a Markdown link in a Trigger is a token', () => {
   expect(tokens('When **src/prices.ts** or _docs/a.md_ changes, or [the guide](docs/guide.md).')).toEqual(['src/prices.ts', 'docs/a.md', 'docs/guide.md'])
   expect(tokens('When __init__.py changes.')).toEqual(['__init__.py'])
+  // the re-check: bold in underscores too
+  expect(tokens('When __docs/b.md__ changes.')).toEqual(['docs/b.md'])
+})
+
+// the Phase 3 re-check's owed findings (HK-105)
+const named = (subject: string, body = '', denied: string[] = []) =>
+  owed(s, { ...READ, denied, commits: [{ sha: sha('1'), subject, body }] }).split('\n').filter(l => l.startsWith('  - 1111111 '))
+
+test('only a -by: or Cc: trailer with a name and an address is cut from a subject, and IDs are read in the whole subject', () => {
+  expect(named('Refactor export, drive-by: fixes B-005')).toEqual(['  - 1111111 Refactor export, drive-by: fixes B-005 (in the subject; a closing word is next to the ID)'])
+  expect(named('Fix B-005: switch to stand-by: mode when idle')).toEqual(['  - 1111111 Fix B-005: switch to stand-by: mode when idle (in the subject; a closing word is next to the ID)'])
+  for (const t of ['Co-authored-by:Pat Example <someone@corp.io>', 'Cc: Pat Example <someone@corp.io>'])
+    expect(named(`Close B-005 ${t}`)).toEqual(['  - 1111111 Close B-005 (in the subject; a closing word is next to the ID)'])
+  const t0 = Date.now()
+  named('Fix B-005' + ' '.repeat(50_000) + 'x')
+  expect(Date.now() - t0).toBeLessThan(500)
+})
+
+test("git's trailer block is read as git reads it: CRLF, the 25% rule beside a Signed-off-by, and a URL line", () => {
+  expect(named('Tidy', 'Prep.\r\n\r\nRefs: B-002\r\nSigned-off-by: A <someone@corp.io>\r\n')).toEqual([])
+  expect(named('Tidy', 'Prose about it.\nRefs: B-002\nSigned-off-by: A <someone@corp.io>\n')).toEqual([])
+  expect(named('Tidy', 'Some text.\n\nhttps://example.com/B-002\nCloses: B-005\n')).toEqual([])
+  expect(named('Tidy', 'Done here.\nCloses: B-002\n')).toEqual(['  - 1111111 Tidy (in the body; a closing word is next to the ID)'])
+})
+
+test('a denied path is hidden written ./ or in another case; a bare word is not, nor a file name with no dot', () => {
+  const D = '[a path the Read rules deny]'
+  expect(named('Fix B-005: drop ./secret.txt and Secret.txt', '', ['secret.txt'])[0]).toContain(`drop ${D} and ${D} (`)
+  for (const [path, words] of [['a', 'add a test for a case'], ['secrets/token', 'refresh the token cache'], ['docs/README', 'update the README']])
+    expect(named(`Fix B-005: ${words}`, '', [path])[0]).toContain(`Fix B-005: ${words} (`)
+})
+
+test("a note's control characters cannot forge a line", () => {
+  const t = owed(s, { ...READ, notes: ["No branch 'main\n- 1111111: secret.txt' here, so the IDs the branch adds were checked against the base only."] }).split('\n')
+  expect(t.some(l => l.startsWith('- 1111111: secret'))).toBe(false)
 })
 
 test('an ID the base holds in a Done table is taken; with nothing to list, each group says none', () => {

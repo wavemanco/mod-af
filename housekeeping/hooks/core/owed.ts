@@ -26,7 +26,9 @@ const SLASH = /^\/[^/\s]+(?:\s|$)/
 export function tokens(trigger: string): string[] {
   // a Markdown link gives its text and its target as words; bold and italics are dropped, an underscore only in a pair
   const words = trigger.replace(/`[^`]*`/g, ' ').replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, ' $1 $2 ').split(/\s+/)
-    .map(w => w.replace(/^[("'[{<*]+|[)"'\]}>,;:!?.*]+$/g, '')).map(w => /^_.+_$/.test(w) && !/^__.*__$/.test(w) ? w.slice(1, -1) : w)
+    .map(w => w.replace(/^[("'[{<*]+|[)"'\]}>,;:!?.*]+$/g, ''))
+    // a pair of _ or __ around a path is dropped, so __init__.py stays a name (the re-check)
+    .map(w => { const m = /^(__?)(.+)\1$/.exec(w); return m && (m[2].includes('/') || /\.\p{L}+$/u.test(m[2])) ? m[2] : w })
     .filter(w => w.includes('/') || /\.\p{L}+$/u.test(w))
   const all = [...[...trigger.matchAll(/`([^`]+)`/g)].map(m => m[1].trim()), ...words].map(t => t.replace(/^\.\//, ''))
   return [...new Set(all.filter(t => t && !SLASH.test(t)))]
@@ -102,16 +104,20 @@ export function parseCommits(out: string, cut: boolean): Commit[] {
   return got
 }
 
-// git's trailer block, the body's last paragraph when each of its lines is Key: value, is dropped before matching; a
-// Key: value line inside prose is read (the Phase 3 check)
-const TRAILER = /^[A-Za-z][\w-]*:\s/
+// git's trailer block is dropped before matching, read as git reads it: the body's last paragraph, CRLF or not, when
+// each of its lines is Key: value or a continuation, or when a quarter of them are and one is a Signed-off-by; a
+// Key: value line inside prose is read (the Phase 3 check and re-check)
+const TRAILER = /^[A-Za-z][\w-]*\s*:/
 const untrailed = (body: string) => {
-  const paras = body.trimEnd().split(/\n[ \t]*\n/)
-  return paras.at(-1)!.split('\n').every(l => TRAILER.test(l)) ? paras.slice(0, -1).join('\n\n') : body
+  const paras = body.replace(/\r\n?/g, '\n').trimEnd().split(/\n[ \t]*\n/)
+  const lines = paras.at(-1)!.split('\n'), keys = lines.filter(l => TRAILER.test(l))
+  const block = keys.length > 0 && (lines.every(l => TRAILER.test(l) || /^\s/.test(l)) ||
+    (keys.length * 4 >= lines.length && keys.some(l => /^Signed-off-by\s*:/i.test(l))))
+  return (block ? paras.slice(0, -1) : paras).join('\n\n')
 }
-// git's subject is the message's whole first paragraph, so a trailer written in it with no blank line before is cut
-// off, and with it the name it holds
-const bare = (subject: string) => subject.replace(/\s+[A-Za-z][\w-]*-by:\s.*$/is, '')
+// git's subject is the message's whole first paragraph, so a -by: or Cc: trailer written in it, with a name and an
+// address, is cut off where the subject is shown; IDs are read in the whole subject (the re-check)
+const bare = (subject: string) => subject.replace(/(?:^|\s)(?:[A-Za-z][\w-]*-by|Cc)\s*:[^<\n]*<[^<>\n]*>.*$/is, '').trimEnd()
 // the closing words, any case, next to the ID on either side
 const CLOSING = '(?:close[sd]?|fix(?:e[sd])?|done|land(?:s|ed)?|resolve[sd]?)'
 const closing = (text: string, id: string) => new RegExp(`(?<![${W}])${CLOSING}[^\\p{L}\\p{N}]{1,3}${esc(id)}(?![${W}])|` +
@@ -122,10 +128,14 @@ const MARK = ' (a shell can read this path as commands: put it in no command)'
 const oneLine = (t: string) => t.replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
 const marked = (p: string) => SHELL_SAFE.test(p) ? '' : MARK
 const shown = (p: string) => oneLine(p) + marked(p)
-// a denied path that a subject names, whole or by its file name, is hidden, and a longer name that holds it is not
+// a denied path that a subject names, whole or by its file name, written ./ or in another case, is hidden in one pass,
+// and a longer name that holds it is not; a name with no "." or "/", which reads as a word, is not (the re-check)
+// shortcut: a denied file named like a word (Makefile, token) still shows; widen it if a sitting shows the need
 const P = '\\p{L}\\p{N}_/-'
-const hider = (denied: Set<string>) => [...new Set([...denied].flatMap(p => [p, p.split('/').at(-1)!]))].filter(Boolean)
-  .sort((a, b) => b.length - a.length).map(p => new RegExp(`(?<![.${P}])${esc(p)}(?![${P}]|\\.[${P}])`, 'gu'))
+const hider = (denied: Set<string>): RegExp | null => {
+  const names = [...new Set([...denied].flatMap(p => [p, p.split('/').at(-1)!]))].filter(n => /[./]/.test(n)).sort((a, b) => b.length - a.length)
+  return names.length ? new RegExp(`(?<![.${P}])(?:\\./)?(?:${names.map(esc).join('|')})(?![${P}]|\\.[${P}])`, 'giu') : null
+}
 
 /** The listing: what the range owes the records. Evidence never holds a line's text, an author or a trailer; masked. */
 export function owed(s: Settings, r: OwedRead): string {
@@ -145,14 +155,14 @@ export function owed(s: Settings, r: OwedRead): string {
   })
 
   const named = new Map<string, string[]>(), listed = new Set<string>(), hide = hider(denied)
-  const subject = (t: string) => oneLine(hide.reduce((x, re) => x.replace(re, '[a path the Read rules deny]'), t))
+  const subject = (t: string) => oneLine(hide ? t.replace(hide, '[a path the Read rules deny]') : t)
   for (const c of r.commits) {
-    const body = untrailed(c.body), said = bare(c.subject), inSubject = idsIn(said, s)
+    const body = untrailed(c.body), inSubject = idsIn(c.subject, s)
     for (const id of new Set([...inSubject, ...idsIn(body, s)])) {
       if (!open.has(id)) continue
       listed.add(c.sha)
-      const close = closing(said, id) || closing(body, id) ? '; a closing word is next to the ID' : ''
-      named.set(id, [...(named.get(id) ?? []), `  - ${c.sha.slice(0, 7)} ${subject(said)} (in the ${inSubject.includes(id) ? 'subject' : 'body'}${close})`])
+      const close = closing(c.subject, id) || closing(body, id) ? '; a closing word is next to the ID' : ''
+      named.set(id, [...(named.get(id) ?? []), `  - ${c.sha.slice(0, 7)} ${subject(bare(c.subject))} (in the ${inSubject.includes(id) ? 'subject' : 'body'}${close})`])
     }
   }
   const paths = r.commits.filter(c => listed.has(c.sha)).map(c => {
@@ -174,7 +184,7 @@ export function owed(s: Settings, r: OwedRead): string {
   return [
     `housekeeping owed: ${r.base.slice(0, 7)}..${r.head.slice(0, 7)}, ${r.commits.length} commits, ${r.changed.length} changed paths` +
       `${denied.size ? `; ${denied.size} excluded by the Read rules, never read or named` : ''}${r.notRead ? `; ${r.notRead} not read (cut short or unreadable)` : ''}`,
-    ...r.notes,
+    ...r.notes.map(oneLine),
     ...part('Rows whose Trigger fired:', fired.map(f => f.text)),
     ...part('Rows the commits name by ID:', [...named].flatMap(([id, l]) => [row(id), ...l])),
     ...part('Paths of those commits that the Read rules allow:', paths),

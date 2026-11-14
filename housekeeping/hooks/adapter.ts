@@ -65,7 +65,8 @@ async function owedRead(git: Git, s: Settings, o: { base?: string; head?: string
   const mref = await branchRef(git, s.mainBranch), main = await resolve(mref)
   if (!o.base && !main) return { error: `housekeeping: no branch '${s.mainBranch}' here (the "mainBranch" setting): ${BASE}` }
   // from the empty tree (an audit from the root) there is no merge base: the range is all the head holds
-  const mb = o.base && isEmptyTree(o.base) ? null : await run(mergeBaseArgs(o.base ?? mref, head))
+  // a base given by name reads the branch before a tag of that name too, as the audit's check gives main (the re-check)
+  const mb = o.base && isEmptyTree(o.base) ? null : await run(mergeBaseArgs(o.base ? await branchRef(git, o.base) : mref, head))
   if (mb && mb.exitCode !== 0) return { error: `housekeeping: '${o.base ?? s.mainBranch}' and ${head.slice(0, 7)} have no merge base here${said(mb) ? ` (git said: ${said(mb)})` : ''}` }
   const base = mb ? mb.stdout.trim() : o.base!
   if (base === head) return { text: `housekeeping owed: nothing between the base and the head (${head.slice(0, 7)}): ${BASE}` }

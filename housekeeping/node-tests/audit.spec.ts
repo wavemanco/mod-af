@@ -118,9 +118,12 @@ test('the audit reads the main branch, not a tag of the same name', async () => 
   const r = await readAudit(gitOf(f.dir), fixtureSettings(f.dir))
   assert.ok('text' in r, JSON.stringify(r))
   assert.equal(r.text.split('\n')[0], `housekeeping audit: after ${f.start.slice(0, 7)} through ${tip.slice(0, 7)} on main`)
-  // owed from main's merge base with HEAD, which is main's tip: nothing between, where the tag would give the whole range
-  const o = await readOwed(gitOf(f.dir), fixtureSettings(f.dir), {})
-  assert.ok('text' in o && o.text.startsWith('housekeeping owed: nothing between the base and the head'), JSON.stringify(o))
+  // owed from main's merge base with HEAD, which is main's tip: nothing between, where the tag would give the whole range;
+  // and the same with the base given as main, as the audit's check after applying gives it (the re-check)
+  for (const base of [undefined, 'main']) {
+    const o = await readOwed(gitOf(f.dir), fixtureSettings(f.dir), { base })
+    assert.ok('text' in o && o.text.startsWith('housekeeping owed: nothing between the base and the head'), `${base}: ${JSON.stringify(o)}`)
+  }
 })
 
 // the Phase 3 check: a SHA-256 repository's audit from its root starts at its own empty tree
