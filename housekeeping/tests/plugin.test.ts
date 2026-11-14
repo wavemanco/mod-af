@@ -1750,6 +1750,42 @@ test('after a rebuild that failed, later git commands start no walk before the r
   expect(walks(w)).toBe(n + 1)
 })
 
+// the Phase 3 re-check (HK-105): a rebuild a prompt retries after its minute refreshes the status line too; the debug
+// line says when a recent failure held a rebuild back; and a new conversation is told of a change again
+test('a rebuild a prompt retries after a failure refreshes the status line, and the debug line says the failure held it back', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [], logs: [] }
+  world(on, w)
+  on('prompt.context', (_, e) => ({ blocks: e.blocks }))
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true, logFail: 'fatal: bad object\n' })
+  const n = walks(w)
+  await shell($, 'git commit -m a')
+  await until(() => walks(w) === n + 1)
+  await new Promise(r => setTimeout(r, 50))
+  await shell($, 'git status')
+  await until(() => debugs(w).length > 2)
+  expect(debugs(w).at(-1)).toBe('housekeeping Bash call: main at fffffff, the records changed since abcdef0: a rebuild failed 0 s ago, ' +
+    'so none runs before its minute, already said (0 ms)')
+  Object.assign(w, { logFail: undefined, now: '2026-09-12T10:01:01Z', status: [] })
+  await $.prompt.context({ blocks: [] })
+  await stored(w, NEW)
+  await until(() => w.status!.length > 0)
+  expect(w.status!.at(-1)).toContain('land now')
+})
+
+test('after /clear, the next conversation is told of a change of the records still being rebuilt', async ($, on) => {
+  const w: World = { argv: [], status: [], ran: [] }
+  world(on, w)
+  on('session.end', (_, e) => ({ sessionId: e.sessionId }))
+  await $.session.start(START)
+  await settled(w)
+  Object.assign(w, { mainSha: NEW, changed: true, gate: new Promise<void>(() => {}) })
+  expect((await shell($, 'git commit -m a')).context).toEqual([CHANGED])
+  await $.session.end({ reason: 'clear', sessionId: 's1', resume: { id: 's1' } })
+  expect((await shell($, 'git status')).context).toEqual([CHANGED])
+})
+
 test('while one rebuild runs, a second git command gets no second line', async ($, on) => {
   let open!: () => void
   const w: World = { argv: [], status: [], ran: [] }

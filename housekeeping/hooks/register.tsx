@@ -146,6 +146,8 @@ async function cachedView($: EngineInterface, builds: Builds, wait = true): Prom
     build = fresh().finally(() => builds.running.delete(stamp))
     build.catch(() => {}) // handled where it is made: a prompt may return before it settles (HK-091)
     builds.running.set(stamp, build)
+    // every route's rebuild refreshes the status line when it lands, a prompt's retry included (the Phase 3 re-check)
+    build.then(v => { if (v) $.ui.status(v.status) }).catch(() => {})
   }
   if (!wait && failed?.view) return { brief: `housekeeping: ${failed.line}\n${on(failed.view)}`, status: failed.view.status }
   if (!wait && failed) return hit ? { brief: `Stored view of ${main} at ${hit.sha.slice(0, 7)}; a new one could not be built: ${failed.line}\n${on(hit)}`, status: hit.status }
@@ -201,9 +203,12 @@ async function afterGit($: EngineInterface, builds: Builds, e: { agentId?: strin
   if (old === sha) return [got, `main at ${at7(sha)}, as the stored view`]
   const d = (await quietDiff($, root, s, old, sha)).exitCode
   if (d !== 1) return [got, `main at ${at7(sha)}, ${d === 0 ? `the records unchanged since ${at7(old)}` : `git diff exited ${d}`}`]
-  // not awaited: the agent's next step never waits on the walk, which one already running or a recent failure skips
-  cachedView($, builds).then(x => { if (x) $.ui.status(x.status) }).catch(() => {})
-  const said = `main at ${at7(sha)}, the records changed since ${at7(old)}: rebuilding`
+  // not awaited: the agent's next step never waits on the walk, which one already running or a recent failure skips;
+  // the rebuild sets the status line when it lands
+  cachedView($, builds).catch(() => {})
+  const now = await $.clock.now(), failed = [...builds.failed.values()].find(f => now - f.at < RETRY_MS)
+  const said = `main at ${at7(sha)}, the records changed since ${at7(old)}: ` +
+    (failed ? `a rebuild failed ${Math.round((now - failed.at) / 1000)} s ago, so none runs before its minute` : 'rebuilding')
   if (e.agentId !== undefined) return [got, `${said}, in a subagent: no line`]
   if (builds.announced.get(`${key}#${id}`) === sha) return [got, `${said}, already said`]
   builds.announced.set(`${key}#${id}`, sha)
@@ -585,7 +590,8 @@ export const register: Register = (on, options) => {
 
   // a /clear ends this conversation, and the next one holds no procedure; after a resume this hook no longer knows of
   // the one the resumed conversation may hold (HK-084)
-  on('session.end', (_, e, next) => { sent.clear(); forks.clear(); return next(e) })
+  // and the next conversation has not been told of a change of the records, so it is told again (the Phase 3 re-check)
+  on('session.end', (_, e, next) => { sent.clear(); forks.clear(); builds.announced.clear(); return next(e) })
 
   // the command runs once, first and outside the try; only the work after it is guarded, and a failure there returns
   // the tool's own result. The .catch's next is replay-safe: it never runs the command again.
