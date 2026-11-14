@@ -1513,8 +1513,8 @@ for (const [key, settings] of [['mainBranch', { mainBranch: 'main’;Write-Outpu
     await $.session.start(START)
     const r = await run($, 'audit')
     expect([r.exitCode, r.context]).toEqual([2, undefined])
-    expect(r.text).toBe(`housekeeping: the audit's commands would carry the "${key}" setting, which holds a character a shell can read as code; ` +
-      'the audit stops. Rename it to letters, digits, spaces, ".", "_", "/" and "-" only.')
+    expect(r.text).toBe(`housekeeping: the audit's commands would carry the "${key}" setting, which holds a character outside letters, marks, ` +
+      'digits, spaces and . _ / @ + -, the ones they can carry in any shell; the audit stops. Rename what it names to those characters.')
   })
 
 test('/housekeeping audit with nothing on main after its start says so and hands no procedure', async ($, on) => {

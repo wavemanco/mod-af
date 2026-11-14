@@ -1,5 +1,5 @@
 import type { EngineInterface, Register } from 'claude-code'
-import { commonDir, type Git, PAGE, readAudit, readInput, readOwed, readRule, readTracked, repoKey, writeFile, writePage } from './adapter.ts'
+import { commonDir, type Git, PAGE, readAudit, readInput, readOwed, readRule, readTracked, repoKey, unsafeHome, writeFile, writePage } from './adapter.ts'
 import { OWED_ENV } from './core/history.ts'
 import { behind, brief, onBranch, withBranch, withDuties } from './core/brief.ts'
 import { card } from './core/card.ts'
@@ -397,9 +397,10 @@ async function audit($: EngineInterface, checked: (excluded: number) => void): P
   if ('error' in r) return { text: r.error, exitCode: 2 }
   if ('idle' in r && r.idle) return { text: r.text } // nothing after the start: no procedure is handed (the Phase 3 check)
   const home = $.plugin.root
-  // the procedure's commands carry the install folder in single quotes, which any single-quote character ends in
-  // PowerShell (the Phase 3 re-check)
-  if (/['‘’‚‛\p{Cc}]/u.test(home)) return { text: "housekeeping: the folder housekeeping is installed in holds a quote, which the audit's commands cannot carry; the audit stops.", exitCode: 2 }
+  // the procedure's commands carry the install folder in single quotes, which a curly quote ends in PowerShell; a
+  // straight one the procedure writes closed and reopened (the Phase 3 re-checks)
+  if (unsafeHome(home)) return { text: 'housekeeping: the folder housekeeping is installed in holds a curly quote, a control character or an invisible ' +
+    "format character, which the audit's commands cannot carry; the audit stops. Install housekeeping under a folder whose path holds none.", exitCode: 2 }
   return { text: `${r.text.split('\n')[0]}\nThe agent carries out the audit procedure on your next message, for example "go ahead".`,
     context: await handPrompt($, 'audit', `housekeeping is installed at ${home}; the audit procedure is ${home}/prompts/audit.md.`, [r.text]) }
 }

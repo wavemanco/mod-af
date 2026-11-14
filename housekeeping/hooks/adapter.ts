@@ -9,7 +9,7 @@ import { auditStart, type Hit, owed, parseCommitPaths, parseCommits, parseNames,
 import { parseFiles } from './core/parse.ts'
 import { maskPrivacy } from './core/privacy.ts'
 import { parseSettings } from './core/settings.ts'
-import { checkNamed, collect, CUT_LIST, SHELL_SAFE, type Skipped, type SurveyFile } from './core/survey.ts'
+import { checkNamed, collect, CUT_LIST, type Skipped, type SurveyFile } from './core/survey.ts'
 import type { BuildInput, CommitInfo, FileKey, Finding, Settings, Snapshot } from './core/types.ts'
 
 type Dollar = EngineInterface
@@ -127,15 +127,22 @@ async function owedRead(git: Git, s: Settings, o: { base?: string; head?: string
 // The audit's range (Phase 3 call 2), then owed's listing over it: main's first-parent line, the commit on it that
 // added the settings and the playbook's rows at main's tip go to auditStart; with no start the range opens at the parent
 // of the oldest commit read, or at the empty tree when that commit is the root. The listing's first line says the range.
+// The names the audit's commands carry. A settings name holds only letters, combining marks (Devanagari, Thai and
+// Tamil need them), digits, spaces and . _ / @ + -, which no shell reads as code, quoted or not. The install folder
+// may hold a straight quote, which the procedure writes closed and reopened, but no curly quote (PowerShell ends a
+// single-quoted string at each), control character or invisible format character (the second re-check).
+export const unsafeName = (name: string) => !/^[\p{L}\p{M}\p{Nd} ._/@+-]*$/u.test(name)
+export const unsafeHome = (home: string) => /[‘’‚‛\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(home)
+
 // idle: nothing on main follows the start, so there is nothing to audit and no procedure to hand
 export const readAudit = async (...a: Parameters<typeof auditRead>) => masked(await auditRead(...a))
 async function auditRead(git: Git, s: Settings, o: { allow?: (path: string) => Promise<boolean>; checked?: (excluded: number) => void } = {}):
   Promise<{ text: string; idle?: boolean } | { error: string }> {
   // the procedure's commands carry these names, and in PowerShell a curly quote ends a single-quoted string, so each must
-  // be plain or the audit stops (the Phase 3 re-check); the name itself is never put in the reply
+  // be plain or the audit stops (the Phase 3 re-checks); the name itself is never put in the reply
   for (const [key, name] of [['mainBranch', s.mainBranch], ['files.backlog.path', s.files.backlog.path], ['files.playbook.path', s.files.playbook.path]])
-    if (!SHELL_SAFE.test(name)) return { error: `housekeeping: the audit's commands would carry the "${key}" setting, which holds a character a shell can read as code; ` +
-      'the audit stops. Rename it to letters, digits, spaces, ".", "_", "/" and "-" only.' }
+    if (unsafeName(name)) return { error: `housekeeping: the audit's commands would carry the "${key}" setting, which holds a character outside letters, marks, ` +
+      'digits, spaces and . _ / @ + -, the ones they can carry in any shell; the audit stops. Rename what it names to those characters.' }
   const run = (argv: string[]) => git(argv.slice(1)), main = s.mainBranch, ref = await branchRef(git, main)
   const line = await run(firstParentArgs(ref)), fp = line.stdout.split('\n').map(x => x.trim()).filter(Boolean)
   if (line.exitCode !== 0 || !fp.length) return { error: `housekeeping: cannot read the first-parent line of '${main}' (the "mainBranch" setting)` +

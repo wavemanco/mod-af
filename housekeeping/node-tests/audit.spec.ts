@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildAudit, DECOYS, PLANTED } from '../tests/fixtures/audit.ts'
-import { type Git, readAudit, readOwed } from '../hooks/adapter.ts'
+import { type Git, readAudit, readOwed, unsafeHome, unsafeName } from '../hooks/adapter.ts'
 import { addedArgs, EMPTY_TREE, EMPTY_TREE_256, firstParentArgs, OWED_ENV } from '../hooks/core/history.ts'
 import { parseSettings } from '../hooks/core/settings.ts'
 import { backlog as smallBacklog, playbook as smallPlaybook, settings as smallSettings } from '../tests/fixtures/small.ts'
@@ -100,15 +100,25 @@ test('the audit\'s first line and owed\'s stops mask an address in the mainBranc
   const f = buildAudit(tmp(), false), addr = 'someone@corp.io', key = 'sk-ant-FAKEFAKEFAKEFAKEFAKEFAKE'
   const s = { ...fixtureSettings(f.dir), mainBranch: addr }
   git(f.dir, 'branch', '-m', 'main', addr)
-  // since the re-check, a name that is not plain stops the audit, and the stop never names it
+  // an @ is carried since the second re-check, and the name is masked in the audit's first line
   const r = await readAudit(gitOf(f.dir), s)
-  assert.ok('error' in r && r.error.includes('"mainBranch"') && !r.error.includes(addr), JSON.stringify(r))
+  assert.ok('text' in r && / on so\*+io$/.test(r.text.split('\n')[0]) && !r.text.includes(addr), JSON.stringify(r))
   const e = await readOwed(gitOf(f.dir), s, { base: 'x' + addr })
   assert.ok('error' in e && !e.error.includes(addr), JSON.stringify(e))
   // a plain name of a key's shape is masked in the audit's first line
   git(f.dir, 'branch', '-m', addr, key)
   const k = await readAudit(gitOf(f.dir), { ...s, mainBranch: key })
   assert.ok('text' in k && !k.text.includes(key), JSON.stringify(k))
+})
+
+// the second re-check (HK-107): names people use pass the audit's stops, and only what a shell reads as code stops it
+test('the audit carries letters, marks, @ and + in a settings name, and a straight quote in the install folder; it stops on the rest', () => {
+  for (const ok of ['main', 'docs/योजना.md', 'docs/งานค้าง.md', 'docs/பணிகள்.md', 'packages/@scope/docs/backlog.md', 'release+2'])
+    assert.equal(unsafeName(ok), false, ok)
+  for (const bad of ['main’;x', "it's", 'R&D (old)/b.md', 'a$(x)', 'a`b`', 'a\u200db', 'a\u202eb'])
+    assert.equal(unsafeName(bad), true, bad)
+  assert.equal(unsafeHome("C:\\Users\\O'Brien\\.claude\\plugins\\housekeeping"), false)
+  for (const bad of ['C:\\Users\\O’Brien\\x', 'C:\\a\u0007b', 'C:\\a\u202eb']) assert.equal(unsafeHome(bad), true, bad)
 })
 
 // the Phase 3 check: a tag named like the main branch is not read for it, which git would do first
@@ -224,9 +234,14 @@ const RULES: Record<string, string[]> = {
   // the Phase 3 check (HK-102): quoting before the first command, a partial clone, the SHA-256 empty tree
   'quoting': ['in a shell, put each name the settings give (`<main>`, `<backlog>`, `<playbook>`), each `:(literal)<path>` and `<main>:<path>`, `<home>`, ' +
     '`<folder>` and each file in the system temp folder in single quotes, as the commands below do: a shell reads the brackets and the spaces.',
-    'A name from the settings holding anything but letters, digits, spaces, `.`, `_`, `/` and `-` goes into no command, nor does a `<home>` or `<folder>` ' +
-    'holding a single-quote character of any kind (`\'`, `‘`, `’`, `‚`, `‛`: PowerShell ends a string at each): say so and stop.',
-    "Where `git rev-parse --verify --quiet 'refs/heads/<main>'` prints a commit, write `refs/heads/<main>` for `<main>` in every git command, so a tag of the same name is not read."],
+    // the second re-check: a full temp path, the wider plain set, curly quotes stopped and a straight one escaped
+    'Write the temp folder as its full path, the one `node -p "require(\'os\').tmpdir()"` prints, never a variable such as `$TMP`, `$TMPDIR` or ' +
+    '`$env:TEMP`, which single quotes keep from expanding.',
+    'A name from the settings holding anything but letters, combining marks, digits, spaces, `.`, `_`, `/`, `@`, `+` and `-` goes into no command, ' +
+    'nor does a `<home>` or `<folder>` holding a curly quote (`‘`, `’`, `‚`, `‛`: PowerShell ends a string at each), a control character or an ' +
+    'invisible format character: say so and stop.',
+    "A straight quote `'` in `<home>` or `<folder>` is written closed and reopened: `'\\''` in bash, `''` in PowerShell.",
+    "Where `git rev-parse --verify --quiet 'refs/heads/<main>'` prints a commit, write `refs/heads/<main>` for `<main>` in every command, git's and the Node `owed`'s, so a tag of the same name is not read."],
   'no duty step when the commits were cut': ['When the listing\'s "Last commit read" says none, the commits were cut short: propose no duty-row step and no duty-row addition, and say why.'],
   'a partial clone': ['if `git config --get extensions.partialClone` prints a name, git would fetch what the clone lacks, and housekeeping never fetches: propose nothing and say so.'],
   'the SHA-256 empty tree': ['or in a SHA-256 repository `6ef19b41225c5369f1c104d45d8d85efa9b057b53b14b4b9b939dd74decc5321` (`git rev-parse --show-object-format` says which).'],
