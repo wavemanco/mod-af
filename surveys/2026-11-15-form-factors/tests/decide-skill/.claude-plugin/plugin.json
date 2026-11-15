@@ -1,0 +1,6 @@
+{
+  "name": "decide",
+  "version": "0.1.0",
+  "description": "Decision brief for any choice: real options, honest pros/cons (reversibility + cost-if-wrong), a committed recommendation and why, plus a durable decision record. Plain-language, non-technical-friendly.",
+  "author": { "name": "moondocksaint" }
+}

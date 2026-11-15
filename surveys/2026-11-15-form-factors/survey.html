@@ -4,8 +4,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
 <style>
-/* Layout: a survey report. The bottom line first, then two plugin-by-surface grids (today, and after the proposed
-   changes), then the reasons, the findings, the unknowns and the next steps. */
+/* Layout: a survey report in two tabs. Survey: the bottom line, two plugin-by-surface grids (today, and after the
+   proposed changes), the reasons, the findings, the unknowns and the next steps. Plan and tests: what the tests
+   showed, the plan at a glance, the decisions, one card per change, the checks left for the maintainer. */
 :root {
   --paper: #f4f6f8;
   --surface: #ffffff;
@@ -35,7 +36,9 @@
   --none: #ff8a80; --none-bg: #3a1d1b; --unk: #a3aec0; --unk-bg: #222a35; color-scheme: dark;
 }
 body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.6; }
-.wrap { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 36px 72px; display: grid; gap: 40px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 36px 72px; display: grid; gap: 28px; }
+.panel { display: grid; gap: 40px; }
+[hidden] { display: none !important; }
 h1, h2, h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.2; text-wrap: balance; margin: 0; }
 h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); }
 h2 { font-size: 1.4rem; }
@@ -46,7 +49,12 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-
 .stack { display: grid; gap: 12px; }
 .lede { color: var(--muted); font-size: 1.05rem; }
 .eyebrow { font-family: var(--font-code); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-code { font-family: var(--font-code); font-size: .88em; }
+code { font-family: var(--font-code); font-size: .88em; overflow-wrap: anywhere; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--rule); }
+.tabs button { font: 600 15px/1.2 var(--font-head); color: var(--muted); background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 10px 14px; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs button:hover { color: var(--ink); }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .bottom { display: grid; gap: 10px; padding: 18px 20px; border-radius: 12px; background: var(--surface); border: 1px solid var(--rule); }
 .bottom ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 76ch; }
 .tbl { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
@@ -68,25 +76,44 @@ td.plugin { font-family: var(--font-code); font-weight: 600; white-space: nowrap
 .note { font-size: 13.5px; color: var(--muted); }
 ul, ol { margin: 0; padding-left: 1.3em; display: grid; gap: 8px; max-width: 74ch; }
 ol.steps li::marker { font-family: var(--font-head); font-weight: 600; }
+.card { display: grid; gap: 14px; padding: 18px 20px; border-radius: 12px; background: var(--surface); border: 1px solid var(--rule); }
+.card h3 { font-size: 1.15rem; }
+.card h4 { margin: 0; font-family: var(--font-code); font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.card .part { display: grid; gap: 6px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 20px; margin: 0; padding: 12px 0 0; border-top: 1px solid var(--rule); }
+.facts div { display: grid; gap: 2px; }
+.facts dt { font-family: var(--font-code); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 0; font-size: 14px; }
+ul.results { list-style: none; padding-left: 0; gap: 10px; }
+ul.results li { display: grid; grid-template-columns: 9.5em 1fr; gap: 10px; align-items: start; }
+ul.results li > .pill { justify-self: start; margin-top: 2px; }
 footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
-@media (max-width: 560px) { th, td { padding: 9px 10px; } .wrap { gap: 32px; } }
+@media (max-width: 560px) { th, td { padding: 9px 10px; } .panel { gap: 32px; } .card { padding: 16px; } ul.results li { grid-template-columns: 1fr; gap: 4px; } }
 @media (max-width: 640px) { table { min-width: 600px; } }
 </style>
 
 <div class="wrap">
 
 <header class="stack">
-  <span class="eyebrow">mod-af · six plugins · checked against Anthropic's docs on 15 November 2026</span>
+  <span class="eyebrow">mod-af · six plugins · checked against Anthropic's docs and tested on 15 November 2026</span>
   <h1>Where mod-af's plugins work across Claude</h1>
-  <p class="lede">A survey of decide, detell, dynamics, housekeeping, loose-ends and route on every Claude surface: Claude Code in the terminal, desktop app, IDEs and on the web; Cowork; and claude.ai chat on the web, desktop and mobile.</p>
+  <p class="lede">A survey of decide, detell, dynamics, housekeeping, loose-ends and route on every Claude surface: Claude Code in the terminal, desktop app, IDEs and on the web; Cowork; and claude.ai chat on the web, desktop and mobile. The second tab is the plan for the proposed changes, and what testing it showed.</p>
 </header>
+
+<nav class="tabs" role="tablist" aria-label="Report sections">
+  <button type="button" role="tab" id="tab-survey" aria-controls="panel-survey" aria-selected="true" data-hash="survey">Survey</button>
+  <button type="button" role="tab" id="tab-plan" aria-controls="panel-plan" aria-selected="false" data-hash="plan">Plan and tests</button>
+</nav>
+
+<div class="panel" id="panel-survey" role="tabpanel" aria-labelledby="tab-survey">
 
 <section class="bottom" aria-label="Bottom line">
   <h2>The bottom line</h2>
   <ul>
     <li><strong>On your computer, in Claude Code, all six work as built.</strong> That covers the terminal, the desktop app's Code tab, VS Code and JetBrains.</li>
-    <li><strong>Everywhere else, none of them run.</strong> All six are built as <em>mods</em>, code that runs in Claude Code only. Claude Code on the web doesn't install marketplace plugins at all. Cowork and chat can add a plugin from a GitHub marketplace, but load only its skills, commands and remote connectors, so each of these six would load empty.</li>
-    <li><strong>Today's only route outside Claude Code is pasting a plugin's <code>prompt.md</code></strong> into a chat. Five plugins have one; housekeeping doesn't. Those pasted copies have drifted from the plugins they copy.</li>
+    <li><strong>In Cowork and chat, none of them run.</strong> All six are built as <em>mods</em>, code that runs in Claude Code only. Cowork and chat can add a plugin from a GitHub marketplace, but load only its skills, commands and remote connectors, so each of these six would load empty.</li>
+    <li><strong>Claude Code on the web is closer than the docs suggest.</strong> A test session there loaded the plugins synced from the claude.ai account, and decide's mod ran in it. So adding mod-af in claude.ai probably brings all six to cloud sessions. That, and whether their panels and status lines show there, still needs one check.</li>
+    <li><strong>Today's only route in Cowork and chat is pasting a plugin's <code>prompt.md</code></strong> into the conversation. Five plugins have one; housekeeping doesn't. Those pasted copies have drifted from the plugins they copy.</li>
     <li><strong>Most of the gap closes cheaply.</strong> decide, loose-ends and route are written procedures and need no code. Rebuilt as standard skills, each would work on every surface, from one file, with no copy to drift. detell can follow. dynamics and housekeeping depend on code, files and git, so they fit Claude Code best.</li>
   </ul>
 </section>
@@ -103,16 +130,16 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
         <th scope="col">Chat<small>claude.ai on web, desktop, mobile</small></th>
       </tr></thead>
       <tbody>
-        <tr><td class="plugin">decide</td><td><span class="pill works">Works</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td></tr>
-        <tr><td class="plugin">loose-ends</td><td><span class="pill works">Works</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td></tr>
-        <tr><td class="plugin">route</td><td><span class="pill works">Works</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td></tr>
-        <tr><td class="plugin">detell</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill paste">Paste only</span><small>no reminder to refresh the list of tells</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>same</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>same</small></div></td></tr>
-        <tr><td class="plugin">dynamics</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill paste">Paste only</span><small>the method by hand: no quote checker, no rendered page</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>same</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>same</small></div></td></tr>
-        <tr><td class="plugin">housekeeping</td><td><span class="pill works">Works</span></td><td><span class="pill none">Nothing</span></td><td><span class="pill none">Nothing</span></td><td><span class="pill none">Nothing</span></td></tr>
+        <tr><td class="plugin">decide</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill unk">Likely, untested</span><small>if mod-af is added in claude.ai; otherwise paste only</small></div></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td></tr>
+        <tr><td class="plugin">loose-ends</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill unk">Likely, untested</span><small>the same</small></div></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td></tr>
+        <tr><td class="plugin">route</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill unk">Likely, untested</span><small>the same</small></div></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td></tr>
+        <tr><td class="plugin">detell</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill unk">Likely, untested</span><small>the same</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>no reminder to refresh the list of tells</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>the same</small></div></td></tr>
+        <tr><td class="plugin">dynamics</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill unk">Likely, untested</span><small>the same; its permission prompts there are untested</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>the method by hand: no quote checker, no rendered page</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>the same</small></div></td></tr>
+        <tr><td class="plugin">housekeeping</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill unk">Likely, untested</span><small>if added in claude.ai; its status line and panels there are untested. Its command-line tool runs there (tested).</small></div></td><td><span class="pill none">Nothing</span></td><td><span class="pill none">Nothing</span></td></tr>
       </tbody>
     </table>
   </div>
-  <div class="legend"><span class="pill works">Works</span> as built <span class="pill paste">Paste only</span> copy its <code>prompt.md</code> into the conversation <span class="pill none">Nothing</span> no form exists for this surface</div>
+  <div class="legend"><span class="pill works">Works</span> as built <span class="pill unk">Likely, untested</span> the evidence points one way, not yet tried <span class="pill paste">Paste only</span> copy its <code>prompt.md</code> into the conversation <span class="pill none">Nothing</span> no form exists for this surface</div>
 </section>
 
 <section class="stack" aria-labelledby="why">
@@ -122,17 +149,17 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
     <table>
       <thead><tr><th scope="col">Part of a plugin</th><th scope="col">Claude Code on your computer</th><th scope="col">Claude Code on the web</th><th scope="col">Cowork</th><th scope="col">Chat</th></tr></thead>
       <tbody>
-        <tr><td>Skills (<code>skills/&lt;name&gt;/SKILL.md</code>)</td><td>Loads</td><td>Only from the repository (<code>.claude/skills/</code>) or skills turned on in claude.ai</td><td>Loads</td><td>Loads</td></tr>
-        <tr><td>Commands (<code>commands/*.md</code>)</td><td>Loads</td><td>Only from the repository</td><td>Loads, run as <code>/plugin:command</code></td><td>Loads as a skill, applied when it fits</td></tr>
-        <tr><td>Agents</td><td>Loads</td><td>Only from the repository (<code>.claude/agents/</code>)</td><td>Loads</td><td>Ignored</td></tr>
-        <tr><td>Hooks (<code>hooks/hooks.json</code>)</td><td>Loads</td><td>Only the repository's own settings</td><td>Loads</td><td>Ignored</td></tr>
-        <tr><td><strong>Mods</strong>: code named under <code>modules</code> in <code>hooks.json</code>, with panels, status lines and tools</td><td><strong>Loads</strong></td><td>Draws nothing; which plugins reach it is not documented</td><td><strong>Not supported</strong></td><td><strong>Not supported</strong></td></tr>
-        <tr><td>Remote connectors (MCP over http)</td><td>Loads</td><td>Only the repository's <code>.mcp.json</code></td><td>Loads, connected on its Connectors tab</td><td>Listed; works once connected</td></tr>
+        <tr><td>Skills (<code>skills/&lt;name&gt;/SKILL.md</code>)</td><td>Loads</td><td>From the repository (<code>.claude/skills/</code>), skills turned on in claude.ai, and plugins synced from the account (seen under test)</td><td>Loads</td><td>Loads</td></tr>
+        <tr><td>Commands (<code>commands/*.md</code>)</td><td>Loads</td><td>From the repository, and plugins synced from the account (seen under test)</td><td>Loads, run as <code>/plugin:command</code></td><td>Loads as a skill, applied when it fits</td></tr>
+        <tr><td>Agents</td><td>Loads</td><td>From the repository (<code>.claude/agents/</code>); synced plugins' agents untested</td><td>Loads</td><td>Ignored</td></tr>
+        <tr><td>Hooks (<code>hooks/hooks.json</code>)</td><td>Loads</td><td>The repository's own settings; synced plugins' hooks untested</td><td>Loads</td><td>Ignored</td></tr>
+        <tr><td><strong>Mods</strong>: code named under <code>modules</code> in <code>hooks.json</code>, with panels, status lines and tools</td><td><strong>Loads</strong></td><td><strong>Ran under test</strong> (decide's mod); whether panels and status lines are drawn is untested</td><td><strong>Not supported</strong></td><td><strong>Not supported</strong></td></tr>
+        <tr><td>Remote connectors (MCP over http)</td><td>Loads</td><td>The repository's <code>.mcp.json</code>; synced plugins' connectors untested</td><td>Loads, connected on its Connectors tab</td><td>Listed; works once connected</td></tr>
         <tr><td>Output styles</td><td>Loads</td><td>Not documented</td><td>Ignored</td><td>Ignored</td></tr>
       </tbody>
     </table>
   </div>
-  <p class="note">Cowork and chat add plugins from <strong>Customize &gt; Plugins</strong>, including a marketplace on GitHub such as mod-af's. A plugin added there also syncs to Claude Code on your computers. Claude Code on the web installs no plugins from a marketplace, from your settings or from a repository's settings.</p>
+  <p class="note">Cowork and chat add plugins from <strong>Customize &gt; Plugins</strong>, including a marketplace on GitHub such as mod-af's. A plugin added there also syncs to Claude Code on your computers. The docs say Claude Code on the web installs no plugins from a marketplace, from your settings or from a repository's settings. But the plugins on the claude.ai account did load there: the test session offered their skills and commands.</p>
 
   <h3>What each plugin is built from</h3>
   <div class="tbl">
@@ -153,7 +180,7 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
 
 <section class="stack" aria-labelledby="after">
   <h2 id="after">After the proposed changes</h2>
-  <p>A proposal, not a test result: each cell says what the docs suggest would happen. The unknowns below need trying on each surface.</p>
+  <p>A proposal: each cell says what the docs and the tests suggest would happen. The Plan and tests tab says what was tried, and which surfaces still need trying.</p>
   <div class="tbl">
     <table class="grid-table">
       <thead><tr>
@@ -179,7 +206,7 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
   <ul>
     <li><strong>The pasted versions have drifted from the plugins.</strong> Each prompt-only plugin holds its procedure twice: inside its code, and in <code>prompt.md</code>. The two copies share, in order, about two thirds to four fifths of their words (decide 74% of the plugin's text, loose-ends 66%, route 69%), and detell only 16%. For example, route's rule "a short honest list beats a long hedged one" is in the plugin and not in the pasted form. One skill file read everywhere would end the drift.</li>
     <li><strong>The repository's README overstates.</strong> It says "every plugin ships both ways", installed or pasted, but housekeeping has no <code>prompt.md</code>.</li>
-    <li><strong>Plugins added in claude.ai sync to Claude Code on your computers.</strong> One install could then cover every surface you use, if the plugins are built from parts every surface loads.</li>
+    <li><strong>Plugins added in claude.ai sync to Claude Code on your computers,</strong> and the test showed the account's plugins in a cloud session as well. One install could then cover every surface you use, if the plugins are built from parts every surface loads.</li>
   </ul>
 </section>
 
@@ -187,7 +214,7 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
   <h2 id="unknown">Still unknown</h2>
   <p>Where the docs are silent, the answer has to come from trying it:</p>
   <ul>
-    <li>Whether plugins added on claude.ai reach Claude Code on the web. The docs say skills turned on in claude.ai do; they don't say whether a plugin's skills count.</li>
+    <li>Whether mod-af, once added in claude.ai, reaches Claude Code on the web the way the account's other plugins did in the test session; and whether a mod's panels and status line show there.</li>
     <li>Whether Cowork gives a skill a shell or the working folder's files: this decides dynamics and housekeeping there.</li>
     <li>Whether the status line and toasts that housekeeping uses are drawn in the desktop app's Code tab. The docs confirm panels and bands there.</li>
     <li>Whether a skill can be uploaded from the mobile apps (using one there is documented), and whether custom styles still exist in claude.ai: no current help article covers them.</li>
@@ -205,8 +232,240 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
   </ol>
 </section>
 
+</div>
+
+<div class="panel" id="panel-plan" role="tabpanel" aria-labelledby="tab-plan">
+
+<section class="bottom" aria-label="What the tests showed">
+  <h2>What the tests showed</h2>
+  <ul>
+    <li><strong>The skill route works.</strong> decide, rebuilt as one skill file with no mod, ran in Claude Code from <code>/decide</code> and <code>/decide:decide</code>. When someone asked for help deciding, Claude used it unasked.</li>
+    <li><strong><code>prompt.md</code> can be written from the skill file,</strong> and a check fails on any copy that has drifted. Testing the check found a flaw in it, now fixed.</li>
+    <li><strong>dynamics' checker and renderer run as plain scripts,</strong> without the plugin. A one-file build gives the same page, so a dynamics skill can carry them.</li>
+    <li><strong>housekeeping's command-line tool runs in a cloud session.</strong></li>
+    <li><strong>One survey answer changed.</strong> Plugins do reach Claude Code on the web: the test session had the account's synced plugins, and decide's mod ran there. The Survey tab now says so.</li>
+  </ul>
+</section>
+
+<section class="stack" aria-labelledby="glance">
+  <h2 id="glance">The plan at a glance</h2>
+  <p>In the order proposed. Effort and risk are my estimates, not measurements.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Step</th><th scope="col">Change</th><th scope="col">Effort</th><th scope="col">Risk</th><th scope="col">Tested here</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>decide as a standard skill, with <code>prompt.md</code> written from it (card A)</td><td>About an hour, most of it choosing the wording</td><td>Low</td><td><span class="pill works">Yes</span></td></tr>
+        <tr><td>2</td><td>Try decide on the surfaces only you can reach (card F)</td><td>About an hour of your time</td><td>None</td><td><span class="pill unk">Needs you</span></td></tr>
+        <tr><td>3</td><td>loose-ends and route the same way (card A)</td><td>About an hour each</td><td>Low</td><td><span class="pill partial">Same as decide</span></td></tr>
+        <tr><td>4</td><td>Correct the README (card E)</td><td>Minutes</td><td>None</td><td>Not needed</td></tr>
+        <tr><td>5</td><td>detell as two skills (card B)</td><td>Half a day</td><td>Medium</td><td><span class="pill partial">Same as decide</span></td></tr>
+        <tr><td>6</td><td>housekeeping: say it is for Claude Code; optionally a skill that runs its command-line tool (card D)</td><td>Small</td><td>Low</td><td><span class="pill works">The tool, yes</span></td></tr>
+        <tr><td>7</td><td>dynamics: a skill that carries the checker and renderer, if you want it in chat or Cowork (card C)</td><td>A few days</td><td>Medium to high</td><td><span class="pill works">The core, yes</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="decisions">
+  <h2 id="decisions">Decisions for you</h2>
+  <ol class="steps">
+    <li><strong>Go beyond Claude Code?</strong> This is the survey's first step. Everything below assumes yes.</li>
+    <li><strong>Which wording to keep.</strong> For decide, loose-ends and route, the plugin's text and <code>prompt.md</code> differ. The prototype kept the plugin's text, which is the one Claude Code users get today.</li>
+    <li><strong>How readily Claude should use these skills unasked.</strong> The description decides it. In the test decide was used on "Help me decide: …" and not on a plain opinion question. Say if you want it used more often, or less.</li>
+    <li><strong>For dynamics and housekeeping: add skills beside the mods, or replace them?</strong> I propose keeping the mods in Claude Code, where they give permission prompts, panels and a status line, and adding skills for the other surfaces.</li>
+  </ol>
+</section>
+
+<section class="stack" aria-labelledby="changes">
+  <h2 id="changes">Each change</h2>
+
+  <article class="card" aria-labelledby="card-a">
+    <h3 id="card-a">A. decide, loose-ends and route become standard skills</h3>
+    <div class="part">
+      <h4>Steps</h4>
+      <ol>
+        <li>Settle the wording (decision 2).</li>
+        <li>Write <code>skills/&lt;name&gt;/SKILL.md</code>: the name, and a description in quotes that says what it does and when to use it. Then the opening line and the procedure.</li>
+        <li>Delete <code>hooks/register.ts</code> and <code>hooks/hooks.json</code>, which make it a mod.</li>
+        <li>Add the generator, <code>tools/prompt-md.mjs</code>, and write each <code>prompt.md</code> with it. Run it with <code>--check</code> alongside the tests, so a stale copy fails.</li>
+        <li>Raise each version. Tell users the call is <code>/decide</code>, or <code>/decide:decide</code> when two plugins share a name, and that the brief now comes at once. As a mod, <code>/decide</code> first replied with one line, and the brief came on the next message.</li>
+      </ol>
+    </div>
+    <div class="part">
+      <h4>Tested here</h4>
+      <ul class="results">
+        <li><span class="pill works">Passed</span><span><code>/decide:decide</code> and <code>/decide</code>, each with a question about mod-af: the full brief, with The decision, Options, Recommendation and What would change this. The runs cost $0.16 to $0.18 each.</span></li>
+        <li><span class="pill works">Passed</span><span>"Help me decide: should our team move its weekly planning meeting…", with no slash: Claude called the skill itself and gave the full brief.</span></li>
+        <li><span class="pill works">As intended</span><span>An opinion question ending "Keep it short.": Claude answered directly, without the skill.</span></li>
+        <li><span class="pill works">Passed</span><span>The plugin validates. The stricter check for Anthropic's plugin directory asks only for an icon, which matters only if you submit it there.</span></li>
+        <li><span class="pill partial">Found</span><span>Unquoted, the description holds ": " and a strict YAML parser rejects it. Rule for every skill: quote the description.</span></li>
+        <li><span class="pill works">Passed</span><span>The drift check passes on a fresh copy. It fails after a hand edit of <code>prompt.md</code>, and after an edit of the skill file. It passes again once the copy is rewritten. It stops on a plugin with no skill yet, such as route today.</span></li>
+        <li><span class="pill partial">Found, fixed</span><span>The check first took the plugin's name from its folder, so a copy in a folder named <code>decide-skill</code> failed. It now reads the name from the plugin's own <code>plugin.json</code>.</span></li>
+      </ul>
+    </div>
+    <dl class="facts">
+      <div><dt>Effort</dt><dd>About an hour per plugin</dd></div>
+      <div><dt>Risk</dt><dd>Low. A description can make Claude use the skill too often or too rarely.</dd></div>
+      <div><dt>Still to test</dt><dd>Cowork, chat, the phone, and cloud sessions through claude.ai (card F)</dd></div>
+    </dl>
+  </article>
+
+  <article class="card" aria-labelledby="card-b">
+    <h3 id="card-b">B. detell becomes two skills</h3>
+    <div class="part">
+      <h4>Steps</h4>
+      <ol>
+        <li><code>skills/detell/SKILL.md</code> holds the loop procedure and the checklist of tells, with a "last refreshed" date above the checklist.</li>
+        <li><code>skills/detell-refresh/SKILL.md</code> fetches Wikipedia's "Signs of AI writing", adds what is new to the checklist and moves the date.</li>
+        <li>The 14-day reminder becomes one line in the skill: if the date is more than 14 days old, say so and offer the refresh. Nothing has to be stored.</li>
+        <li>Delete the mod and write <code>prompt.md</code> with the generator. Today the pasted copy shares only 16% of the plugin's words, so this is the largest correction of the four.</li>
+      </ol>
+    </div>
+    <div class="part">
+      <h4>What planning it showed</h4>
+      <ul class="results">
+        <li><span class="pill partial">Found</span><span>The checklist must stay inside <code>SKILL.md</code>. The generator copies only that file, so a checklist kept in a separate file would be missing from <code>prompt.md</code>. The alternative is to teach the generator to include it.</span></li>
+        <li><span class="pill unk">Limit</span><span>In chat and Cowork a refresh cannot save the new list back to the plugin. It holds for that conversation only. A lasting refresh is a change committed to mod-af. A refresh also needs web access.</span></li>
+      </ul>
+    </div>
+    <dl class="facts">
+      <div><dt>Effort</dt><dd>Half a day</dd></div>
+      <div><dt>Risk</dt><dd>Medium: the refresh works differently on each surface</dd></div>
+      <div><dt>Tested here</dt><dd>Not on its own. It uses the same mechanism as decide.</dd></div>
+    </dl>
+  </article>
+
+  <article class="card" aria-labelledby="card-c">
+    <h3 id="card-c">C. dynamics gains a skill that carries its checker and renderer</h3>
+    <div class="part">
+      <h4>Steps</h4>
+      <ol>
+        <li>Add <code>scripts/dynamics.mjs</code>, one file of plain JavaScript built from the checker and renderer, with two commands: check a model, and draw its page.</li>
+        <li>Commit the built file, so nothing needs installing. Add a test that fails when the built file is stale or draws a different page.</li>
+        <li>The skill says: where there is a shell, run the script. In chat, work from uploaded or GitHub-synced files, and publish the page as an artifact.</li>
+        <li>Keep the mod in Claude Code. The skill says to use the mod's tools when they are there.</li>
+        <li>The mod decides which files may be read, and asks before reading. The script must keep the same rule. Moving the rule into the shared code, rather than copying it into the script, stops the two from drifting.</li>
+      </ol>
+    </div>
+    <div class="part">
+      <h4>Tested here</h4>
+      <ul class="results">
+        <li><span class="pill works">Passed</span><span>The checker and renderer import nothing from the plugin platform, only each other.</span></li>
+        <li><span class="pill works">Passed</span><span>Run as a plain Node script on the plugin's worked example: the check passed and found 7 loops, and the page was drawn: 54,250 bytes, titled "Job Runner Dynamics".</span></li>
+        <li><span class="pill works">Passed</span><span>A one-file JavaScript build of the same code, made with bun, drew a byte-identical page.</span></li>
+      </ul>
+    </div>
+    <dl class="facts">
+      <div><dt>Effort</dt><dd>A few days</dd></div>
+      <div><dt>Risk</dt><dd>Medium to high. The file-reading rule is a second place that must agree. Chat's Node version is unknown. The reviewer agents don't load in chat.</dd></div>
+      <div><dt>Still to test</dt><dd>Node in chat's sandbox; a shell in Cowork</dd></div>
+    </dl>
+  </article>
+
+  <article class="card" aria-labelledby="card-d">
+    <h3 id="card-d">D. housekeeping stays Claude Code first</h3>
+    <div class="part">
+      <h4>Steps</h4>
+      <ol>
+        <li>Say in its README that it is built for Claude Code on a computer, and that the Node command is the route elsewhere.</li>
+        <li>Optionally, add a skill that runs <code>node housekeeping/cli.ts</code> where there is a shell and a clone. A repository first needs its <code>.housekeeping.json</code>. The <code>init</code> command writes it in Claude Code, or you can write it by hand from <code>FORMAT.md</code>.</li>
+      </ol>
+    </div>
+    <div class="part">
+      <h4>Tested here, in a cloud session</h4>
+      <ul class="results">
+        <li><span class="pill works">Passed</span><span><code>survey</code> needs no settings. On mod-af it read 115 files and listed 7 candidates.</span></li>
+        <li><span class="pill works">As expected</span><span><code>map</code>, <code>check</code> and <code>brief</code> stop with "cannot read settings file", because mod-af has no <code>.housekeeping.json</code>.</span></li>
+        <li><span class="pill works">22 of 25</span><span>Its own command-line tests: 22 pass, and 1 is skipped because it runs only on Windows.</span></li>
+        <li><span class="pill none">2 fail here</span><span>One needs <code>ssh-keygen</code>, which this machine lacks. The other expects git's error to start "fatal:". git 2.43 printed a warning line first, and the tool quoted the warning instead of the cause. That second one may be a small real bug. It is outside this plan: worth a backlog item.</span></li>
+      </ul>
+    </div>
+    <dl class="facts">
+      <div><dt>Effort</dt><dd>Small</dd></div>
+      <div><dt>Risk</dt><dd>Low</dd></div>
+      <div><dt>Still to test</dt><dd>Its status line in the desktop Code tab; its mod in a cloud session</dd></div>
+    </dl>
+  </article>
+
+  <article class="card" aria-labelledby="card-e">
+    <h3 id="card-e">E. The README says where each plugin works</h3>
+    <div class="part">
+      <p>Replace "every plugin ships both ways" with one line per plugin saying where it works, linking this survey. Once card A is done, the line can say that decide, loose-ends and route work everywhere.</p>
+    </div>
+    <dl class="facts">
+      <div><dt>Effort</dt><dd>Minutes</dd></div>
+      <div><dt>Risk</dt><dd>None</dd></div>
+    </dl>
+  </article>
+</section>
+
+<section class="stack" aria-labelledby="checks">
+  <h2 id="checks">F. Checks only you can run</h2>
+  <p>I can reach only Claude Code in a cloud session. Once decide's skill is on mod-af's main branch, these settle the open questions. Each takes a few minutes.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Where</th><th scope="col">What to do</th><th scope="col">What it settles</th></tr></thead>
+      <tbody>
+        <tr><td>claude.ai</td><td>In <strong>Customize &gt; Plugins</strong>, add mod-af's GitHub marketplace and turn on decide.</td><td>Whether the plugin installs there at all</td></tr>
+        <tr><td>Chat, web</td><td>Turn on "Code execution and file creation". Type <code>/</code> and pick decide. Then, in a new chat, ask "Help me decide: …" with no slash.</td><td>Whether the skill loads, and whether it is used unasked</td></tr>
+        <tr><td>Chat, desktop and phone</td><td>The same. On the phone, also look for a way to upload a skill.</td><td>The mobile question in "Still unknown"</td></tr>
+        <tr><td>Cowork</td><td>Start a task with <code>/decide:decide …</code>. Then ask it to run <code>node --version</code> and to list the working folder.</td><td>Whether Cowork loads the skill, and whether skills there get a shell and files. That decides dynamics and housekeeping in Cowork.</td></tr>
+        <tr><td>Claude Code on the web</td><td>Start a new session and type <code>/decide</code>. Turn on housekeeping too, and look for its status line and panel.</td><td>Whether mod-af syncs into cloud sessions, and whether mods draw anything there</td></tr>
+        <tr><td>Desktop app, Code tab</td><td>Open a repository with housekeeping on, and look for its status line and toasts.</td><td>The desktop status-line question</td></tr>
+        <tr><td>Chat, with code execution on</td><td>Ask Claude to run <code>node --version</code>.</td><td>Whether dynamics' script must be built for an older Node</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="corrections">
+  <h2 id="corrections">What the tests changed on the Survey tab</h2>
+  <ul>
+    <li><strong>Claude Code on the web:</strong> the "Paste only" cells are now "Likely, untested", for when mod-af is added in claude.ai. The bottom line, the parts table, the note under it, "Found along the way" and "Still unknown" now say the same.</li>
+    <li><strong>Why it changed:</strong> the test session offered the skills and commands of the plugins synced from the claude.ai account. decide's mod from main, loaded into the same Claude Code, registered <code>/decide</code>, replied with its one line, and gave the full brief on the next message.</li>
+    <li><strong>Still to prove:</strong> that mod-af, added in claude.ai, reaches cloud sessions the same way. The test loaded it from a folder, not through the account.</li>
+  </ul>
+</section>
+
+<section class="stack" aria-labelledby="how">
+  <h2 id="how">How this was tested</h2>
+  <p class="note">One agent, in one Claude Code cloud session, with no helper agents: Claude Code 2.1.325, Node 22.23, git 2.43. Seven Claude Code runs cost $0.77 together; two cost nothing, since a mod command that only replies uses no model turn. The prototype, the generator, the dynamics runner and each run's prompt and reply are on the <code>claude/form-factor-survey</code> branch, under <code>surveys/2026-11-15-form-factors/tests/</code>, with a README that says how to repeat them. Nothing on mod-af's main branch was changed.</p>
+</section>
+
+</div>
+
 <footer>
-  <p>Sources: Anthropic's <a href="https://claude.com/docs/plugins/platform-support" target="_blank" rel="noopener">plugin feature support across platforms</a>, <a href="https://code.claude.com/docs/en/plugins/mods/overview" target="_blank" rel="noopener">mods overview</a>, <a href="https://code.claude.com/docs/en/cloud-environments" target="_blank" rel="noopener">cloud environments</a>, <a href="https://code.claude.com/docs/en/desktop" target="_blank" rel="noopener">Claude Code desktop</a>, <a href="https://claude.com/docs/skills/overview" target="_blank" rel="noopener">skills overview</a> and the help center articles they link. The per-plugin facts come from mod-af's main branch. Every claim about a surface cites a page; the full list is saved with this survey on the <code>claude/form-factor-survey</code> branch.</p>
+  <p>Sources: Anthropic's <a href="https://claude.com/docs/plugins/platform-support" target="_blank" rel="noopener">plugin feature support across platforms</a>, <a href="https://code.claude.com/docs/en/plugins/mods/overview" target="_blank" rel="noopener">mods overview</a>, <a href="https://code.claude.com/docs/en/cloud-environments" target="_blank" rel="noopener">cloud environments</a>, <a href="https://code.claude.com/docs/en/desktop" target="_blank" rel="noopener">Claude Code desktop</a>, <a href="https://claude.com/docs/skills/overview" target="_blank" rel="noopener">skills overview</a> and the help center articles they link. The per-plugin facts come from mod-af's main branch. Every claim about a surface cites a page or a test; the full list and the test files are saved with this survey on the <code>claude/form-factor-survey</code> branch.</p>
 </footer>
 
 </div>
+
+<script>
+(() => {
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  const show = (name, focus) => {
+    for (const t of tabs) {
+      const on = t.dataset.hash === name;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      if (on && focus) t.focus();
+    }
+  };
+  const fromHash = () => (location.hash === '#plan' ? 'plan' : 'survey');
+  for (const t of tabs) {
+    t.addEventListener('click', () => {
+      show(t.dataset.hash);
+      try { history.replaceState(null, '', '#' + t.dataset.hash); } catch (e) {}
+    });
+    t.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const i = tabs.indexOf(t), next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      show(next.dataset.hash, true);
+      try { history.replaceState(null, '', '#' + next.dataset.hash); } catch (e2) {}
+    });
+  }
+  window.addEventListener('hashchange', () => show(fromHash()));
+  show(fromHash());
+})();
+</script>
