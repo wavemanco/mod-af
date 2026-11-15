@@ -1,0 +1,44 @@
+{
+ "group1_words_reader_may_not_know": {
+  "findings": 15,
+  "true": 2,
+  "verdicts": {
+   "right": 13,
+   "none": 2
+  },
+  "by_rule": {
+   "acronym-undefined": 15
+  }
+ },
+ "group2_plainer_word": {
+  "findings": 10,
+  "fit": 7,
+  "changes_meaning": 0,
+  "by_rule": {
+   "wordy-phrase": 5,
+   "complex-word": 5
+  }
+ },
+ "group3_counting": {
+  "sentence-length": {
+   "findings": 40,
+   "count_right": 37
+  },
+  "paragraph-length": {
+   "findings": 10,
+   "count_right": 3
+  },
+  "paragraph-length_over_the_limit_holds": 6,
+  "sentence-average": {
+   "findings": 2,
+   "true": 2
+  }
+ },
+ "group4_structure": {
+  "heading-style": {
+   "findings": 7,
+   "true": 3
+  }
+ },
+ "cost_usd": 0.4489
+}

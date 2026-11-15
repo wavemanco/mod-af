@@ -1,0 +1,37 @@
+{
+ "sentence-length": {
+  "findings": 40,
+  "count_right": 37,
+  "count_wrong_but_sentence_is_long": [
+   {"text": "f3", "line": 19, "audit_words": 40, "real_words": 45, "why": "a false break at \"Pub.\""},
+   {"text": "f3", "line": 21, "audit_words": 53, "real_words": 64, "why": "a false break at \"Pub.\""},
+   {"text": "f5", "line": 24, "audit_words": 35, "real_words": "about 48", "why": "a false break at \"U.S.C.\" inside parentheses"}
+  ],
+  "right_by_its_own_rule": [{"text": "f2", "line": 25, "words": 32, "why": "it counts each word of a quotation; jargone counts a quotation as one word"}],
+  "missed_long_sentences": [
+   {"text": "f3", "line": 23, "words": [43, 46, 36], "why": "false breaks at \"Pub.\""},
+   {"text": "f5", "line": 127, "words": 33, "why": "a false break at \"U.S.\""}
+  ]
+ },
+ "paragraph-length": {
+  "findings": 10,
+  "count_right": 3,
+  "over_the_limit_but_count_wrong": [
+   {"text": "f2", "line": 13, "audit": 20, "jargone_with_abbreviations": 17},
+   {"text": "f2", "line": 15, "audit": 8, "jargone_with_abbreviations": 7},
+   {"text": "f2", "line": 19, "audit": 11, "jargone_with_abbreviations": 7}
+  ],
+  "false": [
+   {"text": "f3", "line": 19, "audit": 6, "real": 5, "why": "a false break at \"Pub.\"; the paragraph has 5 sentences"},
+   {"text": "f3", "line": 23, "audit": 10, "real": 5, "why": "false breaks at \"Pub.\"; the paragraph has 5 sentences"},
+   {"text": "f5", "line": 24, "audit": 8, "real": "3 and 5", "why": "two indented paragraphs read as one block"},
+   {"text": "f5", "line": 111, "audit": 14, "real": "at most 4 each", "why": "six indented paragraphs read as one block"}
+  ]
+ },
+ "sentence-average": {"findings": 2, "true": 2, "note": "f1 27.4 and f3 23.8 words; jargone with the abbreviations gives 28.1 and 30.9, both over 20"},
+ "heading-style": {
+  "findings": 7, "true": 3,
+  "true_cases": [{"text": "f1", "line": 1, "detail": "ends with a full stop"}, {"text": "f4", "line": 27, "detail": "13 words"}, {"text": "f5", "line": 58, "detail": "the table title, 13 words over two lines"}],
+  "false_cases": [{"text": "f2", "line": 1, "why": "one title, split at \"v.\""}, {"text": "f5", "line": 64, "why": "a table row read as a heading"}, {"text": "f5", "line": 82, "why": "a table row read as a heading"}, {"text": "f5", "line": 100, "why": "a table row read as a heading"}]
+ }
+}

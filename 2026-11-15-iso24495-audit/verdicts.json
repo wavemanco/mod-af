@@ -1,0 +1,206 @@
+{
+ "terms": [
+  {
+   "text": "f1",
+   "rule": "acronym-undefined",
+   "term": "U.S.C.",
+   "line": 17,
+   "meaning": "It seems to be a reference to where the USERRA law is written in United States federal law.",
+   "verdict": "right"
+  },
+  {
+   "text": "f1",
+   "rule": "acronym-undefined",
+   "term": "CFR",
+   "line": 27,
+   "meaning": "I don't know",
+   "verdict": "none"
+  },
+  {
+   "text": "f1",
+   "rule": "acronym-undefined",
+   "term": "FMLA",
+   "line": 31,
+   "meaning": "The Family and Medical Leave Act, the federal law that lets eligible workers take job-protected time off for family or medical reasons.",
+   "verdict": "right"
+  },
+  {
+   "text": "f2",
+   "rule": "acronym-undefined",
+   "term": "TYLER",
+   "line": 5,
+   "meaning": "Geraldine Tyler, the 94-year-old woman whose condo the county sold for back taxes and who is suing to get the leftover money.",
+   "verdict": "right"
+  },
+  {
+   "text": "f2",
+   "rule": "acronym-undefined",
+   "term": "COUNTY",
+   "line": 5,
+   "meaning": "Hennepin County in Minnesota, the local government that took and sold her home and kept the extra money.",
+   "verdict": "right"
+  },
+  {
+   "text": "f3",
+   "rule": "acronym-undefined",
+   "term": "SNF",
+   "line": 7,
+   "meaning": "A skilled nursing facility, the kind of nursing home or rehab place a patient goes to after a hospital stay.",
+   "verdict": "right"
+  },
+  {
+   "text": "f3",
+   "rule": "acronym-undefined",
+   "term": "CFR",
+   "line": 13,
+   "meaning": "The book of official federal regulations, cited here to point to a specific Medicare rule.",
+   "verdict": "right"
+  },
+  {
+   "text": "f3",
+   "rule": "acronym-undefined",
+   "term": "MAC",
+   "line": 19,
+   "meaning": "The organization that reviews Medicare claims and decides whether the hospital stay was medically necessary.",
+   "verdict": "right"
+  },
+  {
+   "text": "f4",
+   "rule": "acronym-undefined",
+   "term": "FM",
+   "line": 7,
+   "meaning": "It is short for \"Farm to Market Road,\" the kind of numbered rural Texas road the bus was driving on.",
+   "verdict": "right"
+  },
+  {
+   "text": "f4",
+   "rule": "acronym-undefined",
+   "term": "ESC",
+   "line": 15,
+   "meaning": "It is a safety system on the vehicle that automatically brakes individual wheels or cuts engine power to keep the bus from skidding or spinning out of control.",
+   "verdict": "right"
+  },
+  {
+   "text": "f4",
+   "rule": "acronym-undefined",
+   "term": "NTSB",
+   "line": 17,
+   "meaning": "It is the National Transportation Safety Board, the agency that investigated this crash and makes safety recommendations.",
+   "verdict": "right"
+  },
+  {
+   "text": "f4",
+   "rule": "acronym-undefined",
+   "term": "NHTSA",
+   "line": 17,
+   "meaning": "It is a government agency that sets vehicle safety rules and can require safety equipment on vehicles like buses.",
+   "verdict": "right"
+  },
+  {
+   "text": "f5",
+   "rule": "acronym-undefined",
+   "term": "HHS",
+   "line": 1,
+   "meaning": "The Department of Health and Human Services, the federal agency that issues these poverty guidelines.",
+   "verdict": "right"
+  },
+  {
+   "text": "f5",
+   "rule": "acronym-undefined",
+   "term": "U.S.C.",
+   "line": 24,
+   "meaning": "I don't know",
+   "verdict": "none"
+  },
+  {
+   "text": "f5",
+   "rule": "acronym-undefined",
+   "term": "OMB",
+   "line": 126,
+   "meaning": "The Office of Management and Budget, a government office that people sometimes wrongly think issues the poverty guidelines.",
+   "verdict": "right"
+  }
+ ],
+ "swaps": [
+  {
+   "text": "f1",
+   "rule": "wordy-phrase",
+   "detail": "\"prior to\" says what \"before\" says",
+   "line": 13,
+   "fits": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f1",
+   "rule": "wordy-phrase",
+   "detail": "\"prior to\" says what \"before\" says",
+   "line": 23,
+   "fits": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f1",
+   "rule": "complex-word",
+   "detail": "\"ascertain\" where \"find\" would do",
+   "line": 33,
+   "fits": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f1",
+   "rule": "complex-word",
+   "detail": "\"terminate\" where \"end\" would do",
+   "line": 33,
+   "fits": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f3",
+   "rule": "wordy-phrase",
+   "detail": "\"in order to\" says what \"to\" says",
+   "line": 7,
+   "fits": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f3",
+   "rule": "wordy-phrase",
+   "detail": "\"prior to\" says what \"before\" says",
+   "line": 15,
+   "fits": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f3",
+   "rule": "wordy-phrase",
+   "detail": "\"for the purpose of\" says what \"to\" says",
+   "line": 23,
+   "fits": false,
+   "changes_meaning": false
+  },
+  {
+   "text": "f3",
+   "rule": "complex-word",
+   "detail": "\"commences\" where \"starts\" would do",
+   "line": 15,
+   "fits": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "f3",
+   "rule": "complex-word",
+   "detail": "\"thereof\" where \"its\" would do",
+   "line": 19,
+   "fits": false,
+   "changes_meaning": false
+  },
+  {
+   "text": "f3",
+   "rule": "complex-word",
+   "detail": "\"thereof\" where \"its\" would do",
+   "line": 19,
+   "fits": false,
+   "changes_meaning": false
+  }
+ ]
+}
