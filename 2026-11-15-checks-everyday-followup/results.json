@@ -1,0 +1,813 @@
+{
+ "part1": {
+  "J01": {
+   "findings": 29,
+   "true": 5,
+   "true_with_partly_as_understood": 5,
+   "verdicts": {
+    "right": 24,
+    "none": 5
+   },
+   "decision": "drop",
+   "decision_with_partly_as_understood": "drop"
+  },
+  "J04": {
+   "findings": 2,
+   "true": 0,
+   "true_with_partly_as_understood": 0,
+   "verdicts": {
+    "right": 2
+   },
+   "decision": "not enough findings",
+   "decision_with_partly_as_understood": "not enough findings"
+  },
+  "rows": [
+   {
+    "text": "f1",
+    "code": "J01",
+    "term": "worksite",
+    "meaning": "The place where you actually work, like the warehouse or building you report to.",
+    "verdict": "right"
+   },
+   {
+    "text": "f1",
+    "code": "J01",
+    "term": "CFR",
+    "meaning": "I don't know",
+    "verdict": "none"
+   },
+   {
+    "text": "f1",
+    "code": "J01",
+    "term": "FMLA",
+    "meaning": "The Family and Medical Leave Act, the law that lets you take time off work for a serious health issue or family reasons, like a new baby, without losing your job.",
+    "verdict": "right"
+   },
+   {
+    "text": "f2",
+    "code": "J01",
+    "term": "et",
+    "meaning": "It's part of \"et al.,\" which means \"and others,\" so the county isn't the only one being sued.",
+    "verdict": "right"
+   },
+   {
+    "text": "f2",
+    "code": "J01",
+    "term": "GERALDINE",
+    "meaning": "It's the first name of Geraldine Tyler, the 94-year-old woman whose condo was sold for back taxes.",
+    "verdict": "right"
+   },
+   {
+    "text": "f2",
+    "code": "J01",
+    "term": "PETITIONER",
+    "meaning": "It means Geraldine Tyler is the one who brought the case to the court and is asking it to rule in her favor.",
+    "verdict": "right"
+   },
+   {
+    "text": "f2",
+    "code": "J01",
+    "term": "HENNEPIN",
+    "meaning": "It's the name of the county in Minnesota, around Minneapolis, that took and sold her condo.",
+    "verdict": "right"
+   },
+   {
+    "text": "f2",
+    "code": "J01",
+    "term": "Minn",
+    "meaning": "It's short for Minnesota, here pointing to the state's laws.",
+    "verdict": "right"
+   },
+   {
+    "text": "f2",
+    "code": "J01",
+    "term": "delinquent",
+    "meaning": "It means the taxes are overdue and haven't been paid on time.",
+    "verdict": "right"
+   },
+   {
+    "text": "f2",
+    "code": "J01",
+    "term": "forfeiture",
+    "meaning": "It means the process where the county takes your property away because the taxes went unpaid too long.",
+    "verdict": "right"
+   },
+   {
+    "text": "f2",
+    "code": "J01",
+    "term": "Supp",
+    "meaning": "I don't know",
+    "verdict": "none"
+   },
+   {
+    "text": "f3",
+    "code": "J01",
+    "term": "Rev",
+    "meaning": "Short for revision, meaning which version of this document section it is.",
+    "verdict": "right"
+   },
+   {
+    "text": "f3",
+    "code": "J04",
+    "term": "Rev",
+    "meaning": "Short for revision, meaning which version of this document section it is.",
+    "verdict": "right"
+   },
+   {
+    "text": "f3",
+    "code": "J01",
+    "term": "inpatient",
+    "meaning": "A patient who was formally admitted to the hospital and stayed there, not just seen and sent home.",
+    "verdict": "right"
+   },
+   {
+    "text": "f3",
+    "code": "J01",
+    "term": "SNF",
+    "meaning": "A skilled nursing facility, like a nursing home or rehab place where someone goes after the hospital.",
+    "verdict": "right"
+   },
+   {
+    "text": "f3",
+    "code": "J01",
+    "term": "accordance",
+    "meaning": "It means following or in agreement with what the law says.",
+    "verdict": "right"
+   },
+   {
+    "text": "f3",
+    "code": "J01",
+    "term": "CFR",
+    "meaning": "I don't know",
+    "verdict": "none"
+   },
+   {
+    "text": "f3",
+    "code": "J01",
+    "term": "beneficiary",
+    "meaning": "The Medicare patient who gets the benefits, like my parent.",
+    "verdict": "right"
+   },
+   {
+    "text": "f3",
+    "code": "J01",
+    "term": "thereof",
+    "meaning": "Of it, meaning part of the hospital stay.",
+    "verdict": "right"
+   },
+   {
+    "text": "f3",
+    "code": "J01",
+    "term": "RNHCIs",
+    "meaning": "Short for Religious Nonmedical Health Care Institutions, places that give religious rather than medical care.",
+    "verdict": "right"
+   },
+   {
+    "text": "f4",
+    "code": "J04",
+    "term": "Monaville",
+    "meaning": "A small community in Waller County, Texas, where the bus crash happened.",
+    "verdict": "right"
+   },
+   {
+    "text": "f4",
+    "code": "J01",
+    "term": "IC",
+    "meaning": "The company that made the school bus.",
+    "verdict": "right"
+   },
+   {
+    "text": "f4",
+    "code": "J01",
+    "term": "aide",
+    "meaning": "An adult staff member who rides the bus to help the driver and look after the children.",
+    "verdict": "right"
+   },
+   {
+    "text": "f4",
+    "code": "J01",
+    "term": "vent",
+    "meaning": "A small window on the bus that opens for air, which distracted the driver.",
+    "verdict": "right"
+   },
+   {
+    "text": "f4",
+    "code": "J01",
+    "term": "yaw",
+    "meaning": "I don't know",
+    "verdict": "none"
+   },
+   {
+    "text": "f4",
+    "code": "J01",
+    "term": "NTSB",
+    "meaning": "The federal agency that investigates crashes and wrote this report.",
+    "verdict": "right"
+   },
+   {
+    "text": "f4",
+    "code": "J01",
+    "term": "NHTSA",
+    "meaning": "I don't know",
+    "verdict": "none"
+   },
+   {
+    "text": "f4",
+    "code": "J01",
+    "term": "onboard",
+    "meaning": "Installed on the bus itself, like cameras recording inside the bus.",
+    "verdict": "right"
+   },
+   {
+    "text": "f5",
+    "code": "J01",
+    "term": "HHS",
+    "meaning": "It is short for the Department of Health and Human Services, the federal agency that puts out these poverty guidelines.",
+    "verdict": "right"
+   },
+   {
+    "text": "f5",
+    "code": "J01",
+    "term": "SUPPLEMENTARY",
+    "meaning": "It marks the section that gives extra background and details beyond the short summary at the top.",
+    "verdict": "right"
+   },
+   {
+    "text": "f5",
+    "code": "J01",
+    "term": "OMB",
+    "meaning": "It is the Office of Management and Budget, a government office that people sometimes wrongly think issues the poverty guidelines.",
+    "verdict": "right"
+   }
+  ]
+ },
+ "part3": {
+  "findings": 75,
+  "lost": 54,
+  "restated": 21,
+  "restated_share": 0.28,
+  "by_text": {
+   "f1": [
+    8,
+    5
+   ],
+   "f2": [
+    32,
+    1
+   ],
+   "f3": [
+    17,
+    8
+   ],
+   "f4": [
+    8,
+    3
+   ],
+   "f5": [
+    10,
+    4
+   ]
+  },
+  "count_based": {
+   "findings": 24,
+   "restated": 17
+  },
+  "rewrite_words": {
+   "f1": 749,
+   "f2": 1073,
+   "f3": 1034,
+   "f4": 809,
+   "f5": 790
+  },
+  "rule": "more than 1 in 5 restated: file a fix",
+  "fix_due": true,
+  "rows": [
+   {
+    "text": "f1",
+    "term": "1",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "1. **Time on the job.**"
+   },
+   {
+    "text": "f1",
+    "term": "12",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "You have worked for this employer for at least 12 months."
+   },
+   {
+    "text": "f1",
+    "term": "2",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "2. **Hours worked.**"
+   },
+   {
+    "text": "f1",
+    "term": "3",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "3. **Company size near you.**"
+   },
+   {
+    "text": "f1",
+    "term": "75",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "at least 50 workers within 75 miles of where you work"
+   },
+   {
+    "text": "f1",
+    "term": "38",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f1",
+    "term": "4301",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f1",
+    "term": "4",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "273.01",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "2022",
+    "count_based": true,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "279.02",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "279.03",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "279.18",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "280.01",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "281.17",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "281.18",
+    "count_based": true,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "281.70",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "282.07",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "282.01",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "3",
+    "count_based": true,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "282.08",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "2300",
+    "count_based": false,
+    "verdict": "restated",
+    "quote": "By 2015, she owed about $2,300 in unpaid taxes."
+   },
+   {
+    "text": "f2",
+    "term": "5",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "505",
+    "count_based": true,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "879",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "883",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "2020",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "26",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "4",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "789",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "790",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "793",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "794",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "895",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "899",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "598",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "2023",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "364",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "49",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f2",
+    "term": "27",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f3",
+    "term": "10",
+    "count_based": false,
+    "verdict": "restated",
+    "quote": "Revision 1, October 1, 2003"
+   },
+   {
+    "text": "f3",
+    "term": "01",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "Revision 1, October 1, 2003"
+   },
+   {
+    "text": "f3",
+    "term": "03",
+    "count_based": false,
+    "verdict": "restated",
+    "quote": "Revision 1, October 1, 2003"
+   },
+   {
+    "text": "f3",
+    "term": "5",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "This rule has applied since December 5, 1980."
+   },
+   {
+    "text": "f3",
+    "term": "08",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "Issued August 6, 2021. Effective November 8, 2021."
+   },
+   {
+    "text": "f3",
+    "term": "06",
+    "count_based": false,
+    "verdict": "restated",
+    "quote": "Issued August 6, 2021."
+   },
+   {
+    "text": "f3",
+    "term": "21",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "Issued August 6, 2021. Effective November 8, 2021."
+   },
+   {
+    "text": "f3",
+    "term": "11",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "Effective November 8, 2021."
+   },
+   {
+    "text": "f3",
+    "term": "31",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f3",
+    "term": "10116",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f3",
+    "term": "10118",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f3",
+    "term": "19",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f3",
+    "term": "27",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f3",
+    "term": "1966",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f3",
+    "term": "100",
+    "count_based": true,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f3",
+    "term": "04",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f3",
+    "term": "02",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f4",
+    "term": "2018",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "The bus was a 2018 model made by IC Bus."
+   },
+   {
+    "text": "f4",
+    "term": "1887",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "The bus was heading south on Farm to Market Road 1887."
+   },
+   {
+    "text": "f4",
+    "term": "2.2",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f4",
+    "term": "10,000",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "require lane departure prevention on large work vehicles over 10,000 pounds, including school buses"
+   },
+   {
+    "text": "f4",
+    "term": "2023",
+    "count_based": true,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f4",
+    "term": "3",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f4",
+    "term": "3.1",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f4",
+    "term": "3.2",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f5",
+    "term": "2026",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "The new amounts start on **January 13, 2026**."
+   },
+   {
+    "text": "f5",
+    "term": "673",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f5",
+    "term": "2",
+    "count_based": true,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f5",
+    "term": "1981",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f5",
+    "term": "42",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "The law is 42 U.S.C. 9902(2)."
+   },
+   {
+    "text": "f5",
+    "term": "9902",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "The law is 42 U.S.C. 9902(2)."
+   },
+   {
+    "text": "f5",
+    "term": "2025",
+    "count_based": true,
+    "verdict": "restated",
+    "quote": "Prices went up 2.63 percent from 2024 to 2025."
+   },
+   {
+    "text": "f5",
+    "term": "1798",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f5",
+    "term": "1966",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "text": "f5",
+    "term": "1970",
+    "count_based": false,
+    "verdict": "lost",
+    "quote": null
+   }
+  ]
+ },
+ "cost_usd": 1.1531
+}
