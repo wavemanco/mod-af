@@ -1,0 +1,91 @@
+{
+ "text": "f5",
+ "configHash": "ca6f9562",
+ "findings": [
+  {
+   "rule": "sentence-length",
+   "line": 9,
+   "detail": "33 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 24,
+   "detail": "35 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 29,
+   "detail": "31 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 33,
+   "detail": "32 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 42,
+   "detail": "35 words (limit 30)"
+  },
+  {
+   "rule": "paragraph-length",
+   "line": 24,
+   "detail": "8 sentences (limit 5)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 50,
+   "detail": "31 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 118,
+   "detail": "43 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 123,
+   "detail": "73 words (limit 30)"
+  },
+  {
+   "rule": "paragraph-length",
+   "line": 111,
+   "detail": "14 sentences (limit 5)"
+  },
+  {
+   "rule": "heading-style",
+   "line": 58,
+   "detail": "13 words (limit 12)"
+  },
+  {
+   "rule": "heading-style",
+   "line": 64,
+   "detail": "16 words (limit 12)"
+  },
+  {
+   "rule": "heading-style",
+   "line": 82,
+   "detail": "16 words (limit 12)"
+  },
+  {
+   "rule": "heading-style",
+   "line": 100,
+   "detail": "16 words (limit 12)"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 1,
+   "detail": "define acronym \"HHS\" on first use"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 24,
+   "detail": "define acronym \"U.S.C.\" on first use"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 126,
+   "detail": "define acronym \"OMB\" on first use"
+  }
+ ]
+}

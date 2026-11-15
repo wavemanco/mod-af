@@ -1,0 +1,56 @@
+{
+ "text": "f2",
+ "configHash": "ca6f9562",
+ "findings": [
+  {
+   "rule": "sentence-length",
+   "line": 13,
+   "detail": "34 words (limit 30)"
+  },
+  {
+   "rule": "paragraph-length",
+   "line": 13,
+   "detail": "20 sentences (limit 5)"
+  },
+  {
+   "rule": "paragraph-length",
+   "line": 15,
+   "detail": "8 sentences (limit 5)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 19,
+   "detail": "39 words (limit 30)"
+  },
+  {
+   "rule": "paragraph-length",
+   "line": 19,
+   "detail": "11 sentences (limit 5)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 25,
+   "detail": "32 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 27,
+   "detail": "44 words (limit 30)"
+  },
+  {
+   "rule": "heading-style",
+   "line": 1,
+   "detail": "2 sentences in heading"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 5,
+   "detail": "define acronym \"TYLER\" on first use"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 5,
+   "detail": "define acronym \"COUNTY\" on first use"
+  }
+ ]
+}

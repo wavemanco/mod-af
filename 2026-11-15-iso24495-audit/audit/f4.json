@@ -1,0 +1,76 @@
+{
+ "text": "f4",
+ "configHash": "ca6f9562",
+ "findings": [
+  {
+   "rule": "sentence-length",
+   "line": 7,
+   "detail": "42 words (limit 30)"
+  },
+  {
+   "rule": "paragraph-length",
+   "line": 7,
+   "detail": "9 sentences (limit 5)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 13,
+   "detail": "40 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 15,
+   "detail": "31 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 25,
+   "detail": "37 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 29,
+   "detail": "38 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 29,
+   "detail": "33 words (limit 30)"
+  },
+  {
+   "rule": "paragraph-length",
+   "line": 29,
+   "detail": "8 sentences (limit 5)"
+  },
+  {
+   "rule": "paragraph-length",
+   "line": 31,
+   "detail": "7 sentences (limit 5)"
+  },
+  {
+   "rule": "heading-style",
+   "line": 27,
+   "detail": "13 words (limit 12)"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 7,
+   "detail": "define acronym \"FM\" on first use"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 15,
+   "detail": "define acronym \"ESC\" on first use"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 17,
+   "detail": "define acronym \"NTSB\" on first use"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 17,
+   "detail": "define acronym \"NHTSA\" on first use"
+  }
+ ]
+}

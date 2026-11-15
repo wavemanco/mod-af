@@ -1,0 +1,116 @@
+{
+ "text": "f1",
+ "configHash": "ca6f9562",
+ "findings": [
+  {
+   "rule": "sentence-length",
+   "line": 7,
+   "detail": "37 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 13,
+   "detail": "45 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 15,
+   "detail": "33 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 17,
+   "detail": "33 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 19,
+   "detail": "38 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 21,
+   "detail": "52 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 23,
+   "detail": "33 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 27,
+   "detail": "57 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 27,
+   "detail": "34 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 31,
+   "detail": "41 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 31,
+   "detail": "43 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 33,
+   "detail": "69 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 33,
+   "detail": "53 words (limit 30)"
+  },
+  {
+   "rule": "sentence-average",
+   "line": 1,
+   "detail": "average 27.4 words across 31 sentences (limit 20)"
+  },
+  {
+   "rule": "heading-style",
+   "line": 1,
+   "detail": "heading ends with a full stop"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 17,
+   "detail": "define acronym \"U.S.C.\" on first use"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 27,
+   "detail": "define acronym \"CFR\" on first use"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 31,
+   "detail": "define acronym \"FMLA\" on first use"
+  },
+  {
+   "rule": "wordy-phrase",
+   "line": 13,
+   "detail": "\"prior to\" says what \"before\" says"
+  },
+  {
+   "rule": "wordy-phrase",
+   "line": 23,
+   "detail": "\"prior to\" says what \"before\" says"
+  },
+  {
+   "rule": "complex-word",
+   "line": 33,
+   "detail": "\"ascertain\" where \"find\" would do"
+  },
+  {
+   "rule": "complex-word",
+   "line": 33,
+   "detail": "\"terminate\" where \"end\" would do"
+  }
+ ]
+}

@@ -1,0 +1,111 @@
+{
+ "text": "f3",
+ "configHash": "ca6f9562",
+ "findings": [
+  {
+   "rule": "sentence-length",
+   "line": 7,
+   "detail": "31 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 13,
+   "detail": "62 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 15,
+   "detail": "66 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 17,
+   "detail": "52 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 17,
+   "detail": "37 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 19,
+   "detail": "46 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 19,
+   "detail": "40 words (limit 30)"
+  },
+  {
+   "rule": "paragraph-length",
+   "line": 19,
+   "detail": "6 sentences (limit 5)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 21,
+   "detail": "78 words (limit 30)"
+  },
+  {
+   "rule": "sentence-length",
+   "line": 21,
+   "detail": "53 words (limit 30)"
+  },
+  {
+   "rule": "paragraph-length",
+   "line": 23,
+   "detail": "10 sentences (limit 5)"
+  },
+  {
+   "rule": "sentence-average",
+   "line": 1,
+   "detail": "average 23.8 words across 39 sentences (limit 20)"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 7,
+   "detail": "define acronym \"SNF\" on first use"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 13,
+   "detail": "define acronym \"CFR\" on first use"
+  },
+  {
+   "rule": "acronym-undefined",
+   "line": 19,
+   "detail": "define acronym \"MAC\" on first use"
+  },
+  {
+   "rule": "wordy-phrase",
+   "line": 7,
+   "detail": "\"in order to\" says what \"to\" says"
+  },
+  {
+   "rule": "wordy-phrase",
+   "line": 15,
+   "detail": "\"prior to\" says what \"before\" says"
+  },
+  {
+   "rule": "wordy-phrase",
+   "line": 23,
+   "detail": "\"for the purpose of\" says what \"to\" says"
+  },
+  {
+   "rule": "complex-word",
+   "line": 15,
+   "detail": "\"commences\" where \"starts\" would do"
+  },
+  {
+   "rule": "complex-word",
+   "line": 19,
+   "detail": "\"thereof\" where \"its\" would do"
+  },
+  {
+   "rule": "complex-word",
+   "line": 19,
+   "detail": "\"thereof\" where \"its\" would do"
+  }
+ ]
+}
