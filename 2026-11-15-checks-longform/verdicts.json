@@ -1,0 +1,1073 @@
+{
+ "terms": [
+  {
+   "text": "L1",
+   "code": "J04",
+   "term": "jackbooted",
+   "line": 1,
+   "meaning": "Wearing heavy military boots, suggesting harsh, bullying, authoritarian force.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J04",
+   "term": "haul",
+   "line": 1,
+   "meaning": "Forcefully drag or carry away.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J04",
+   "term": "picket",
+   "line": 1,
+   "meaning": "Lines of protesters standing together to demonstrate against something.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J04",
+   "term": "decree",
+   "line": 1,
+   "meaning": "An official order or rule issued by the government.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J04",
+   "term": "detainments",
+   "line": 1,
+   "meaning": "Holding people in custody, like keeping them locked up by police.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J04",
+   "term": "Vandals",
+   "line": 1,
+   "meaning": "People who deliberately damage or destroy property.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J04",
+   "term": "Matteo",
+   "line": 1,
+   "meaning": "The first name of Italy's Deputy Prime Minister, Matteo Salvini.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J04",
+   "term": "Salvini",
+   "line": 1,
+   "meaning": "The surname of Italy's Deputy Prime Minister, a 53-year-old politician.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J01",
+   "term": "existential",
+   "line": 5,
+   "meaning": "Deep, to do with whether life is worth living or one's very survival and future.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J01",
+   "term": "precarious",
+   "line": 7,
+   "meaning": "Unstable and insecure, with no guarantee it will last.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J01",
+   "term": "generational",
+   "line": 9,
+   "meaning": "Between age groups, here young people rising up against the older generation.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J01",
+   "term": "gerontocracies",
+   "line": 9,
+   "meaning": "Governments or societies run by old people.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J01",
+   "term": "disproportionate",
+   "line": 17,
+   "meaning": "Out of proportion, much more than would be fair.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J01",
+   "term": "disengaged",
+   "line": 31,
+   "meaning": "Not interested or involved, just going through the motions at work.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J01",
+   "term": "nihilism",
+   "line": 37,
+   "meaning": "A belief that nothing matters or has meaning, leading to hopelessness.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J01",
+   "term": "communique",
+   "line": 37,
+   "meaning": "An official statement or announcement issued by a group.",
+   "verdict": "right"
+  },
+  {
+   "text": "L1",
+   "code": "J01",
+   "term": "disillusioned",
+   "line": 47,
+   "meaning": "Disappointed after losing faith in something they once believed in.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J04",
+   "term": "Verona",
+   "line": 1,
+   "meaning": "An old city in Italy known for its historic streets.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J04",
+   "term": "Bruges",
+   "line": 1,
+   "meaning": "An old city in Belgium known for its historic streets.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J04",
+   "term": "Taipei",
+   "line": 1,
+   "meaning": "The capital city of Taiwan, used here as an example of a modern Asian city with lively streets.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J04",
+   "term": "Hong",
+   "line": 1,
+   "meaning": "Part of the name Hong Kong, a big modern city in southern China.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J04",
+   "term": "Kong",
+   "line": 1,
+   "meaning": "Part of the name Hong Kong, a big modern city in southern China.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J04",
+   "term": "nondescript",
+   "line": 1,
+   "meaning": "Plain and unremarkable, with nothing special to describe.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J04",
+   "term": "enchantment",
+   "line": 1,
+   "meaning": "A charming, delightful quality that draws people in.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "modernism",
+   "line": 5,
+   "meaning": "A twentieth-century movement in design and planning favoring a new, stripped-down, modern style over traditional ways.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "inhospitable",
+   "line": 9,
+   "meaning": "Unwelcoming and unpleasant to be in.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "Colonnades",
+   "line": 19,
+   "meaning": "Rows of columns, usually holding up a roof or arches, along the side of a building or square.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "weakly",
+   "line": 21,
+   "meaning": "Only slightly or not very much.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "de",
+   "line": 23,
+   "meaning": "A French word meaning 'of', part of the name of the square in Paris.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "la",
+   "line": 23,
+   "meaning": "A French word meaning 'the', part of the name of the square in Paris.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "monumental",
+   "line": 29,
+   "meaning": "Large, grand, and impressive, like important landmark buildings.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "miniaturized",
+   "line": 29,
+   "meaning": "Made to look tiny, like small models.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "harmonious",
+   "line": 37,
+   "meaning": "Pleasingly balanced and fitting together well.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "backdrop",
+   "line": 45,
+   "meaning": "The background behind something you are looking at.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "advantageous",
+   "line": 49,
+   "meaning": "Beneficial or helpful.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "vernacular",
+   "line": 59,
+   "meaning": "Ordinary, everyday local buildings rather than grand special ones.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "adjoined",
+   "line": 59,
+   "meaning": "Were directly attached to or touching.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "freestanding",
+   "line": 59,
+   "meaning": "Standing alone, not attached to any other building.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "facade",
+   "line": 63,
+   "meaning": "The front face of a building.",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "DC",
+   "line": 67,
+   "meaning": "Part of the name Washington DC, the US capital city (District of Columbia).",
+   "verdict": "right"
+  },
+  {
+   "text": "L2",
+   "code": "J01",
+   "term": "modernist",
+   "line": 75,
+   "meaning": "Belonging to the twentieth-century modern design movement that rejected traditional styles.",
+   "verdict": "right"
+  },
+  {
+   "text": "L3",
+   "code": "J01",
+   "term": "trope",
+   "line": 7,
+   "meaning": "A familiar, often-repeated idea or theme that people commonly take for granted.",
+   "verdict": "right"
+  },
+  {
+   "text": "L3",
+   "code": "J01",
+   "term": "NPCs",
+   "line": 9,
+   "meaning": "People seen as background figures who just go along without real choice, a term borrowed from video games.",
+   "verdict": "right"
+  },
+  {
+   "text": "L3",
+   "code": "J01",
+   "term": "recounted",
+   "line": 11,
+   "meaning": "Told or described in sequence, like narrating what happened.",
+   "verdict": "right"
+  },
+  {
+   "text": "L3",
+   "code": "J01",
+   "term": "gamification",
+   "line": 29,
+   "meaning": "Turning ordinary activities like exercise into something like a game, with points, scores and goals.",
+   "verdict": "right"
+  },
+  {
+   "text": "L3",
+   "code": "J01",
+   "term": "ludic",
+   "line": 29,
+   "meaning": "Related to games and play, so thinking about life the way you'd approach a game.",
+   "verdict": "right"
+  },
+  {
+   "text": "L3",
+   "code": "J01",
+   "term": "sakes",
+   "line": 39,
+   "meaning": "For their own value, as in nobody wants those pieces just for themselves.",
+   "verdict": "right"
+  },
+  {
+   "text": "L3",
+   "code": "J01",
+   "term": "encode",
+   "line": 57,
+   "meaning": "Pack in or carry, in a compact form, a set of traits and ideas.",
+   "verdict": "right"
+  },
+  {
+   "text": "L3",
+   "code": "J01",
+   "term": "worldviews",
+   "line": 57,
+   "meaning": "Overall beliefs and outlooks about how the world is and what matters.",
+   "verdict": "right"
+  },
+  {
+   "text": "L3",
+   "code": "J01",
+   "term": "malleable",
+   "line": 63,
+   "meaning": "Easily changed or reshaped over time.",
+   "verdict": "right"
+  },
+  {
+   "text": "L3",
+   "code": "J01",
+   "term": "agentic",
+   "line": 65,
+   "meaning": "Having to do with the ability to act freely and take control of what you do.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J04",
+   "term": "accreted",
+   "line": 1,
+   "meaning": "Gradually stuck together and built up into larger bodies.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J04",
+   "term": "hellish",
+   "line": 1,
+   "meaning": "Extremely harsh and unpleasant, like hell.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J04",
+   "term": "molten",
+   "line": 1,
+   "meaning": "Melted, made of liquid rock from the intense heat.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J04",
+   "term": "bombarded",
+   "line": 1,
+   "meaning": "Hit over and over again by many incoming objects.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "probed",
+   "line": 7,
+   "meaning": "Investigated or explored closely.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "mused",
+   "line": 7,
+   "meaning": "Thought about something dreamily or reflectively.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "lipids",
+   "line": 11,
+   "meaning": "Fatty molecules, which the text says make up cell membranes.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "astrobiologist",
+   "line": 13,
+   "meaning": "A scientist who studies life in the universe, including the possibility of life on other planets.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "precursors",
+   "line": 15,
+   "meaning": "Earlier, simpler substances that later turn into the ingredients of life.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "lineage",
+   "line": 15,
+   "meaning": "A line of descent from ancestors to their offspring.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "emergence",
+   "line": 17,
+   "meaning": "The coming into being or first appearance of something.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "lifelike",
+   "line": 17,
+   "meaning": "Resembling or behaving like something alive.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "biochemical",
+   "line": 17,
+   "meaning": "Relating to the chemistry that happens in living things.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "nonliving",
+   "line": 17,
+   "meaning": "Things that are not alive, like ordinary chemicals.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "self-replication",
+   "line": 21,
+   "meaning": "The ability of something to make copies of itself.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "primordial",
+   "line": 21,
+   "meaning": "Existing at the very beginning, in the earliest times.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "amino",
+   "line": 25,
+   "meaning": "Part of 'amino acids,' the small molecules that link up to form proteins.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "Prebiotic",
+   "line": 27,
+   "meaning": "Before life existed, so chemistry of the time before life began.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "genome",
+   "line": 35,
+   "meaning": "The full set of genetic information a living thing carries.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "strand",
+   "line": 41,
+   "meaning": "A single long thread-like chain of a molecule.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "catalyze",
+   "line": 41,
+   "meaning": "To activate or speed up a chemical reaction.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "hydrothermal",
+   "line": 43,
+   "meaning": "Involving hot water heated from within the Earth.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "vents",
+   "line": 43,
+   "meaning": "Openings in the sea floor where hot water and minerals come out.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "arose",
+   "line": 43,
+   "meaning": "Came into existence or started.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "membranes",
+   "line": 45,
+   "meaning": "The outer layers or skins that surround cells and hold their contents.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "rifts",
+   "line": 61,
+   "meaning": "Deep divisions or splits between groups of people.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "MRC",
+   "line": 63,
+   "meaning": "I don't know",
+   "verdict": "none"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "biochemist",
+   "line": 65,
+   "meaning": "A scientist who studies the chemistry of living things.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "nucleobases",
+   "line": 71,
+   "meaning": "Building blocks of RNA and DNA.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "biomolecules",
+   "line": 79,
+   "meaning": "Molecules that are found in or made by living things.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "postdoc",
+   "line": 85,
+   "meaning": "A researcher who has finished a PhD and is doing further temporary research work.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "KU",
+   "line": 87,
+   "meaning": "Part of the name of a university in Leuven, Belgium.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "LUCA",
+   "line": 101,
+   "meaning": "The last universal common ancestor, the ancient population of cells all known life descends from.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "genomic",
+   "line": 105,
+   "meaning": "Relating to genomes, the full sets of genes of living things.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "metabolizing",
+   "line": 129,
+   "meaning": "Breaking down or processing molecules to get energy.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "JPL",
+   "line": 135,
+   "meaning": "NASA's Jet Propulsion Laboratory.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "deconstructs",
+   "line": 145,
+   "meaning": "Takes apart and examines the pieces of something to understand it.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "constrain",
+   "line": 161,
+   "meaning": "To limit or hold back.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "replication",
+   "line": 169,
+   "meaning": "Making copies of something.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "nucleotides",
+   "line": 169,
+   "meaning": "The building blocks of DNA.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "Benzene",
+   "line": 171,
+   "meaning": "A type of stable ring-shaped molecule made of carbon and hydrogen.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "liposomes",
+   "line": 187,
+   "meaning": "Tiny fatty sacs used to hold biological components like a cell would.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "crude",
+   "line": 189,
+   "meaning": "Rough and basic, not refined.",
+   "verdict": "right"
+  },
+  {
+   "text": "L4",
+   "code": "J01",
+   "term": "biosignatures",
+   "line": 209,
+   "meaning": "Signs or traces that indicate life is or was present.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "schooner",
+   "line": 1,
+   "meaning": "A type of sailing ship.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "en",
+   "line": 1,
+   "meaning": "Part of the phrase \"en route,\" meaning on the way.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "dire",
+   "line": 1,
+   "meaning": "Extremely serious or bad.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "Puritan",
+   "line": 1,
+   "meaning": "The name of the ship that wrecked.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "four-masted",
+   "line": 1,
+   "meaning": "Having four masts, the tall poles that hold the sails.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "schooner",
+   "line": 1,
+   "meaning": "A type of sailing ship.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "en",
+   "line": 1,
+   "meaning": "Part of the phrase \"en route,\" meaning on the way.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "San",
+   "line": 1,
+   "meaning": "The first part of the name San Francisco, a city in California.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "Francisco",
+   "line": 1,
+   "meaning": "The second part of the name San Francisco, a city in California.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "agonizing",
+   "line": 1,
+   "meaning": "Extremely painful or distressing to choose between.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "roiling",
+   "line": 1,
+   "meaning": "Churning and turbulent.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "shoal",
+   "line": 1,
+   "meaning": "A shallow area of water, here full of rocks.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J04",
+   "term": "hull",
+   "line": 1,
+   "meaning": "The main body or shell of the ship.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "crewmen",
+   "line": 3,
+   "meaning": "Men who work on the ship.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "mariners",
+   "line": 5,
+   "meaning": "Sailors, here the ship's crew.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "churning",
+   "line": 7,
+   "meaning": "Moving violently and turbulently.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "haul",
+   "line": 7,
+   "meaning": "To pull something back in.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "crewman",
+   "line": 9,
+   "meaning": "One of the men working on the ship.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "kayakers",
+   "line": 11,
+   "meaning": "People paddling kayaks, small narrow boats.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "manikins",
+   "line": 13,
+   "meaning": "Human-shaped dummies used here as pretend victims.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "BC",
+   "line": 15,
+   "meaning": "British Columbia, the Canadian province.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "ashore",
+   "line": 17,
+   "meaning": "Onto land from the water.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "cohort",
+   "line": 21,
+   "meaning": "A group of people going through the training together.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "lodge",
+   "line": 21,
+   "meaning": "A building where people stay, like a rustic inn.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "dispatch",
+   "line": 21,
+   "meaning": "To eat up quickly.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "PFD",
+   "line": 23,
+   "meaning": "A life jacket; I'd guess personal flotation device.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "responder",
+   "line": 27,
+   "meaning": "Someone who arrives first to help in an emergency, like giving first aid.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "flare",
+   "line": 29,
+   "meaning": "A bright burning signal fired to call for help.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "II",
+   "line": 29,
+   "meaning": "\"The second,\" part of the boat's name.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "VHF",
+   "line": 29,
+   "meaning": "A kind of radio frequency band used by boats.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "spurred",
+   "line": 33,
+   "meaning": "Pushed forward or encouraged.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "formalized",
+   "line": 33,
+   "meaning": "Made official, with set rules and structure.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "Coroners",
+   "line": 41,
+   "meaning": "Officials who examine dead bodies to determine the cause of death.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "HMS",
+   "line": 43,
+   "meaning": "A title for British navy ships, meaning His or Her Majesty's Ship.",
+   "verdict": "right"
+  },
+  {
+   "text": "L5",
+   "code": "J01",
+   "term": "RHIOT",
+   "line": 63,
+   "meaning": "I don't know",
+   "verdict": "none"
+  }
+ ],
+ "swaps": [
+  {
+   "text": "L2",
+   "term": "numerous",
+   "suggestion": [
+    "many"
+   ],
+   "fits": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "L3",
+   "term": "expedite",
+   "suggestion": [
+    "speed up"
+   ],
+   "fits": true,
+   "changes_meaning": false
+  },
+  {
+   "text": "L5",
+   "term": "numerous",
+   "suggestion": [
+    "many"
+   ],
+   "fits": true,
+   "changes_meaning": false
+  }
+ ]
+}

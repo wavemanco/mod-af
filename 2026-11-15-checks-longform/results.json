@@ -1,0 +1,72 @@
+{
+ "checks": {
+  "J01": {
+   "findings": 100,
+   "true": 2,
+   "true_with_partly_as_understood": 2,
+   "verdicts": {
+    "right": 98,
+    "none": 2
+   },
+   "by_text": {
+    "L1": [
+     9,
+     0
+    ],
+    "L2": [
+     17,
+     0
+    ],
+    "L3": [
+     10,
+     0
+    ],
+    "L4": [
+     40,
+     1
+    ],
+    "L5": [
+     24,
+     1
+    ]
+   },
+   "decision": "drop for long-form writing",
+   "decision_with_partly_as_understood": "drop for long-form writing"
+  },
+  "J04": {
+   "findings": 30,
+   "true": 0,
+   "true_with_partly_as_understood": 0,
+   "verdicts": {
+    "right": 30
+   },
+   "by_text": {
+    "L1": [
+     8,
+     0
+    ],
+    "L2": [
+     7,
+     0
+    ],
+    "L4": [
+     4,
+     0
+    ],
+    "L5": [
+     11,
+     0
+    ]
+   },
+   "decision": "drop for long-form writing",
+   "decision_with_partly_as_understood": "drop for long-form writing"
+  },
+  "J07": {
+   "findings": 3,
+   "fit": 3,
+   "changes_meaning": 0,
+   "decision": "not enough findings"
+  }
+ },
+ "cost_usd": 1.4295
+}

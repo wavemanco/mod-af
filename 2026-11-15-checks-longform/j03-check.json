@@ -1,0 +1,262 @@
+{
+ "breaks_listed_by_the_plan": {
+  "breaks_inside_paragraphs": 658,
+  "listed": 15,
+  "cases": [
+   {
+    "text": "L1",
+    "line": 5,
+    "kind": "short capital",
+    "verdict": "real end"
+   },
+   {
+    "text": "L2",
+    "line": 1,
+    "kind": "short capital",
+    "verdict": "real end"
+   },
+   {
+    "text": "L2",
+    "line": 13,
+    "kind": "ends on a quotation",
+    "verdict": "real end"
+   },
+   {
+    "text": "L2",
+    "line": 55,
+    "kind": "ends on a quotation",
+    "verdict": "real end"
+   },
+   {
+    "text": "L2",
+    "line": 63,
+    "kind": "short capital",
+    "verdict": "real end"
+   },
+   {
+    "text": "L2",
+    "line": 67,
+    "kind": "short capital",
+    "verdict": "real end"
+   },
+   {
+    "text": "L2",
+    "line": 71,
+    "kind": "ends on a quotation",
+    "verdict": "real end"
+   },
+   {
+    "text": "L3",
+    "line": 9,
+    "kind": "short capital",
+    "verdict": "real end"
+   },
+   {
+    "text": "L3",
+    "line": 39,
+    "kind": "short capital",
+    "verdict": "false break at an initial; 3 + 14 words, no flag changes"
+   },
+   {
+    "text": "L3",
+    "line": 63,
+    "kind": "short capital",
+    "verdict": "real end"
+   },
+   {
+    "text": "L4",
+    "line": 101,
+    "kind": "short capital",
+    "verdict": "real end"
+   },
+   {
+    "text": "L4",
+    "line": 121,
+    "kind": "short capital",
+    "verdict": "real end"
+   },
+   {
+    "text": "L4",
+    "line": 189,
+    "kind": "short capital",
+    "verdict": "real end"
+   },
+   {
+    "text": "L5",
+    "line": 61,
+    "kind": "short capital",
+    "verdict": "real end"
+   },
+   {
+    "text": "L5",
+    "line": 93,
+    "kind": "short capital",
+    "verdict": "real end"
+   }
+  ]
+ },
+ "missed_breaks_found_after": [
+  {
+   "text": "L1",
+   "line": 3,
+   "sentence_words": 31,
+   "before": 15,
+   "after": 16,
+   "verdict": "real end",
+   "effect_on_J03": "invents a sentence over 30 words"
+  },
+  {
+   "text": "L1",
+   "line": 3,
+   "sentence_words": 25,
+   "before": 13,
+   "after": 12,
+   "verdict": "real end",
+   "effect_on_J03": "none"
+  },
+  {
+   "text": "L1",
+   "line": 45,
+   "sentence_words": 60,
+   "before": 21,
+   "after": 39,
+   "verdict": "real end",
+   "effect_on_J03": "right flag, wrong length (39 reported as 60)"
+  },
+  {
+   "text": "L1",
+   "line": 53,
+   "sentence_words": 23,
+   "before": 11,
+   "after": 12,
+   "verdict": "real end",
+   "effect_on_J03": "none"
+  },
+  {
+   "text": "L3",
+   "line": 17,
+   "sentence_words": 38,
+   "before": 7,
+   "after": 31,
+   "verdict": "real end",
+   "effect_on_J03": "right flag, wrong length (31 reported as 38)"
+  },
+  {
+   "text": "L3",
+   "line": 49,
+   "sentence_words": 91,
+   "before": 36,
+   "after": 55,
+   "verdict": "real end",
+   "effect_on_J03": "hides a flag: two sentences over 30 reported as one"
+  },
+  {
+   "text": "L3",
+   "line": 55,
+   "sentence_words": 51,
+   "before": 27,
+   "after": 24,
+   "verdict": "real end",
+   "effect_on_J03": "invents a sentence over 30 words"
+  },
+  {
+   "text": "L3",
+   "line": 69,
+   "sentence_words": 25,
+   "before": 11,
+   "after": 14,
+   "verdict": "real end",
+   "effect_on_J03": "none"
+  },
+  {
+   "text": "L3",
+   "line": 71,
+   "sentence_words": 43,
+   "before": 13,
+   "after": 30,
+   "verdict": "real end",
+   "effect_on_J03": "invents a sentence over 30 words (30 is not over the limit)"
+  },
+  {
+   "text": "L4",
+   "line": 123,
+   "sentence_words": 27,
+   "before": 3,
+   "after": 24,
+   "verdict": "real end",
+   "effect_on_J03": "none"
+  },
+  {
+   "text": "L4",
+   "line": 133,
+   "sentence_words": 12,
+   "before": 1,
+   "after": 11,
+   "verdict": "real end",
+   "effect_on_J03": "none"
+  },
+  {
+   "text": "L4",
+   "line": 147,
+   "sentence_words": 12,
+   "before": 1,
+   "after": 11,
+   "verdict": "real end",
+   "effect_on_J03": "none"
+  },
+  {
+   "text": "L4",
+   "line": 157,
+   "sentence_words": 17,
+   "before": 1,
+   "after": 16,
+   "verdict": "real end",
+   "effect_on_J03": "none"
+  },
+  {
+   "text": "L4",
+   "line": 193,
+   "sentence_words": 42,
+   "before": 2,
+   "after": 40,
+   "verdict": "real end",
+   "effect_on_J03": "right flag, wrong length (40 reported as 42)"
+  },
+  {
+   "text": "L5",
+   "line": 71,
+   "sentence_words": 17,
+   "before": 1,
+   "after": 16,
+   "verdict": "real end",
+   "effect_on_J03": "none"
+  },
+  {
+   "text": "L5",
+   "line": 79,
+   "sentence_words": 20,
+   "before": 18,
+   "after": 2,
+   "verdict": "not an end: a speech tag follows (\"\u2026 you know?\" Dick says.)",
+   "effect_on_J03": "none: the checker is right"
+  },
+  {
+   "text": "L5",
+   "line": 79,
+   "sentence_words": 23,
+   "before": 21,
+   "after": 2,
+   "verdict": "real end",
+   "effect_on_J03": "none"
+  },
+  {
+   "text": "L5",
+   "line": 95,
+   "sentence_words": 10,
+   "before": 1,
+   "after": 9,
+   "verdict": "real end",
+   "effect_on_J03": "none"
+  }
+ ]
+}
