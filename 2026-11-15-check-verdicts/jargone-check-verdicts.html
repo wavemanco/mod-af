@@ -1,0 +1,288 @@
+<title>jargone Check Verdicts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: a reference report read top to bottom. Summary table first, then one section per check, each with an
+   evidence table whose bars are drawn to scale against the 50% pass mark. */
+:root {
+  --paper: #f5f7fa;
+  --surface: #ffffff;
+  --ink: #18202e;
+  --muted: #5a6577;
+  --rule: #d8dee8;
+  --accent: #2f55c8;
+  --bar-track: #e7ebf2;
+  --drop: #b3261e;
+  --drop-bg: #fbe9e7;
+  --keep: #1d7a4c;
+  --keep-bg: #e5f4ec;
+  --fix: #9a5a00;
+  --fix-bg: #fbf0dc;
+  --limit: #3d5480;
+  --limit-bg: #e6ecf7;
+  --font-head: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #11151c; --surface: #181d26; --ink: #e5e9f0; --muted: #a2adbf; --rule: #2c3442; --accent: #93a9ff;
+    --bar-track: #262e3b; --drop: #ff8a80; --drop-bg: #3a1d1b; --keep: #6fd6a2; --keep-bg: #16302a;
+    --fix: #f0b860; --fix-bg: #352812; --limit: #a9bcea; --limit-bg: #1f2a40; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #11151c; --surface: #181d26; --ink: #e5e9f0; --muted: #a2adbf; --rule: #2c3442; --accent: #93a9ff;
+  --bar-track: #262e3b; --drop: #ff8a80; --drop-bg: #3a1d1b; --keep: #6fd6a2; --keep-bg: #16302a;
+  --fix: #f0b860; --fix-bg: #352812; --limit: #a9bcea; --limit-bg: #1f2a40; color-scheme: dark;
+}
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.6; }
+.wrap { max-width: 980px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 36px 72px; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.2; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); }
+h2 { font-size: 1.45rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.lede { color: var(--muted); font-size: 1.05rem; }
+.stack { display: grid; gap: 12px; }
+.eyebrow { font-family: var(--font-code); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+code, .code { font-family: var(--font-code); font-size: .9em; }
+.tag { font-family: var(--font-code); font-weight: 600; font-size: 13px; padding: 2px 7px; border-radius: 5px; background: var(--bar-track); color: var(--ink); white-space: nowrap; }
+.pill { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.pill.drop { color: var(--drop); background: var(--drop-bg); }
+.pill.keep { color: var(--keep); background: var(--keep-bg); }
+.pill.fix { color: var(--fix); background: var(--fix-bg); }
+.pill.limit { color: var(--limit); background: var(--limit-bg); }
+.tbl { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+caption { text-align: left; padding: 12px 14px 4px; font-weight: 600; color: var(--muted); font-size: 13px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-top: 1px solid var(--rule); }
+thead th { border-top: 0; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.summary td:first-child { white-space: nowrap; }
+.check { display: grid; gap: 14px; padding-top: 8px; border-top: 2px solid var(--rule); }
+.check-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.check-head h2 { font-size: 1.3rem; }
+.why { display: grid; gap: 6px; padding: 14px 16px; border-radius: 10px; background: var(--surface); border: 1px solid var(--rule); }
+.why strong { font-weight: 600; }
+.bar { display: grid; gap: 4px; min-width: 150px; }
+.bar-track { position: relative; height: 8px; border-radius: 4px; background: var(--bar-track); overflow: hidden; }
+.bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; }
+.bar-mark { position: absolute; top: -3px; bottom: -3px; left: 50%; width: 2px; background: var(--ink); opacity: .55; }
+.bar-label { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.note { font-size: 13.5px; color: var(--muted); }
+ul, ol { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; max-width: 72ch; }
+ol.steps { gap: 12px; }
+ol.steps li::marker { font-family: var(--font-head); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; color: var(--muted); }
+.legend .bar { min-width: 110px; }
+footer { font-size: 13px; color: var(--muted); display: grid; gap: 8px; }
+@media (max-width: 520px) { th, td { padding: 9px 10px; } .wrap { gap: 32px; } }
+@media (max-width: 640px) {
+  table:not(.summary) { min-width: 560px; }
+  .summary thead { display: none; }
+  .summary, .summary tbody { display: block; }
+  .summary tr { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; padding: 12px 14px; border-top: 1px solid var(--rule); }
+  .summary tr:first-child { border-top: 0; }
+  .summary td { padding: 0; border: 0; }
+  .summary td:nth-child(n+2) { grid-column: 2; }
+  .summary td:nth-child(4) { color: var(--muted); }
+}
+</style>
+
+<div class="wrap">
+
+<header class="stack">
+  <span class="eyebrow">jargone · mod-af · evidence to 15 November 2026</span>
+  <h1>jargone's seven checks: what the tests found</h1>
+  <p class="lede">Every test of every check in one place: four kinds of text, two rounds of fixes, and about $5 of model calls since 10 November. For each check, what it does, what the tests showed, what to do with it and why.</p>
+</header>
+
+<section class="stack" aria-labelledby="glance">
+  <h2 id="glance">At a glance</h2>
+  <div class="tbl">
+    <table class="summary">
+      <thead><tr><th scope="col">Check</th><th scope="col">What it does</th><th scope="col">Recommendation</th><th scope="col">In one line</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag">J01</span></td><td>Flags a word used before it is explained, if a word list says it is uncommon</td><td><span class="pill drop">Drop</span></td><td>Wrong far more often than right on every kind of text tested.</td></tr>
+        <tr><td><span class="tag">J02</span></td><td>Flags two words you said mean the same thing, used in one text</td><td><span class="pill keep">Keep</span></td><td>Not tested; it only acts on pairs you declare.</td></tr>
+        <tr><td><span class="tag">J03</span></td><td>Flags a sentence over 30 words</td><td><span class="pill fix">Keep, fix first</span></td><td>Long sentences are real problems; its errors come from counting sentences wrongly.</td></tr>
+        <tr><td><span class="tag">J04</span></td><td>Flags an uncommon word in the opening paragraph</td><td><span class="pill drop">Drop</span></td><td>None of its 35 judgeable findings was right.</td></tr>
+        <tr><td><span class="tag">J05</span></td><td>Checks that every number, piece of code and link survives a rewrite</td><td><span class="pill fix">Keep, fix first</span></td><td>Catches real losses; most false alarms now come from one case you can decide.</td></tr>
+        <tr><td><span class="tag">J06</span></td><td>Reports readability scores, for information only</td><td><span class="pill keep">Keep</span></td><td>Never blocks anything; improves when J03's counting is fixed.</td></tr>
+        <tr><td><span class="tag">J07</span></td><td>Suggests a plainer word ("prior to" to "before")</td><td><span class="pill limit">Keep, documents only</span></td><td>The trimmed list was right where judged; the old one harmed replies.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="tested">
+  <h2 id="tested">What was tested</h2>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Kind of text</th><th scope="col">What it was</th><th scope="col">When</th></tr></thead>
+      <tbody>
+        <tr><td>Software documents</td><td>3 documents from software projects: a 5,000-word review summary, a handover note and a plugin README</td><td class="num">31 Oct</td></tr>
+        <tr><td>Software-session replies</td><td>95 replies from one working session on software projects, for one reader</td><td class="num">31 Oct</td></tr>
+        <tr><td>US government texts</td><td>5 public texts, each for an everyday reader: a leave regulation, a Supreme Court opinion, a Medicare rule, a school-bus crash report and the poverty guidelines</td><td class="num">10 and 15 Nov</td></tr>
+        <tr><td>Long-form articles</td><td>5 articles, about 20,000 words, from Noema, Works in Progress, Asterisk, Quanta Magazine and Hakai Magazine, for "a curious adult with no background in the subject"</td><td class="num">15 Nov</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>How a finding was judged.</strong> A model played the named reader and said whether it would understand each flagged word. From 15 November it had to explain the word, and a second model marked the explanation right or wrong. For J07 it said whether the plainer word fits; for J05, whether the item was lost or only written another way. Sentence breaks for J03 were checked by hand. Every test since 10 November wrote down its rule before its results.</p>
+  <div class="legend" aria-hidden="true">
+    <span>Bars show the share of findings that were right.</span>
+    <span class="bar"><span class="bar-track"><span class="bar-fill" style="width:30%"></span><span class="bar-mark"></span></span></span>
+    <span>The line marks 50%, the pass mark the tests used.</span>
+  </div>
+</section>
+
+<section class="check" aria-labelledby="j01">
+  <div class="check-head"><span class="tag">J01</span><h2 id="j01">Words used before they are explained</h2><span class="pill drop">Drop</span></div>
+  <p>It looks up each word in a list of how familiar 59,366 English words are. A word below the cut-off that is used before the text explains it gets flagged, as a word this reader may not know.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Kind of text</th><th scope="col">Findings</th><th scope="col">Right</th><th scope="col">Share right</th></tr></thead>
+      <tbody>
+        <tr><td>Software documents</td><td class="num">59</td><td class="num">10</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:17%"></div><div class="bar-mark"></div></div><span class="bar-label">17%</span></div></td></tr>
+        <tr><td>Software-session replies</td><td class="num">232</td><td class="num">8</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:3%"></div><div class="bar-mark"></div></div><span class="bar-label">3%</span></div></td></tr>
+        <tr><td>US government texts, first test</td><td class="num">29</td><td class="num">9</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:31%"></div><div class="bar-mark"></div></div><span class="bar-label">31%</span></div></td></tr>
+        <tr><td>US government texts, reader explains</td><td class="num">29</td><td class="num">5</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:17%"></div><div class="bar-mark"></div></div><span class="bar-label">17%</span></div></td></tr>
+        <tr><td>Long-form articles</td><td class="num">100</td><td class="num">2</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:2%"></div><div class="bar-mark"></div></div><span class="bar-label">2%</span></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="why">
+    <p><strong>Why drop it.</strong> On every kind of text it was wrong far more often than right. Most false alarms were words the reader already knew, or names. It also misses most of what readers don't know: in the government texts the reader named 192 terms it would not understand, and J01 and J04 together flagged 30. In the trial, false alarms from the word-list checks pushed the writer into worse text three times.</p>
+    <p><strong>What replaces it.</strong> A model reading as the named reader judges each term. The code that finds the words a person uses, and the terms a text explains, stays: the calibration design reuses it.</p>
+  </div>
+</section>
+
+<section class="check" aria-labelledby="j02">
+  <div class="check-head"><span class="tag">J02</span><h2 id="j02">One thing, one name</h2><span class="pill keep">Keep</span></div>
+  <p>If your glossary says two words mean the same thing, for example "job" and "task", it flags a text that uses both, so the reader is not left wondering whether they differ.</p>
+  <div class="why">
+    <p><strong>Why keep it.</strong> No test ran it, because it only acts on pairs you declare, so it cannot raise false alarms on its own. It costs nothing when no glossary exists.</p>
+    <p><strong>Still to learn.</strong> Whether people use glossaries at all. Test it the first time one is used in earnest.</p>
+  </div>
+</section>
+
+<section class="check" aria-labelledby="j03">
+  <div class="check-head"><span class="tag">J03</span><h2 id="j03">Long sentences</h2><span class="pill fix">Keep, fix first</span></div>
+  <p>It flags a sentence over 30 words, or over 20 inside a numbered list of steps.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Kind of text</th><th scope="col">What happened</th></tr></thead>
+      <tbody>
+        <tr><td>Software documents</td><td>Earned its place in the trial, with no separate count.</td></tr>
+        <tr><td>Software-session replies</td><td>35 flags, 18 right (51%). False alarms: numbered lists held to the 20-word limit for steps, and sentences joined by mistake.</td></tr>
+        <tr><td>US government texts</td><td>Missed 3 long sentences in the Medicare rule (43, 46 and 36 words), because it ended sentences at "Pub." as in "Pub. 100-01". Made 20 false breaks in the court opinion at citations such as "Minn. Stat.", none of which changed a flag.</td></tr>
+        <tr><td>Long-form articles</td><td>145 flags. It missed 17 sentence ends where the full stop sits inside a closing quotation mark (…first-gen." While…): 3 false flags, 1 flag hidden, 3 wrong lengths.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="why">
+    <p><strong>Why keep it.</strong> Long sentences are a real difficulty for readers, and on documents it is right about most of them. Its errors come from deciding where sentences end, which is fixable: legal abbreviations (<span class="code">JAR-003</span>) and full stops inside quotation marks (<span class="code">JAR-005</span>). Both fixes are due now.</p>
+    <p><strong>For replies.</strong> Off by default and available as an option, since half its findings on replies were false alarms.</p>
+  </div>
+</section>
+
+<section class="check" aria-labelledby="j04">
+  <div class="check-head"><span class="tag">J04</span><h2 id="j04">A plain opening</h2><span class="pill drop">Drop</span></div>
+  <p>It flags any uncommon word in the first paragraph after the title, using J01's word list, so the opening reads easily.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Kind of text</th><th scope="col">Findings</th><th scope="col">Right</th><th scope="col">Share right</th></tr></thead>
+      <tbody>
+        <tr><td>Software documents</td><td class="num">5</td><td class="num">0</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div><div class="bar-mark"></div></div><span class="bar-label">0%</span></div></td></tr>
+        <tr><td>US government texts</td><td class="num">2</td><td class="num">1, then 0</td><td><span class="bar-label">Too few to judge</span></td></tr>
+        <tr><td>Long-form articles</td><td class="num">30</td><td class="num">0</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div><div class="bar-mark"></div></div><span class="bar-label">0%</span></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="why">
+    <p><strong>Why drop it.</strong> Wherever there were enough findings to judge, none of its 35 was right. It shares J01's weakness: a word list cannot tell what this reader knows. A model reading as the named reader can judge an opening as a whole.</p>
+  </div>
+</section>
+
+<section class="check" aria-labelledby="j05">
+  <div class="check-head"><span class="tag">J05</span><h2 id="j05">Nothing lost</h2><span class="pill fix">Keep, fix first</span></div>
+  <p>It checks that every number, piece of code and link target in the original is still in the rewrite, or in the reference file the detail moved to. It is <code>/jargone</code>'s core check.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Kind of text</th><th scope="col">Findings</th><th scope="col">Real losses</th><th scope="col">Share right</th></tr></thead>
+      <tbody>
+        <tr><td>Software documents</td><td colspan="3">Earned its place in the trial, with no separate count.</td></tr>
+        <tr><td>US government texts, before the fix</td><td class="num">75</td><td class="num">54</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:72%"></div><div class="bar-mark"></div></div><span class="bar-label">72%</span></div></td></tr>
+        <tr><td>US government texts, after the fix</td><td class="num">64</td><td class="num">51</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:80%"></div><div class="bar-mark"></div></div><span class="bar-label">80%</span></div></td></tr>
+        <tr><td>Long-form articles, after the fix</td><td class="num">10</td><td class="num">1</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:10%"></div><div class="bar-mark"></div></div><span class="bar-label">10%</span></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">All on one-shot rewrites. The first fix (<span class="code">JAR-004</span>) taught it that a date, a thousands separator and paragraph numbering can be written another way. Long-form articles hold few numbers and no citations, so it had little to check there.</p>
+  <div class="why">
+    <p><strong>Why keep it.</strong> It catches losses a machine can check exactly: 51 real ones in the government rewrites, mostly citations a plain rewrite dropped. Its remaining false alarms are of known kinds:</p>
+    <ul>
+      <li><strong>A number still there, used fewer times:</strong> 11 of 13 on government texts and 5 of 9 on long-form. Whether these stay errors or become warnings is your choice. As warnings, its errors on government texts would be right 96% of the time.</li>
+      <li><strong>Numbers written as words</strong> (14 as "fourteen") and <strong>decades</strong> ("the '70s" as "the 1970s"): 4 on long-form, filed as <span class="code">JAR-006</span>.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="check" aria-labelledby="j06">
+  <div class="check-head"><span class="tag">J06</span><h2 id="j06">Readability scores</h2><span class="pill keep">Keep</span></div>
+  <p>It reports the Flesch reading ease, a school grade level, and the average and longest sentence. The scores are for information and never pass or fail a text.</p>
+  <div class="why">
+    <p><strong>Why keep it.</strong> It costs nothing and blocks nothing. Its formulas are rough, as jargone's specification says. It also inherits J03's sentence counting: in the court opinion, 20 false sentence breaks made the average sentence look shorter than it is. The J03 fixes improve it too.</p>
+  </div>
+</section>
+
+<section class="check" aria-labelledby="j07">
+  <div class="check-head"><span class="tag">J07</span><h2 id="j07">A plainer word is available</h2><span class="pill limit">Keep, documents only</span></div>
+  <p>It suggests a plainer word or phrase from a list, such as "before" for "prior to" or "find out" for "ascertain".</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Kind of text</th><th scope="col">Word list</th><th scope="col">Suggestions</th><th scope="col">Fit</th><th scope="col">Share right</th></tr></thead>
+      <tbody>
+        <tr><td>Software documents</td><td>old, 336 entries</td><td class="num">18</td><td class="num">5</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:28%"></div><div class="bar-mark"></div></div><span class="bar-label">28%</span></div></td></tr>
+        <tr><td>Software-session replies</td><td>old, 336 entries</td><td class="num">88</td><td class="num">0</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div><div class="bar-mark"></div></div><span class="bar-label">0%, and 47 would change the meaning</span></div></td></tr>
+        <tr><td>US government texts</td><td>trimmed, 39 entries</td><td class="num">6</td><td class="num">5</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:83%"></div><div class="bar-mark"></div></div><span class="bar-label">83%, none would change the meaning</span></div></td></tr>
+        <tr><td>Long-form articles</td><td>trimmed, 39 entries</td><td class="num">3</td><td class="num">3</td><td><span class="bar-label">Too few to judge</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="why">
+    <p><strong>Why keep it, for documents.</strong> The trimmed list was right where it could be judged, mostly on stock phrases of official writing. The old list was harmful in replies, and the trimmed list has not been tried on replies or software text, so it stays off for replies until it is.</p>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="limits">
+  <h2 id="limits">What these tests cannot tell us</h2>
+  <ul>
+    <li><strong>The reader is a model.</strong> It cannot forget what it knows. On the long-form articles it explained 98 of 100 flagged terms, including science words like "nucleobases" that a real curious adult may not know. The verdicts on J01 and J04 rest on this reader.</li>
+    <li><strong>The samples are small.</strong> Five texts per kind, one reader each, one judgment per finding. J04 and J07 had few findings outside the long-form test.</li>
+    <li><strong>J07's two lists are different lists.</strong> The old list's failures and the trimmed list's successes do not describe one list.</li>
+  </ul>
+</section>
+
+<section class="stack" aria-labelledby="next">
+  <h2 id="next">Next steps</h2>
+  <ol class="steps">
+    <li><strong>Your decisions.</strong> Drop J01 and J04? Should J05's "still there, used fewer times" findings stay errors or become warnings? Should J07 be limited to documents?</li>
+    <li><strong>Build the due fixes in one change.</strong> J03's sentence counting (<span class="code">JAR-003</span>, <span class="code">JAR-005</span>), J05's numbers in words and decades (<span class="code">JAR-006</span>), and your J05 choice. Each comes with a test that fails without it.</li>
+    <li><strong>Ship the standing instruction.</strong> Decided on 10 November and not yet done: a ready-to-paste version for Claude Code and one for Claude chat.</li>
+    <li><strong>Build jargone's next version.</strong> First settle the design note's open questions, such as the pass marks and what <code>/jargone</code> does with pasted text. Then build the calibration design.</li>
+    <li><strong>Then the wider work.</strong> The chat Skill, and the survey of every mod-af plugin across Claude Code and chat.</li>
+  </ol>
+</section>
+
+<footer>
+  <p>Sources, all on the mod-af repository: the <a href="https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-31-trial/trial.md" target="_blank" rel="noopener">0.1 trial</a>; the US government tests: <a href="https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-11-10-wordlist-checks-everyday/RESULTS.md" target="_blank" rel="noopener">first test</a> and <a href="https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-11-15-checks-everyday-followup/RESULTS.md" target="_blank" rel="noopener">follow-up and retest</a>; the <a href="https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-11-15-checks-longform/RESULTS.md" target="_blank" rel="noopener">long-form test</a>; the <a href="https://github.com/wavemanco/mod-af/blob/claude/jargone-spec/jargone/CALIBRATION.md" target="_blank" rel="noopener">design note</a> and <a href="https://github.com/wavemanco/mod-af/blob/claude/jargone-spec/jargone/BACKLOG.md" target="_blank" rel="noopener">backlog</a>.</p>
+  <p>Every test since 10 November committed its plan and pass mark before its results. Every figure on this page comes from those files.</p>
+</footer>
+
+</div>
