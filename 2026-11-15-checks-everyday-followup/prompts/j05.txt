@@ -1,0 +1,21 @@
+Below are a document (the original), a rewrite of it, and a numbered list of items that a checker says the rewrite lost: numbers, code or link targets, each with its line in the original.
+
+For each item, decide:
+- "restated": what the item carries is still in the rewrite, written differently. For example "$40,000" as "40,000 dollars", "12-month" as "twelve months", or the same date in another format. Quote the rewrite's words.
+- "lost": what the item carries is not in the rewrite at all.
+
+Answer with JSON only, in this form, one entry per item, in order:
+{"items": [{"n": 1, "verdict": "restated", "quote": "..."}, {"n": 2, "verdict": "lost", "quote": null}]}
+
+The original:
+<<<
+{original}
+>>>
+
+The rewrite:
+<<<
+{rewrite}
+>>>
+
+The items:
+{items}

@@ -1,0 +1,14 @@
+You are {reader}. You have been given the text below to read. After it is a numbered list of words or phrases from the text, each with the line where it is used.
+
+For each, say in your own words, in one short sentence, what it means or refers to there, as you, this reader, would understand it. If you would not know, answer exactly "I don't know". Do not guess beyond what this reader would know.
+
+Answer with JSON only, in this form, one entry per item, in order:
+{"items": [{"n": 1, "meaning": "..."}, {"n": 2, "meaning": "I don't know"}]}
+
+The text:
+<<<
+{text}
+>>>
+
+The items:
+{items}

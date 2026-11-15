@@ -1,0 +1,14 @@
+Below is a text, then a numbered list of words or phrases from it, each with a reader's explanation of what it means there. You are not that reader, and you know the subject.
+
+Mark each explanation against what the word or phrase means or refers to in this text: "right" (correct in substance), "partly" (on the right track, but missing or confusing something that matters here), "wrong", or "none" (the reader said it did not know).
+
+Answer with JSON only, in this form, one entry per item, in order:
+{"items": [{"n": 1, "verdict": "right"}, {"n": 2, "verdict": "none"}]}
+
+The text:
+<<<
+{text}
+>>>
+
+The items and the reader's explanations:
+{items}

@@ -1,0 +1,6 @@
+Rewrite the document below for {reader}. Return only the rewritten document, in Markdown.
+
+The document:
+<<<
+{text}
+>>>
