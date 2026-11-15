@@ -109,22 +109,29 @@ The maintainer's decision: these verdicts are **provisional**, and each holds on
 tested on. They are revisited after the long-form test. Where results agree across every kind of text, a check
 can be dropped from jargone altogether.
 
+Updated after the long-form test on 2026-11-15: J01 now fails on every kind of text tested, so by the maintainer's
+rule it is proposed for dropping from jargone altogether; the maintainer decides.
+
 The kinds of text so far:
 - **Software documents:** three documents from software projects, in the 0.1 trial ([`trial.md`](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-10-31-trial/trial.md)).
 - **Software-session replies:** 95 replies from one working session on software projects, for one reader, in the
   same trial.
+- **Long-form articles:** five general-interest articles from Noema, Works in Progress, Asterisk, Quanta Magazine
+  and Hakai Magazine, for "a curious adult with no background in the subject" ([long-form test](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-11-15-checks-longform/RESULTS.md)). The model
+  reader explained 98 of 100 flagged terms; a model cannot forget what it knows, so this test overstates a real
+  reader most.
 - **US government texts:** five public texts, legal, regulatory or a report, each for an everyday reader
   ([first test](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-11-10-wordlist-checks-everyday/RESULTS.md), [follow-up](https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-11-15-checks-everyday-followup/RESULTS.md)).
 
-| Check | Software documents | Software-session replies | US government texts | Provisional verdict |
-|---|---|---|---|---|
-| J01, term used before it is defined | 10 of 59 true (17%) | 8 of 232 true (3%) | 9 of 29 true (31%); 5 of 29 with the fixed question (17%) | **Drop** for these three kinds |
-| J04, the opening uses only common words | 0 of 5 true | not run | 1 of 2, then 0 of 2: too few to judge | **Drop** for software documents; **no verdict** for government texts |
-| J07, a plainer word is available | 5 of 18 swaps fit (0.1's list) | 0 of 88 fit, 47 would change the meaning (0.1's list) | 5 of 6 fit, none would change the meaning (0.2's list) | **Keep** for government texts; **untested** with 0.2's list on software text |
-| J03, long sentences | earned its place (trial) | 18 of 35 true | misses long sentences at legal abbreviations such as "Pub." | **Keep**, with the fix JAR-003 |
-| J05, nothing lost | earned its place (trial) | not run | 54 of 75 real losses on one-shot rewrites; 21 restated | **Keep** as the core check; the fix JAR-004 is done |
-| J02, one thing, one name | not tested | not tested | not tested | Kept: it only fires on word pairs the person declares |
-| J06, readability scores | for information | for information | for information | Kept: for information only |
+| Check | Software documents | Software-session replies | US government texts | Long-form articles | Provisional verdict |
+|---|---|---|---|---|---|
+| J01, term used before it is defined | 10 of 59 true (17%) | 8 of 232 true (3%) | 9 of 29 true (31%); 5 of 29 with the fixed question (17%) | 2 of 100 true (2%) | **Drop** for all four kinds: proposed for dropping altogether |
+| J04, the opening uses only common words | 0 of 5 true | not run | 1 of 2, then 0 of 2: too few to judge | 0 of 30 true | **Drop** wherever judged: software documents and long-form |
+| J07, a plainer word is available | 5 of 18 swaps fit (0.1's list) | 0 of 88 fit, 47 would change the meaning (0.1's list) | 5 of 6 fit, none would change the meaning (0.2's list) | 3 of 3 fit: too few to judge (0.2's list) | **Keep** for government texts; **untested** with 0.2's list on software text |
+| J03, long sentences | earned its place (trial) | 18 of 35 true | misses long sentences at legal abbreviations such as "Pub." | misses sentence ends inside closing quotation marks: 3 false flags, 1 hidden | **Keep**, with the fixes JAR-003 and JAR-005 |
+| J05, nothing lost | earned its place (trial) | not run | 54 of 75 real losses on one-shot rewrites; 21 restated | not tested yet | **Keep** as the core check; the fix JAR-004 is done |
+| J02, one thing, one name | not tested | not tested | not tested | not tested | Kept: it only fires on word pairs the person declares |
+| J06, readability scores | for information | for information | for information | for information | Kept: for information only |
 
 J07's list changed between the trial and the government test: 0.2 cut it from 336 entries to 39, so its two
 results are not one list's.
