@@ -36,12 +36,12 @@ Each difference, checked by hand against the text:
   None changes a flag, but they lower the average sentence length in the readability scores (J06).
 - **f5: one false break,** with no effect.
 
-**Rule:** a fix is filed in jargone's backlog as JAR-003.
+**Rule:** a fix is filed in jargone's backlog as JAR-003 (commit 8e74323 on `claude/jargone-spec`).
 
 ## 3. J05 on one-shot rewrites
 
 J05 reported 75 losses: **54 lost and 21 restated (28%)**. More than 1 in 5 were restated, so a fix is filed as
-JAR-004.
+JAR-004 (commit 8e74323 on `claude/jargone-spec`).
 
 The 21 restated, by kind:
 - **10: the number is still in the rewrite, but fewer times.** J05 counts each use; for example "75" appears
