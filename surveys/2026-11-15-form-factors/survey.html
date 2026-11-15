@@ -1,0 +1,212 @@
+<title>mod-af Across Claude</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: a survey report. The bottom line first, then two plugin-by-surface grids (today, and after the proposed
+   changes), then the reasons, the findings, the unknowns and the next steps. */
+:root {
+  --paper: #f4f6f8;
+  --surface: #ffffff;
+  --ink: #1a2230;
+  --muted: #5b6678;
+  --rule: #d7dde6;
+  --accent: #23709b;
+  --works: #1d7a4c; --works-bg: #e4f4eb;
+  --partial: #94590a; --partial-bg: #fbefd9;
+  --paste: #3d5480; --paste-bg: #e6ecf7;
+  --none: #b3261e; --none-bg: #fbe8e6;
+  --unk: #5b6678; --unk-bg: #eceff3;
+  --font-head: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #11151b; --surface: #181e26; --ink: #e4e9f0; --muted: #a3aec0; --rule: #2c3543; --accent: #7cc4ec;
+    --works: #6fd6a2; --works-bg: #15302a; --partial: #f0b860; --partial-bg: #352812; --paste: #a9bcea; --paste-bg: #1f2a40;
+    --none: #ff8a80; --none-bg: #3a1d1b; --unk: #a3aec0; --unk-bg: #222a35; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #11151b; --surface: #181e26; --ink: #e4e9f0; --muted: #a3aec0; --rule: #2c3543; --accent: #7cc4ec;
+  --works: #6fd6a2; --works-bg: #15302a; --partial: #f0b860; --partial-bg: #352812; --paste: #a9bcea; --paste-bg: #1f2a40;
+  --none: #ff8a80; --none-bg: #3a1d1b; --unk: #a3aec0; --unk-bg: #222a35; color-scheme: dark;
+}
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.6; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 36px 72px; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.2; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; max-width: 70ch; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.stack { display: grid; gap: 12px; }
+.lede { color: var(--muted); font-size: 1.05rem; }
+.eyebrow { font-family: var(--font-code); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+code { font-family: var(--font-code); font-size: .88em; }
+.bottom { display: grid; gap: 10px; padding: 18px 20px; border-radius: 12px; background: var(--surface); border: 1px solid var(--rule); }
+.bottom ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 76ch; }
+.tbl { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-top: 1px solid var(--rule); }
+thead th { border-top: 0; font-size: 12px; letter-spacing: .03em; color: var(--muted); font-weight: 600; }
+thead th small { display: block; font-weight: 400; letter-spacing: 0; }
+td.plugin { font-family: var(--font-code); font-weight: 600; white-space: nowrap; }
+.grid-table { min-width: 760px; }
+.pill { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.works { color: var(--works); background: var(--works-bg); }
+.pill.partial { color: var(--partial); background: var(--partial-bg); }
+.pill.paste { color: var(--paste); background: var(--paste-bg); }
+.pill.none { color: var(--none); background: var(--none-bg); }
+.pill.unk { color: var(--unk); background: var(--unk-bg); }
+.cell { display: grid; gap: 4px; justify-items: start; }
+.cell small { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; color: var(--muted); }
+.note { font-size: 13.5px; color: var(--muted); }
+ul, ol { margin: 0; padding-left: 1.3em; display: grid; gap: 8px; max-width: 74ch; }
+ol.steps li::marker { font-family: var(--font-head); font-weight: 600; }
+footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+@media (max-width: 560px) { th, td { padding: 9px 10px; } .wrap { gap: 32px; } }
+@media (max-width: 640px) { table { min-width: 600px; } }
+</style>
+
+<div class="wrap">
+
+<header class="stack">
+  <span class="eyebrow">mod-af · six plugins · checked against Anthropic's docs on 15 November 2026</span>
+  <h1>Where mod-af's plugins work across Claude</h1>
+  <p class="lede">A survey of decide, detell, dynamics, housekeeping, loose-ends and route on every Claude surface: Claude Code in the terminal, desktop app, IDEs and on the web; Cowork; and claude.ai chat on the web, desktop and mobile.</p>
+</header>
+
+<section class="bottom" aria-label="Bottom line">
+  <h2>The bottom line</h2>
+  <ul>
+    <li><strong>On your computer, in Claude Code, all six work as built.</strong> That covers the terminal, the desktop app's Code tab, VS Code and JetBrains.</li>
+    <li><strong>Everywhere else, none of them run.</strong> All six are built as <em>mods</em>, code that runs in Claude Code only. Claude Code on the web doesn't install marketplace plugins at all. Cowork and chat can add a plugin from a GitHub marketplace, but load only its skills, commands and remote connectors, so each of these six would load empty.</li>
+    <li><strong>Today's only route outside Claude Code is pasting a plugin's <code>prompt.md</code></strong> into a chat. Five plugins have one; housekeeping doesn't. Those pasted copies have drifted from the plugins they copy.</li>
+    <li><strong>Most of the gap closes cheaply.</strong> decide, loose-ends and route are written procedures and need no code. Rebuilt as standard skills, each would work on every surface, from one file, with no copy to drift. detell can follow. dynamics and housekeeping depend on code, files and git, so they fit Claude Code best.</li>
+  </ul>
+</section>
+
+<section class="stack" aria-labelledby="today">
+  <h2 id="today">Where each plugin works today</h2>
+  <div class="tbl">
+    <table class="grid-table">
+      <thead><tr>
+        <th scope="col">Plugin</th>
+        <th scope="col">Claude Code on your computer<small>terminal, desktop Code tab, VS Code, JetBrains</small></th>
+        <th scope="col">Claude Code on the web<small>cloud sessions at claude.ai/code</small></th>
+        <th scope="col">Cowork<small>tasks in the desktop app</small></th>
+        <th scope="col">Chat<small>claude.ai on web, desktop, mobile</small></th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="plugin">decide</td><td><span class="pill works">Works</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td></tr>
+        <tr><td class="plugin">loose-ends</td><td><span class="pill works">Works</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td></tr>
+        <tr><td class="plugin">route</td><td><span class="pill works">Works</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td><td><span class="pill paste">Paste only</span></td></tr>
+        <tr><td class="plugin">detell</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill paste">Paste only</span><small>no reminder to refresh the list of tells</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>same</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>same</small></div></td></tr>
+        <tr><td class="plugin">dynamics</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill paste">Paste only</span><small>the method by hand: no quote checker, no rendered page</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>same</small></div></td><td><div class="cell"><span class="pill paste">Paste only</span><small>same</small></div></td></tr>
+        <tr><td class="plugin">housekeeping</td><td><span class="pill works">Works</span></td><td><span class="pill none">Nothing</span></td><td><span class="pill none">Nothing</span></td><td><span class="pill none">Nothing</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="legend"><span class="pill works">Works</span> as built <span class="pill paste">Paste only</span> copy its <code>prompt.md</code> into the conversation <span class="pill none">Nothing</span> no form exists for this surface</div>
+</section>
+
+<section class="stack" aria-labelledby="why">
+  <h2 id="why">Why: what each surface loads</h2>
+  <p>A plugin is a folder that can hold several kinds of part. Each surface loads a different subset, and skips the rest without warning.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Part of a plugin</th><th scope="col">Claude Code on your computer</th><th scope="col">Claude Code on the web</th><th scope="col">Cowork</th><th scope="col">Chat</th></tr></thead>
+      <tbody>
+        <tr><td>Skills (<code>skills/&lt;name&gt;/SKILL.md</code>)</td><td>Loads</td><td>Only from the repository (<code>.claude/skills/</code>) or skills turned on in claude.ai</td><td>Loads</td><td>Loads</td></tr>
+        <tr><td>Commands (<code>commands/*.md</code>)</td><td>Loads</td><td>Only from the repository</td><td>Loads, run as <code>/plugin:command</code></td><td>Loads as a skill, applied when it fits</td></tr>
+        <tr><td>Agents</td><td>Loads</td><td>Only from the repository (<code>.claude/agents/</code>)</td><td>Loads</td><td>Ignored</td></tr>
+        <tr><td>Hooks (<code>hooks/hooks.json</code>)</td><td>Loads</td><td>Only the repository's own settings</td><td>Loads</td><td>Ignored</td></tr>
+        <tr><td><strong>Mods</strong>: code named under <code>modules</code> in <code>hooks.json</code>, with panels, status lines and tools</td><td><strong>Loads</strong></td><td>Draws nothing; which plugins reach it is not documented</td><td><strong>Not supported</strong></td><td><strong>Not supported</strong></td></tr>
+        <tr><td>Remote connectors (MCP over http)</td><td>Loads</td><td>Only the repository's <code>.mcp.json</code></td><td>Loads, connected on its Connectors tab</td><td>Listed; works once connected</td></tr>
+        <tr><td>Output styles</td><td>Loads</td><td>Not documented</td><td>Ignored</td><td>Ignored</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Cowork and chat add plugins from <strong>Customize &gt; Plugins</strong>, including a marketplace on GitHub such as mod-af's. A plugin added there also syncs to Claude Code on your computers. Claude Code on the web installs no plugins from a marketplace, from your settings or from a repository's settings.</p>
+
+  <h3>What each plugin is built from</h3>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Plugin</th><th scope="col">What it does</th><th scope="col">What it is built from</th></tr></thead>
+      <tbody>
+        <tr><td class="plugin">decide</td><td>A decision brief: real options, pros and cons, a committed recommendation</td><td>A mod that registers one slash command, whose only job is to hand Claude a written procedure</td></tr>
+        <tr><td class="plugin">loose-ends</td><td>Finds what lives only in the conversation and sorts it: do now, file with a trigger, or drop</td><td>The same: one command, one written procedure</td></tr>
+        <tr><td class="plugin">route</td><td>What is really left before a milestone, and the real gate</td><td>The same: one command, one written procedure</td></tr>
+        <tr><td class="plugin">detell</td><td>Strips AI-writing tells from a file, in a loop until a clean pass</td><td>A mod with two commands, a checklist of tells, and a stored date that prompts a refresh of the list from Wikipedia every 14 days</td></tr>
+        <tr><td class="plugin">dynamics</td><td>A stock-and-flow model of a codebase or product, every claim quote-checked, drawn as a web page</td><td>A mod with a checker tool, a renderer tool, three reviewer agents, a skill, permission prompts, and reading and writing files</td></tr>
+        <tr><td class="plugin">housekeeping</td><td>A repository's backlog and playbook, with a Route Map made from them</td><td>A mod using git, a status line, panels, a store, context added to each prompt, and session hooks; plus a command-line tool, <code>cli.ts</code>, that runs with Node outside Claude</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>decide, loose-ends and route use nothing a mod offers beyond registering a command. Being mods is the only thing that confines them to Claude Code.</p>
+</section>
+
+<section class="stack" aria-labelledby="after">
+  <h2 id="after">After the proposed changes</h2>
+  <p>A proposal, not a test result: each cell says what the docs suggest would happen. The unknowns below need trying on each surface.</p>
+  <div class="tbl">
+    <table class="grid-table">
+      <thead><tr>
+        <th scope="col">Plugin</th><th scope="col">Change</th><th scope="col">Claude Code on your computer</th><th scope="col">Claude Code on the web</th><th scope="col">Cowork</th><th scope="col">Chat</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="plugin">decide, loose-ends, route</td><td>Rebuild each as one standard skill; <code>prompt.md</code> comes from the same file</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill works">Works</span><small>kept in the repository, or turned on in claude.ai</small></div></td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill works">Works</span><small>picked from the / menu, or applied when it fits</small></div></td></tr>
+        <tr><td class="plugin">detell</td><td>The same, with the refresh as a second skill</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill works">Works</span><small>refresh by hand</small></div></td><td><div class="cell"><span class="pill works">Works</span><small>refresh by hand</small></div></td><td><div class="cell"><span class="pill works">Works</span><small>on pasted or uploaded text; refresh by hand</small></div></td></tr>
+        <tr><td class="plugin">dynamics</td><td>Add a skill whose scripts run the checker and renderer</td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill partial">Partial</span><small>scripts run in the session; no permission prompts or panels</small></div></td><td><div class="cell"><span class="pill unk">Unverified</span><small>skills and agents load; a shell is not documented</small></div></td><td><div class="cell"><span class="pill partial">Partial</span><small>on uploaded or GitHub-synced files; the page as an artifact</small></div></td></tr>
+        <tr><td class="plugin">housekeeping</td><td>Keep it Claude Code first; optionally a skill that runs <code>cli.ts</code></td><td><span class="pill works">Works</span></td><td><div class="cell"><span class="pill partial">Partial</span><small>the command-line tool on the clone; no status line or panels</small></div></td><td><span class="pill unk">Unverified</span></td><td><div class="cell"><span class="pill none">Not a fit</span><small>it needs git and a working copy</small></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul>
+    <li><strong>Skills in chat run in Claude's code sandbox,</strong> so "Code execution and file creation" must be turned on. On Team and Enterprise plans an owner controls it.</li>
+    <li><strong>loose-ends in chat can list what to file, but not write it to a backlog file.</strong> A connector, for example to an issue tracker, could do the filing.</li>
+    <li><strong>route in chat needs the state to be there:</strong> uploaded files, a GitHub repository synced to a project, or a connector.</li>
+  </ul>
+</section>
+
+<section class="stack" aria-labelledby="found">
+  <h2 id="found">Found along the way</h2>
+  <ul>
+    <li><strong>The pasted versions have drifted from the plugins.</strong> Each prompt-only plugin holds its procedure twice: inside its code, and in <code>prompt.md</code>. The two copies share, in order, about two thirds to four fifths of their words (decide 74% of the plugin's text, loose-ends 66%, route 69%), and detell only 16%. For example, route's rule "a short honest list beats a long hedged one" is in the plugin and not in the pasted form. One skill file read everywhere would end the drift.</li>
+    <li><strong>The repository's README overstates.</strong> It says "every plugin ships both ways", installed or pasted, but housekeeping has no <code>prompt.md</code>.</li>
+    <li><strong>Plugins added in claude.ai sync to Claude Code on your computers.</strong> One install could then cover every surface you use, if the plugins are built from parts every surface loads.</li>
+  </ul>
+</section>
+
+<section class="stack" aria-labelledby="unknown">
+  <h2 id="unknown">Still unknown</h2>
+  <p>Where the docs are silent, the answer has to come from trying it:</p>
+  <ul>
+    <li>Whether plugins added on claude.ai reach Claude Code on the web. The docs say skills turned on in claude.ai do; they don't say whether a plugin's skills count.</li>
+    <li>Whether Cowork gives a skill a shell or the working folder's files: this decides dynamics and housekeeping there.</li>
+    <li>Whether the status line and toasts that housekeeping uses are drawn in the desktop app's Code tab. The docs confirm panels and bands there.</li>
+    <li>Whether a skill can be uploaded from the mobile apps (using one there is documented), and whether custom styles still exist in claude.ai: no current help article covers them.</li>
+  </ul>
+</section>
+
+<section class="stack" aria-labelledby="next">
+  <h2 id="next">Next steps</h2>
+  <ol class="steps">
+    <li><strong>Decide the direction.</strong> Should mod-af's plugins work beyond Claude Code? If yes, rebuild the three prompt-only plugins as skills first: the change is small and covers every surface.</li>
+    <li><strong>Try one end to end.</strong> Rebuild decide as a skill, add mod-af as a marketplace in claude.ai, and check it in Claude Code, Cowork, chat on the web and on a phone, and a cloud session. That settles most of the unknowns above at once.</li>
+    <li><strong>Then loose-ends, route and detell,</strong> each with its <code>prompt.md</code> made from its skill file, so the two cannot drift.</li>
+    <li><strong>Decide whether dynamics needs chat or Cowork.</strong> It is the largest port and the most useful outside Claude Code if people model systems in chat.</li>
+    <li><strong>Say plainly that housekeeping is for Claude Code,</strong> and correct the README's claim that every plugin ships both ways.</li>
+  </ol>
+</section>
+
+<footer>
+  <p>Sources: Anthropic's <a href="https://claude.com/docs/plugins/platform-support" target="_blank" rel="noopener">plugin feature support across platforms</a>, <a href="https://code.claude.com/docs/en/plugins/mods/overview" target="_blank" rel="noopener">mods overview</a>, <a href="https://code.claude.com/docs/en/cloud-environments" target="_blank" rel="noopener">cloud environments</a>, <a href="https://code.claude.com/docs/en/desktop" target="_blank" rel="noopener">Claude Code desktop</a>, <a href="https://claude.com/docs/skills/overview" target="_blank" rel="noopener">skills overview</a> and the help center articles they link. The per-plugin facts come from mod-af's main branch. Every claim about a surface cites a page; the full list is saved with this survey on the <code>claude/form-factor-survey</code> branch.</p>
+</footer>
+
+</div>

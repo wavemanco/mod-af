@@ -1,0 +1,800 @@
+{
+ "claude_code": {
+  "surfaces": [
+   {
+    "surface": "1. Claude Code in the terminal (CLI)",
+    "capabilities": [
+     {
+      "capability": "Install a plugin from a marketplace",
+      "support": "yes",
+      "note": "/plugin install name@marketplace in a session, or claude plugin install name@marketplace in the shell; /plugin Discover tab. Official marketplace is added automatically on first interactive start.",
+      "source": "https://code.claude.com/docs/en/plugins/install.md"
+     },
+     {
+      "capability": "Slash commands from plugins",
+      "support": "yes",
+      "note": "Run as /<plugin>:<name>. commands/ is the older format; skills are preferred for new work.",
+      "source": "https://code.claude.com/docs/en/plugins/components.md"
+     },
+     {
+      "capability": "Skills from plugins",
+      "support": "yes",
+      "note": "skills/<name>/SKILL.md, invoked by Claude or as /<plugin>:<skill>.",
+      "source": "https://code.claude.com/docs/en/plugins/components.md"
+     },
+     {
+      "capability": "Hooks",
+      "support": "yes",
+      "note": "hooks/hooks.json (settings-style hook config). Plugin hooks fire once the plugin is loaded, not when a skill is used.",
+      "source": "https://code.claude.com/docs/en/plugins/components.md"
+     },
+     {
+      "capability": "MCP servers from plugins",
+      "support": "yes",
+      "note": ".mcp.json at plugin root; server shows as plugin:<plugin>:<server> in /mcp.",
+      "source": "https://code.claude.com/docs/en/plugins/components.md"
+     },
+     {
+      "capability": "Output styles",
+      "support": "yes",
+      "note": "output-styles/<name>.md, selectable via /output-style as <plugin>:<name>.",
+      "source": "https://code.claude.com/docs/en/plugins/components.md"
+     },
+     {
+      "capability": "Status line",
+      "support": "unknown",
+      "note": "No plugin component or manifest key for a status line; the manifest reference lists none. The status line page describes a user-configured script and does not say a plugin can supply one.",
+      "source": "https://code.claude.com/docs/en/plugins/manifest-reference.md"
+     },
+     {
+      "capability": "Programmatic plugin API (mods: on/$)",
+      "support": "yes",
+      "note": "Mods are on by default in CLI v2.1.287+. Hooks module exports register(on, options) and is listed under hooks/hooks.json modules. Mods run in terminal, Desktop Code tab, VS Code, and claude -p (hooks only, no drawing).",
+      "source": "https://code.claude.com/docs/en/plugins/mods/overview.md"
+     },
+     {
+      "capability": "UI from plugins (panes, band above prompt, toasts, questions with choices)",
+      "support": "yes",
+      "note": "Pane beside transcript (dock) or above prompt (inline); AbovePrompt band; $.ui.status line under prompt; $.ui.toast; $.ui.ask shows a numbered choice list in the question dialog; $.ui.place adds transcript rows (v2.1.314+).",
+      "source": "https://code.claude.com/docs/en/plugins/mods/interface.md"
+     },
+     {
+      "capability": "Shell commands such as git",
+      "support": "yes",
+      "note": "Built-in Bash tool; bin/ executables go on PATH; mods call $.process.run(['git', ...]) with no shell, 30 s default timeout.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/api.md"
+     },
+     {
+      "capability": "Read/write files in working folder",
+      "support": "yes",
+      "note": "Built-in Read/Write/Edit tools; mods use $.fs read, write, exists, stat, list.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/api.md"
+     }
+    ]
+   },
+   {
+    "surface": "2. Claude Code in the Claude desktop app (Code tab, local and SSH sessions)",
+    "capabilities": [
+     {
+      "capability": "Install a plugin from a marketplace",
+      "support": "yes",
+      "note": "Click + next to the prompt, choose Add plugins (or Plugins > Browse plugins, or Manage plugins). Not available in cloud sessions or WSL.",
+      "source": "https://code.claude.com/docs/en/desktop.md"
+     },
+     {
+      "capability": "Slash commands from plugins",
+      "support": "unknown",
+      "note": "The desktop page names skills, agents, hooks, MCP servers and LSP configurations as plugin contents; slash commands are not named.",
+      "source": "https://code.claude.com/docs/en/desktop.md"
+     },
+     {
+      "capability": "Skills from plugins",
+      "support": "yes",
+      "note": "Listed in the desktop plugin description.",
+      "source": "https://code.claude.com/docs/en/desktop.md"
+     },
+     {
+      "capability": "Hooks",
+      "support": "yes",
+      "note": "Named in the desktop plugin description; mods' hooks run in the Code tab except in WSL sessions.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/overview.md"
+     },
+     {
+      "capability": "MCP servers from plugins",
+      "support": "yes",
+      "note": "Named in the desktop plugin description.",
+      "source": "https://code.claude.com/docs/en/desktop.md"
+     },
+     {
+      "capability": "Output styles",
+      "support": "unknown",
+      "note": "Desktop reads the outputStyle settings field; plugin-shipped output styles are not stated.",
+      "source": "https://code.claude.com/docs/en/output-styles.md"
+     },
+     {
+      "capability": "Status line",
+      "support": "unknown",
+      "note": "Not stated for the desktop app.",
+      "source": "none found"
+     },
+     {
+      "capability": "Programmatic plugin API (mods: on/$)",
+      "support": "yes",
+      "note": "Mods run in the Code tab from v2.1.286 (Desktop app bundles its own Claude Code). Not in WSL sessions.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/overview.md"
+     },
+     {
+      "capability": "UI from plugins (panes, band above prompt, toasts, questions with choices)",
+      "support": "partial",
+      "note": "Pane and AbovePrompt band are rendered in Desktop; AskUserQuestion is rendered. Elements marked terminal-only are not drawn. Desktop toast and status-line rendering are not spelled out per surface.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/reference.md"
+     },
+     {
+      "capability": "Shell commands such as git",
+      "support": "yes",
+      "note": "Built-in Bash tool; mods $.process.run.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/api.md"
+     },
+     {
+      "capability": "Read/write files in working folder",
+      "support": "yes",
+      "note": "Built-in file tools; mods $.fs.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/api.md"
+     }
+    ]
+   },
+   {
+    "surface": "3. Claude Code on the web (claude.ai/code cloud sessions)",
+    "capabilities": [
+     {
+      "capability": "Install a plugin from a marketplace",
+      "support": "no",
+      "note": "No plugin browser. A cloud session does not load plugins from your local settings, and does not install plugins a repo's .claude/settings.json enables via enabledPlugins or extraKnownMarketplaces (multi-repo sessions read only those two keys). Plugins from the desktop app do not carry over.",
+      "source": "https://code.claude.com/docs/en/cloud-environments.md"
+     },
+     {
+      "capability": "Slash commands from plugins",
+      "support": "no",
+      "note": "Installed plugins are not loaded. Repo-local .claude/commands/ do load (part of the clone). /plugin is unavailable in cloud sessions.",
+      "source": "https://code.claude.com/docs/en/claude-code-on-the-web.md"
+     },
+     {
+      "capability": "Skills from plugins",
+      "support": "partial",
+      "note": "Plugin skills no. Repo .claude/skills/ loads, and skills you enable on claude.ai load automatically.",
+      "source": "https://code.claude.com/docs/en/cloud-environments.md"
+     },
+     {
+      "capability": "Hooks",
+      "support": "partial",
+      "note": "Plugin hooks no (plugin not installed). Hooks in the repo's .claude/settings.json apply in a single-repo session outside a project's threads; none apply in project threads. SessionStart hooks run in cloud sessions.",
+      "source": "https://code.claude.com/docs/en/settings.md"
+     },
+     {
+      "capability": "MCP servers from plugins",
+      "support": "partial",
+      "note": "Plugin MCP servers no. Repo .mcp.json loads in a single-repo session.",
+      "source": "https://code.claude.com/docs/en/cloud-environments.md"
+     },
+     {
+      "capability": "Output styles",
+      "support": "unknown",
+      "note": "Not stated for cloud sessions.",
+      "source": "none found"
+     },
+     {
+      "capability": "Status line",
+      "support": "unknown",
+      "note": "Not stated for cloud sessions.",
+      "source": "none found"
+     },
+     {
+      "capability": "Programmatic plugin API (mods: on/$)",
+      "support": "unknown",
+      "note": "Mods overview says a cloud session runs hooks 'for a plugin that reaches the cloud session' and draws nothing. Which plugins reach it is not specified.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/overview.md"
+     },
+     {
+      "capability": "UI from plugins (panes, band above prompt, toasts, questions with choices)",
+      "support": "no",
+      "note": "Mods overview table: a cloud session does not draw mod output.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/overview.md"
+     },
+     {
+      "capability": "Shell commands such as git",
+      "support": "yes",
+      "note": "Built-in shell runs in the session VM. Plugin-driven $.process.run only if a mod reaches the session (unknown).",
+      "source": "https://code.claude.com/docs/en/claude-code-on-the-web.md"
+     },
+     {
+      "capability": "Read/write files in working folder",
+      "support": "yes",
+      "note": "Built-in file tools operate on the repository clone.",
+      "source": "https://code.claude.com/docs/en/claude-code-on-the-web.md"
+     }
+    ]
+   },
+   {
+    "surface": "4a. IDE extension: VS Code",
+    "capabilities": [
+     {
+      "capability": "Install a plugin from a marketplace",
+      "support": "yes",
+      "note": "Type /plugins to open Manage plugins; Plugins and Marketplaces tabs; user, project, or local scope. Runs the same commands as the CLI.",
+      "source": "https://code.claude.com/docs/en/vs-code.md"
+     },
+     {
+      "capability": "Slash commands from plugins",
+      "support": "partial",
+      "note": "Commands and skills are a 'Subset' in the VS Code slash menu (type / to see available). Plugin commands are not named.",
+      "source": "https://code.claude.com/docs/en/vs-code.md"
+     },
+     {
+      "capability": "Skills from plugins",
+      "support": "yes",
+      "note": "Plugin skills appear in the skills list as locked rows.",
+      "source": "https://code.claude.com/docs/en/vs-code.md"
+     },
+     {
+      "capability": "Hooks",
+      "support": "yes",
+      "note": "Plugin hooks appear as read-only; mods' hooks run in the chat panel (extension 2.1.299+).",
+      "source": "https://code.claude.com/docs/en/vs-code.md"
+     },
+     {
+      "capability": "MCP servers from plugins",
+      "support": "unknown",
+      "note": "Not stated for the extension.",
+      "source": "none found"
+     },
+     {
+      "capability": "Output styles",
+      "support": "partial",
+      "note": "/ menu > Output styles lists custom styles. Plugin-shipped styles not named.",
+      "source": "https://code.claude.com/docs/en/output-styles.md"
+     },
+     {
+      "capability": "Status line",
+      "support": "unknown",
+      "note": "Not stated. The status lines that mods draw are a different feature.",
+      "source": "none found"
+     },
+     {
+      "capability": "Programmatic plugin API (mods: on/$)",
+      "support": "yes",
+      "note": "Mods draw in the chat panel with extension 2.1.299+ (2.1.304+ without feature-flag fetching).",
+      "source": "https://code.claude.com/docs/en/plugins/mods/interface.md"
+     },
+     {
+      "capability": "UI from plugins (panes, band above prompt, toasts, questions with choices)",
+      "support": "partial",
+      "note": "Panes dock beside the chat at 800px+ wide, otherwise inline. Toasts and status lines sit in one stack above the prompt box. AskUserQuestion card kept. The AbovePrompt band is not in the VS Code render-site table. Buttons have no hotkeys.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/interface.md"
+     },
+     {
+      "capability": "Shell commands such as git",
+      "support": "yes",
+      "note": "Built-in Bash tool; mods $.process.run.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/api.md"
+     },
+     {
+      "capability": "Read/write files in working folder",
+      "support": "yes",
+      "note": "Built-in file tools; mods $.fs.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/api.md"
+     }
+    ]
+   },
+   {
+    "surface": "4b. IDE extension: JetBrains (runs the CLI in the IDE terminal)",
+    "capabilities": [
+     {
+      "capability": "Install a plugin from a marketplace",
+      "support": "yes",
+      "note": "Use the terminal steps: /plugin or claude plugin install in the IDE's integrated terminal. The JetBrains page does not describe plugin management.",
+      "source": "https://code.claude.com/docs/en/plugins/install.md"
+     },
+     {
+      "capability": "Slash commands from plugins",
+      "support": "partial",
+      "note": "Inherits CLI behavior; JetBrains page does not state plugin command support.",
+      "source": "https://code.claude.com/docs/en/jetbrains.md"
+     },
+     {
+      "capability": "Skills from plugins",
+      "support": "partial",
+      "note": "Inherits CLI behavior; not stated on the JetBrains page.",
+      "source": "https://code.claude.com/docs/en/jetbrains.md"
+     },
+     {
+      "capability": "Hooks",
+      "support": "yes",
+      "note": "Mods overview lists the JetBrains plugin's terminal as Hooks run: Yes.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/overview.md"
+     },
+     {
+      "capability": "MCP servers from plugins",
+      "support": "partial",
+      "note": "Inherits CLI behavior; not stated on the JetBrains page.",
+      "source": "https://code.claude.com/docs/en/jetbrains.md"
+     },
+     {
+      "capability": "Output styles",
+      "support": "partial",
+      "note": "Inherits CLI behavior; not stated on the JetBrains page.",
+      "source": "https://code.claude.com/docs/en/jetbrains.md"
+     },
+     {
+      "capability": "Status line",
+      "support": "unknown",
+      "note": "Not stated.",
+      "source": "none found"
+     },
+     {
+      "capability": "Programmatic plugin API (mods: on/$)",
+      "support": "yes",
+      "note": "Mods overview lists the JetBrains plugin's terminal as Draws: Yes.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/overview.md"
+     },
+     {
+      "capability": "UI from plugins (panes, band above prompt, toasts, questions with choices)",
+      "support": "yes",
+      "note": "Same as CLI terminal rendering.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/reference.md"
+     },
+     {
+      "capability": "Shell commands such as git",
+      "support": "yes",
+      "note": "Built-in Bash tool in the IDE terminal; mods $.process.run.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/api.md"
+     },
+     {
+      "capability": "Read/write files in working folder",
+      "support": "yes",
+      "note": "Built-in file tools; mods $.fs.",
+      "source": "https://code.claude.com/docs/en/plugins/mods/api.md"
+     }
+    ]
+   },
+   {
+    "surface": "5. Cowork in the Claude desktop app",
+    "capabilities": [
+     {
+      "capability": "Install a plugin from a marketplace",
+      "support": "yes",
+      "note": "Customize > Plugins in the desktop app: Discover, Add marketplace (GitHub, GitLab, Bitbucket), or Upload plugin (zip). Plugins sync to Claude Code through the account.",
+      "source": "https://claude.com/docs/plugins/overview"
+     },
+     {
+      "capability": "Slash commands from plugins",
+      "support": "yes",
+      "note": "Loads; run by typing /plugin-name:command.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Skills from plugins",
+      "support": "yes",
+      "note": "Loads.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Hooks",
+      "support": "yes",
+      "note": "Loads. Hooks and agents run commands on your computer.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "MCP servers from plugins",
+      "support": "yes",
+      "note": "Remote http/sse servers load (connect on the Connectors tab). Local MCP servers load only when the Cowork session runs on your computer.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Output styles",
+      "support": "no",
+      "note": "Ignored (same row as LSP servers, themes, and settings).",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Status line",
+      "support": "unknown",
+      "note": "Not listed in the component support table.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Programmatic plugin API (mods: on/$)",
+      "support": "no",
+      "note": "Plugins overview: a mod is 'in Claude Code only'. Platform-support table: directory lists mods for Claude Code.",
+      "source": "https://claude.com/docs/plugins/overview"
+     },
+     {
+      "capability": "UI from plugins (panes, band above prompt, toasts, questions with choices)",
+      "support": "unknown",
+      "note": "Not documented for Cowork.",
+      "source": "none found"
+     },
+     {
+      "capability": "Shell commands such as git",
+      "support": "partial",
+      "note": "Hooks and agents run commands on your computer, but no Cowork shell tool is described on these pages.",
+      "source": "https://claude.com/docs/plugins/overview"
+     },
+     {
+      "capability": "Read/write files in working folder",
+      "support": "unknown",
+      "note": "Not described.",
+      "source": "none found"
+     }
+    ]
+   },
+   {
+    "surface": "Reference: claude.ai chat and desktop chat (asked about alongside Claude Code)",
+    "capabilities": [
+     {
+      "capability": "Install a plugin from a marketplace",
+      "support": "yes",
+      "note": "Customize > Plugins; same as Cowork.",
+      "source": "https://claude.com/docs/plugins/overview"
+     },
+     {
+      "capability": "Slash commands from plugins",
+      "support": "partial",
+      "note": "Commands load as skills; Claude applies them when they fit. Typed commands appear in the / menu.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Skills from plugins",
+      "support": "yes",
+      "note": "Loads.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Hooks",
+      "support": "no",
+      "note": "Ignored.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "MCP servers from plugins",
+      "support": "partial",
+      "note": "Remote http/sse servers are listed on the Connectors tab. Local MCP servers are ignored.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Output styles",
+      "support": "no",
+      "note": "Ignored.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Status line",
+      "support": "unknown",
+      "note": "Not listed.",
+      "source": "none found"
+     },
+     {
+      "capability": "Programmatic plugin API (mods: on/$)",
+      "support": "no",
+      "note": "Mods are Claude Code only.",
+      "source": "https://claude.com/docs/plugins/overview"
+     },
+     {
+      "capability": "UI from plugins (panes, band above prompt, toasts, questions with choices)",
+      "support": "no",
+      "note": "None documented for chat.",
+      "source": "none found"
+     },
+     {
+      "capability": "Shell commands such as git",
+      "support": "no",
+      "note": "None documented for chat.",
+      "source": "none found"
+     },
+     {
+      "capability": "Read/write files in working folder",
+      "support": "no",
+      "note": "None documented for chat.",
+      "source": "none found"
+     }
+    ]
+   }
+  ],
+  "open_questions": [
+   "Status line: no plugin component, manifest key or mod API for a status line is documented. Can a plugin supply statusLine at all, and on which surfaces does a custom status line render (desktop, VS Code, cloud)?",
+   "Cloud sessions: do plugins synced from the user's claude.ai account (not declared in the repo) load in a cloud session? The docs say skills enabled on claude.ai load, but say nothing about plugins.",
+   "Cloud sessions: the mods overview says hooks run in a cloud session 'for a plugin that reaches the cloud session', but does not say which plugins reach it. If a repo ships a plugin directory of its own, does it load on web?",
+   "Desktop app: do plugin slash commands, plugin output styles and a status line work? The desktop page names skills, agents, hooks, MCP and LSP only. Do toasts and status-line-style mod output render there?",
+   "VS Code: which plugin commands appear in the 'Subset' slash menu? Do plugin MCP servers load? The AbovePrompt band is absent from the VS Code render-site table, so the band may not draw there.",
+   "Cowork: mods are documented as Claude Code only, but do Cowork's hooks and agents get a shell tool, and can Cowork read and write working-folder files? Cowork's status line and UI surfaces are not documented.",
+   "Programmatic API names in the request that the docs did not confirm: the 'claude-code' module name (the docs use hooks/register.js exporting register(on, options)), prompt.compose (the docs list prompt.section, prompt.context, prompt.submit), $.tool.call as a method (tool.call is an event; the docs show $.tool.register and $.tool.check), and $.session.root (the docs show $.session with a working-directory accessor). The docs point to typed declarations at https://github.com/anthropics/claude-code/blob/main/mods/types/claude-code.d.ts, which may be older than the installed build.",
+   "Gating: mods need CLI v2.1.287+, Desktop v2.1.286+ and VS Code 2.1.299+ for drawing. The docs do not say whether a corporate kill switch or managed policy can turn off mods on a given surface beyond allowManagedModsOnly and disableAllHooks.",
+   "No public docs page exists for plugin eval or /skill-doctor in the sources consulted; this survey did not cover them."
+  ]
+ },
+ "claude_ai_chat": {
+  "surfaces": [
+   {
+    "surface": "claude.ai on the web",
+    "capabilities": [
+     {
+      "capability": "Skills: upload a custom skill",
+      "support": "yes",
+      "note": "Customize > Skills > '+' > '+ Create skill' > 'Upload a skill', then upload a ZIP whose top level is the skill folder (<name>/SKILL.md). Requires 'Code execution and file creation' (called 'Create and edit files' in the newer layout). Enterprise: Owner must enable both that and 'Skills' under Organization settings > Plugins & skills > Policy. Team: on by default. Owners can turn off user-created skills. The docs disagree on plans: the Help Center says Free, Pro, Max, Ultra, Team and Enterprise; claude.com/docs says Pro, Max, Ultra, Team and Enterprise.",
+      "source": "https://support.claude.com/en/articles/12512180-use-skills-in-claude ; https://claude.com/docs/skills/overview ; https://claude.com/docs/skills/how-to"
+     },
+     {
+      "capability": "Skills: what a skill may contain",
+      "support": "yes",
+      "note": "A folder with SKILL.md (YAML frontmatter: name of up to 64 characters that matches the folder name, and description of up to 1,024 characters) plus optional references/, assets/ and scripts/. Keep SKILL.md under 500 lines. Do not put credentials in a skill; a script that needs an outside service should use a connector instead. Follows the Agent Skills spec.",
+      "source": "https://claude.com/docs/skills/how-to"
+     },
+     {
+      "capability": "Skills: how triggered",
+      "support": "yes",
+      "note": "Automatic: Claude sees each skill's name and description and loads SKILL.md when a request matches. Manual: type '/' in the message box and pick the skill, or name it in the request. A skill must be turned on in Customize > Skills.",
+      "source": "https://claude.com/docs/skills/overview ; https://support.claude.com/en/articles/12512180-use-skills-in-claude"
+     },
+     {
+      "capability": "Skills: run code (sandbox)",
+      "support": "yes",
+      "note": "Skills run in Claude's code sandbox. In chat the whole skill folder, scripts included, is copied into the sandbox; keep script paths relative, such as scripts/x.py. Languages are 'what the code-execution environment provides'; the sandbox article names only 'Python or Javascript'. Network: Free, Pro, Max and Ultra have network on (approved package managers such as PyPI, npm, GitHub, crates.io, Ubuntu and Yarn). Team and Enterprise Owners choose off, package managers only, package managers plus listed domains, or all domains. The same article contradicts itself on the Team default. Enterprise defaults to off. Uploaded files (CSV and others) and project files are readable in the sandbox. Claude can write files the person downloads or saves to Google Drive: .xlsx, .pptx, .docx, PDF, PNG, .csv, .md and .html, up to 30 MB per file.",
+      "source": "https://claude.com/docs/skills/overview ; https://claude.com/docs/skills/how-to ; https://support.claude.com/en/articles/12111783-create-and-edit-files-with-claude"
+     },
+     {
+      "capability": "Slash commands / saved prompts by name",
+      "support": "partial",
+      "note": "Typing '/' lists your skills, labeled with the plugin each came from, and a plugin's commands appear in the same menu. In chat a plugin command 'loads as a skill; Claude applies it when it fits'; you cannot run it as /plugin:command the way Cowork does. '/' also opens the + menu (connectors). In the new unified experience '/deep-research' starts Research. I found no doc on a separate saved-prompt feature.",
+      "source": "https://claude.com/docs/plugins/overview ; https://claude.com/docs/plugins/platform-support ; https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities ; https://support.claude.com/en/articles/16761823-claude-cowork-and-chat-are-one-claude"
+     },
+     {
+      "capability": "Projects: instructions and knowledge",
+      "support": "yes",
+      "note": "All plans; Free is limited to 5 projects. 'Set project instructions' applies to every chat in the project. Project knowledge takes uploaded documents, text and code. On paid plans RAG expands capacity up to 10x. Team and Enterprise can share projects as view or edit. A new beta version of projects is rolling out, starting in Claude Code.",
+      "source": "https://support.claude.com/en/articles/9517075-what-are-projects ; https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects"
+     },
+     {
+      "capability": "Projects: GitHub / Google Drive integrations",
+      "support": "partial",
+      "note": "GitHub (all plans, including Free) adds a repository to a chat, or chosen files and folders to a project, with 'Sync now'. Private projects only. It reads file names, file contents and branch content, not commits, PRs or issues. Google Drive adds Docs, Sheets and Slides to a chat or to a private project's knowledge, refreshed periodically; a file over about 10 MB gives only its name and details. The new unified experience lists 'Add from GitHub isn't supported'.",
+      "source": "https://claude.com/docs/connectors/github/index ; https://claude.com/docs/connectors/google/drive ; https://support.claude.com/en/articles/16761823-claude-cowork-and-chat-are-one-claude"
+     },
+     {
+      "capability": "Styles (custom styles)",
+      "support": "unknown",
+      "note": "No current Help Center article covers styles: a Help Center search for 'styles' returns none. The personalization article lists only Instructions, Project instructions and Skills, and says to 'use skills when you want to customize how Claude formats and delivers its responses'. Two passing mentions remain: an incognito-chats FAQ mentions 'custom styles', and an undated Academy page names 'Use style' > 'Create & edit styles'.",
+      "source": "https://support.claude.com/en/?q=styles ; https://support.claude.com/en/articles/10185728-understanding-claude-s-personalization-features ; https://support.claude.com/en/articles/12260368-use-incognito-chats ; https://academy.claude.com/use-cases/plan-your-career-path"
+     },
+     {
+      "capability": "Memory across chats",
+      "support": "yes",
+      "note": "On by default for Free, Pro, Max and Ultra; on Team and Enterprise, Owners control it. Stored as individual topics, editable in Settings. Each project has its own memory. Memory can be turned off per chat from the + menu. Searching past chats is paid plans only. Memory is shared with Cowork only when Cowork runs in the cloud.",
+      "source": "https://support.claude.com/en/articles/11817273-use-claude-s-chat-search-and-memory-to-build-on-previous-context"
+     },
+     {
+      "capability": "Connectors: custom remote MCP",
+      "support": "yes",
+      "note": "Customize > Connectors > Add > custom, by URL. Free: one custom connector. Pro, Max, Ultra: added to your own account. Team and Enterprise: an Owner adds it under Organization settings > Connectors (on Enterprise, a custom role can too), and members then connect. Authentication choices: OAuth, sign in when needed, or none; request headers are in beta. The server must be reachable over the public internet, because calls come from Anthropic's cloud. The web also renders MCP Apps.",
+      "source": "https://claude.com/docs/connectors/custom/add-unlisted ; https://claude.com/docs/connectors/getting-started ; https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities"
+     },
+     {
+      "capability": "Artifacts: web pages",
+      "support": "yes",
+      "note": "All plans. Artifacts cover documents, code, single-page websites, dashboards and small interactive tools, plus Docs, Slides and Design templates. Requires 'Cloud code execution and file creation'. Artifacts made before September 16, 2026 are 'legacy'.",
+      "source": "https://support.claude.com/en/articles/17153992-what-are-artifacts-and-how-do-i-use-them"
+     },
+     {
+      "capability": "Artifacts: store data / call Claude",
+      "support": "yes",
+      "note": "Store data: Pro, Max, Ultra, Team and Enterprise, in personal or shared storage, up to 100 MB or 25,000 records, plus uploads of up to 20 MB per file and 1 GB in total. Connect apps and custom connectors: Pro and above. 'Artifacts that use Claude': each user signs in and usage counts against their own plan; new artifacts ask permission the first time. The plan table does not list calling Claude.",
+      "source": "https://support.claude.com/en/articles/17153992-what-are-artifacts-and-how-do-i-use-them"
+     },
+     {
+      "capability": "Plugins in claude.ai",
+      "support": "partial",
+      "note": "Plugins exist and include a catalog: Customize > Plugins > Discover (directory on Pro and above), Add marketplace (GitHub or GitHub Enterprise, public GitLab or Bitbucket; up to 25), Upload plugin (.zip or .plugin; up to 200 MB and 5,000 files), and Create with Claude. Paid plans only. In chat: skills load; commands load as skills; a remote http or sse MCP server is listed and works once connected; agents, hooks, local MCP servers, LSP servers, output styles, themes and settings are ignored; a top-level bin/ makes chat refuse the whole plugin. Mods are Claude Code only. Plugins installed on the account sync to Cowork (which loads agents and hooks) and to Claude Code.",
+      "source": "https://claude.com/docs/plugins/overview ; https://claude.com/docs/plugins/platform-support ; https://support.claude.com/en/articles/13837440-use-plugins-in-claude"
+     },
+     {
+      "capability": "Plugin hooks in chat",
+      "support": "no",
+      "note": "Hooks in hooks/hooks.json are 'Ignored' in chat and show grayed out; they load in Cowork and Claude Code.",
+      "source": "https://claude.com/docs/plugins/platform-support ; https://support.claude.com/en/articles/13837440-use-plugins-in-claude"
+     },
+     {
+      "capability": "Automatic step after each reply",
+      "support": "unknown",
+      "note": "No doc describes a step that runs after each answer. The only documented automatic interception is Enterprise inference hooks, which run before inference on each prompt and before tool calls run, return allow or deny only, and are configured by the Owner or Primary Owner.",
+      "source": "https://support.claude.com/en/articles/16059458-inference-hooks-overview ; https://docs.claude.com/en/manage-claude/inference-hooks"
+     },
+     {
+      "capability": "Read local files or a git repository",
+      "support": "partial",
+      "note": "Git: the GitHub integration is read-only and covers file names, contents and branches; no git commands. Local files: manual upload only. In the new unified experience, web sessions reach folders on the person's computer only through the linked desktop app, only while it is open, and only for sessions started on desktop or scheduled tasks.",
+      "source": "https://claude.com/docs/connectors/github/index ; https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile"
+     }
+    ]
+   },
+   {
+    "surface": "Claude desktop app (chat)",
+    "capabilities": [
+     {
+      "capability": "Skills: upload a custom skill",
+      "support": "yes",
+      "note": "Same Customize > Skills flow in the desktop app; same plan and admin requirements as the web.",
+      "source": "https://claude.com/docs/skills/overview ; https://support.claude.com/en/articles/12512180-use-skills-in-claude"
+     },
+     {
+      "capability": "Skills: contents and triggering",
+      "support": "yes",
+      "note": "Same as the web: SKILL.md plus optional scripts, references and assets; loaded automatically by description or picked from the '/' menu.",
+      "source": "https://claude.com/docs/skills/how-to ; https://claude.com/docs/plugins/overview"
+     },
+     {
+      "capability": "Skills: run code (sandbox)",
+      "support": "yes",
+      "note": "Code execution and file creation is available in Claude Desktop, with the same cloud sandbox, egress settings and 30 MB file limit as the web.",
+      "source": "https://support.claude.com/en/articles/12111783-create-and-edit-files-with-claude"
+     },
+     {
+      "capability": "Slash commands / saved prompts by name",
+      "support": "partial",
+      "note": "Same '/' menu of skills and plugin commands (commands load as skills). I found no doc on saved prompts.",
+      "source": "https://claude.com/docs/plugins/overview"
+     },
+     {
+      "capability": "Projects: instructions and knowledge",
+      "support": "yes",
+      "note": "Projects are available on every surface; their content is the same as on the web.",
+      "source": "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile ; https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects"
+     },
+     {
+      "capability": "Projects: GitHub / Google Drive integrations",
+      "support": "unknown",
+      "note": "The GitHub and Drive pages describe the steps without naming a surface; nothing says the desktop app differs from the web.",
+      "source": "https://claude.com/docs/connectors/github/index ; https://claude.com/docs/connectors/google/drive"
+     },
+     {
+      "capability": "Styles (custom styles)",
+      "support": "unknown",
+      "note": "See the web entry: there is no current styles documentation.",
+      "source": "https://support.claude.com/en/?q=styles"
+     },
+     {
+      "capability": "Memory across chats",
+      "support": "yes",
+      "note": "Memory and per-chat memory-off are available in Claude Desktop.",
+      "source": "https://support.claude.com/en/articles/11817273-use-claude-s-chat-search-and-memory-to-build-on-previous-context"
+     },
+     {
+      "capability": "Connectors: custom remote MCP, plus local",
+      "support": "yes",
+      "note": "Remote custom connectors as on the web, with sign-in opening in the browser. The desktop app also runs local connectors as desktop extensions (.mcpb local MCP servers) from Settings > Desktop app > Extensions; these are 'automatically available in your conversations'. Organizations can block extensions or set an allowlist. A local MCP server bundled in a plugin is still 'Ignored' in chat.",
+      "source": "https://claude.com/docs/connectors/getting-started ; https://claude.com/docs/connectors/custom/add-unlisted ; https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop ; https://support.claude.com/en/articles/11725091-when-to-use-desktop-and-web-connectors"
+     },
+     {
+      "capability": "Artifacts: web pages, store data, call Claude",
+      "support": "yes",
+      "note": "You can create, edit and share artifacts. Storing data and connecting apps are listed for 'Claude on the web and Claude Desktop' on Pro and above.",
+      "source": "https://support.claude.com/en/articles/17153992-what-are-artifacts-and-how-do-i-use-them"
+     },
+     {
+      "capability": "Plugins in claude.ai",
+      "support": "partial",
+      "note": "Plugins are added at Customize > Plugins in the desktop app. Its Chat tab loads the same subset as the web (no agents, hooks or local MCP); the desktop app's Cowork loads agents and hooks, and a local MCP server loads when the Cowork session runs on your computer.",
+      "source": "https://claude.com/docs/plugins/platform-support ; https://support.claude.com/en/articles/13837440-use-plugins-in-claude"
+     },
+     {
+      "capability": "Hooks / after-reply step",
+      "support": "no",
+      "note": "Plugin hooks are ignored in chat. No after-reply mechanism is documented; Enterprise inference hooks are pre-inference only.",
+      "source": "https://claude.com/docs/plugins/platform-support ; https://support.claude.com/en/articles/16059458-inference-hooks-overview"
+     },
+     {
+      "capability": "Read local files or a git repository",
+      "support": "partial",
+      "note": "Desktop extensions from the curated directory include 'filesystem access'. In the new unified experience you give Claude access to a folder, which it can read, organize and create files in, only while the desktop app is open; these appear under Trusted folders. No doc says chat can run git commands; the GitHub integration is read-only.",
+      "source": "https://support.claude.com/en/articles/10065433-install-claude-desktop ; https://support.claude.com/en/articles/16761823-claude-cowork-and-chat-are-one-claude ; https://claude.com/docs/connectors/github/index"
+     }
+    ]
+   },
+   {
+    "surface": "Claude mobile apps (iOS/Android)",
+    "capabilities": [
+     {
+      "capability": "Skills: upload a custom skill",
+      "support": "unknown",
+      "note": "The docs say to upload at Customize > Skills 'in claude.ai and the desktop app'. Nothing says whether you can upload from mobile.",
+      "source": "https://claude.com/docs/skills/overview"
+     },
+     {
+      "capability": "Skills: use in chat",
+      "support": "yes",
+      "note": "Skills and plugins added to the account are available 'in chat on the web, desktop, and mobile'. The plugin docs' 'Chat' column includes the mobile apps. I found no doc on whether the '/' picker exists on mobile.",
+      "source": "https://claude.com/docs/extend/overview ; https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Skills: run code (sandbox)",
+      "support": "yes",
+      "note": "Code execution and file creation is available on Claude Mobile, with a toggle under Settings > Capabilities. 'Download' opens the file in the system preview or another app.",
+      "source": "https://support.claude.com/en/articles/12111783-create-and-edit-files-with-claude"
+     },
+     {
+      "capability": "Slash commands / saved prompts by name",
+      "support": "unknown",
+      "note": "No mobile-specific doc found.",
+      "source": "none found"
+     },
+     {
+      "capability": "Projects: instructions and knowledge",
+      "support": "partial",
+      "note": "Projects are listed as available on mobile; nothing says whether instructions or knowledge can be edited there.",
+      "source": "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile"
+     },
+     {
+      "capability": "Projects: GitHub / Google Drive integrations",
+      "support": "unknown",
+      "note": "No mobile-specific statement found.",
+      "source": "none found"
+     },
+     {
+      "capability": "Styles (custom styles)",
+      "support": "unknown",
+      "note": "No current documentation.",
+      "source": "https://support.claude.com/en/?q=styles"
+     },
+     {
+      "capability": "Memory across chats",
+      "support": "yes",
+      "note": "Available on Claude Mobile (latest version). Per-chat memory-off uses the + sheet.",
+      "source": "https://support.claude.com/en/articles/11817273-use-claude-s-chat-search-and-memory-to-build-on-previous-context"
+     },
+     {
+      "capability": "Connectors: custom remote MCP",
+      "support": "partial",
+      "note": "Remote connectors work on mobile; ones connected on web or desktop appear at next login. Installing connectors on mobile is in beta, and 'Claude Desktop and web remain the primary path for custom connectors'. The custom-connector availability line names Claude, Cowork and Desktop, not mobile. No local connectors.",
+      "source": "https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities ; https://claude.com/docs/connectors/getting-started"
+     },
+     {
+      "capability": "Artifacts: web pages, store data, call Claude",
+      "support": "partial",
+      "note": "You can ask for an artifact, view it in the Artifacts tab, and edit docs, decks and designs. Sharing settings cannot be changed on mobile. Storing data and connecting apps are listed only for the web and desktop. Nothing says whether an artifact can call Claude on mobile.",
+      "source": "https://support.claude.com/en/articles/17153992-what-are-artifacts-and-how-do-i-use-them ; https://support.claude.com/en/articles/16994751-artifacts-admin-guide-for-team-and-enterprise-plans ; https://support.claude.com/en/articles/9547008-share-artifacts"
+     },
+     {
+      "capability": "Plugins in claude.ai",
+      "support": "partial",
+      "note": "Skills, commands and connectors from installed plugins are available in mobile chat. The install path is Customize > Plugins 'in claude.ai or the desktop app'; nothing says whether you can install on mobile.",
+      "source": "https://claude.com/docs/plugins/overview"
+     },
+     {
+      "capability": "Hooks / after-reply step",
+      "support": "no",
+      "note": "Plugin hooks are ignored in Chat, which includes mobile. No after-reply mechanism is documented.",
+      "source": "https://claude.com/docs/plugins/platform-support"
+     },
+     {
+      "capability": "Read local files or a git repository",
+      "support": "partial",
+      "note": "Local file access from mobile works only through a linked, open Claude Desktop, and only for sessions started on desktop or scheduled tasks. No doc says whether the GitHub integration works on mobile.",
+      "source": "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile"
+     }
+    ]
+   }
+  ],
+  "open_questions": [
+   "New unified chat+Cowork experience (rolling out to Pro, Max and Ultra since 2026-09-16; on by default for Enterprise on 2026-11-16): the plugin docs still split 'Chat' (agents and hooks ignored) from 'Cowork' (loaded). They do not say whether a plugin's hooks and agents run in unified conversations, which 'can do what Cowork does'. Sources: https://claude.com/docs/plugins/platform-support and https://support.claude.com/en/articles/16761823-claude-cowork-and-chat-are-one-claude",
+   "Do custom styles still exist in claude.ai? No current Help Center article covers them.",
+   "Skill plans conflict: the Help Center includes Free, while claude.com/docs/skills/overview says Pro and above.",
+   "Team default for sandbox network egress: the file-creation article says both 'disabled by default' and 'on, package managers only'.",
+   "Sandbox languages and pre-installed packages beyond 'Python or Javascript' are not listed, and neither are time and resource limits.",
+   "Whether ${CLAUDE_SKILL_DIR} resolves in chat; the docs only say to keep paths relative.",
+   "Whether custom skills or plugins can be uploaded or installed from the mobile apps, and whether the '/' picker exists on mobile.",
+   "Whether artifacts can store data, connect apps or call Claude on mobile, and whether calling Claude from an artifact is limited by plan (the plan table omits it).",
+   "Whether claude.ai has any saved-prompt feature or user-defined slash commands other than skills and plugin commands.",
+   "Whether any hook or automatic step can run after Claude's reply in chat. Inference hooks cover only prompts (before inference) and tool calls (before they run).",
+   "Whether the GitHub integration works on mobile. It is unsupported in the unified experience ('Add from GitHub'), and the docs do not say whether existing project GitHub sync keeps working there.",
+   "Desktop chat runs desktop-extension local MCP servers in conversations, yet a plugin's bundled local MCP is 'Ignored' in chat. The docs do not say whether that still holds in unified desktop conversations.",
+   "Whether skill scripts in the unified experience's per-conversation cloud VM (30-day expiry) behave differently from the older code-execution container."
+  ]
+ }
+}
