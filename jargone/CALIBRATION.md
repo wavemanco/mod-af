@@ -1,5 +1,14 @@
 # jargone: calibration (design note, 2026-11-10)
 
+> **Deferred (2026-11-15).** The maintainer deferred further work on jargone to focus on surveying every mod-af
+> plugin across Claude Code and Claude chat. Where it stands: the word-list checks J01 and J04 failed on every kind
+> of text tested; the standing instruction did most of the work in both comparisons; J05 ("nothing lost") is the one
+> check with no counterpart in other tools; the adaptive design below is untested. The evidence is summarised on the
+> lab branch (`2026-11-15-check-verdicts/`). Open choices when work resumes: whether to ship the standing instruction
+> on its own, whether jargone goes lean (the instruction plus J05) or self-contained, and whether the adaptive idea is
+> tested with a hand-written reader card first. The backlog items stay as filed; their triggers wait for work to
+> resume.
+
 A design discussion with the maintainer about jargone's next version. Nothing here is built.
 Each point is marked:
 - **Decided**: the maintainer said so;
