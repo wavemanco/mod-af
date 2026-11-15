@@ -1,0 +1,103 @@
+{
+ "findings": 10,
+ "verdicts": {
+  "restated": 9,
+  "lost": 1
+ },
+ "by_kind": {
+  "one use, gone": {
+   "restated": 4,
+   "lost": 1
+  },
+  "several uses, still there": {
+   "restated": 5
+  }
+ },
+ "by_text": {
+  "L1": 2,
+  "L2": 1,
+  "L3": 3,
+  "L4": 1,
+  "L5": 3
+ },
+ "rewrite_words": {
+  "L1": 3601,
+  "L2": 3489,
+  "L3": 3246,
+  "L4": 6981,
+  "L5": 4989
+ },
+ "cost_usd": 2.013,
+ "rows": [
+  {
+   "text": "L1",
+   "term": "30",
+   "line": 11,
+   "kind": "several uses, still there",
+   "verdict": "restated"
+  },
+  {
+   "text": "L1",
+   "term": "90",
+   "line": 53,
+   "kind": "one use, gone",
+   "verdict": "restated"
+  },
+  {
+   "text": "L2",
+   "term": "1903",
+   "line": 71,
+   "kind": "several uses, still there",
+   "verdict": "restated"
+  },
+  {
+   "text": "L3",
+   "term": "1",
+   "line": 13,
+   "kind": "one use, gone",
+   "verdict": "lost"
+  },
+  {
+   "text": "L3",
+   "term": "10",
+   "line": 25,
+   "kind": "one use, gone",
+   "verdict": "restated"
+  },
+  {
+   "text": "L3",
+   "term": "70",
+   "line": 33,
+   "kind": "one use, gone",
+   "verdict": "restated"
+  },
+  {
+   "text": "L4",
+   "term": "20",
+   "line": 11,
+   "kind": "several uses, still there",
+   "verdict": "restated"
+  },
+  {
+   "text": "L5",
+   "term": "2015",
+   "line": 17,
+   "kind": "several uses, still there",
+   "verdict": "restated"
+  },
+  {
+   "text": "L5",
+   "term": "14",
+   "line": 17,
+   "kind": "one use, gone",
+   "verdict": "restated"
+  },
+  {
+   "text": "L5",
+   "term": "2",
+   "line": 53,
+   "kind": "several uses, still there",
+   "verdict": "restated"
+  }
+ ]
+}

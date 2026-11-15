@@ -60,3 +60,28 @@ This is filed in jargone's backlog as its own item, JAR-005.
 By the maintainer's rule, a check that fails on every kind of text tested is proposed for dropping from jargone
 altogether. J01 now fails on all four kinds. J04 fails wherever it had enough findings to judge. J07 with 0.2's
 list has not failed anywhere it was judged, and it has not been run on software text. The maintainer decides.
+
+## J05 on one-shot rewrites
+
+Run under [`J05-PLAN.md`](./J05-PLAN.md) (commit 9259a1c, fixed before any rewrite), with J05 from commit feb399c.
+Figures from [`j05-results.json`](./j05-results.json), built by `scripts/score_j05.py`. The rewrites, prompts and
+the judge's quotations stay off this branch.
+
+**J05 reported 10 findings across the five rewrites: 1 lost and 9 restated.** On the government texts it reported
+64 after its fix. These articles hold far fewer numbers, and no citations, links or code.
+
+| Kind of finding | Lost | Restated |
+|---|---|---|
+| A number used once, gone from the rewrite | 1 | 4 |
+| A number used several times, still there but fewer times | 0 | 5 |
+
+The 9 restatements, sorted by Claude from the judge's answers:
+- **5 count shortfalls:** a number still in the rewrite, used fewer times. These feed the maintainer's open choice
+  of error or warning.
+- **2 numbers written as words:** a crew of 14 became "fourteen", and 10 minutes became "ten minutes".
+- **2 decades written in full:** "the '70s" became "the 1970s", and "the '90s" became "the 1990s".
+
+**Rule:** numbers in words and decades are kinds JAR-004 did not cover, so they are filed as a new backlog item,
+JAR-006. No restatement was of a kind JAR-004 covers, so JAR-004 stays done.
+
+**Cost:** $2.01: five rewrites and five judge calls.
