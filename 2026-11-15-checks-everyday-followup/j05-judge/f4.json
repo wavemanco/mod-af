@@ -1,0 +1,89 @@
+{
+ "prompt": "Below are a document (the original), a rewrite of it, and a numbered list of items that a checker says the rewrite lost: numbers, code or link targets, each with its line in the original.\n\nFor each item, decide:\n- \"restated\": what the item carries is still in the rewrite, written differently. For example \"$40,000\" as \"40,000 dollars\", \"12-month\" as \"twelve months\", or the same date in another format. Quote the rewrite's words.\n- \"lost\": what the item carries is not in the rewrite at all.\n\nAnswer with JSON only, in this form, one entry per item, in order:\n{\"items\": [{\"n\": 1, \"verdict\": \"restated\", \"quote\": \"...\"}, {\"n\": 2, \"verdict\": \"lost\", \"quote\": null}]}\n\nThe original:\n<<<\n# School Bus Run-Off-Road and Rollover Crash\n\nMonaville, Texas\n\nDecember 17, 2021\n\nOn Friday, December 17, 2021, about 12:10 p.m., a 2018 IC 43-passenger, lap belt-equipped school bus, operated by Hempstead Independent School District (ISD), was traveling south on Farm to Market Road (FM) 1887 in the unincorporated community of Monaville, Waller County, Texas. The posted speed limit was 55 mph, the weather was clear, and the roadway was dry. After crossing over a bridge near the intersection of Holik Road and FM 1887, the bus departed the southbound lane to the right. The driver initiated a series of steering maneuvers to the left, back to the right, and again to the left, and then lost control of the bus. The bus departed the road and rolled over in one complete rotation. The bus was occupied by a 59-year-old driver, a 59-year-old aide, and four student passengers. As a result of the crash, the aide was ejected and fatally injured. The driver and three student passengers sustained minor injuries. One student passenger, who was restrained in a child safety seat, was uninjured.\n\n[...]\n\n## 2.2 Driver Assistance Systems\n\nGiven the lack of control followed by incorrect steering inputs, the driver in this crash would likely have benefited from available driver assistance technologies. Lane departure warning (LDW) systems use cameras to detect lane markings and present a visual and audible warning when a driver is about to cross a lane marking. Had the bus been equipped with an LDW system, the driver may have been alerted when encroaching on the center line or edge line, and she may have returned her attention to the driving task instead of the vent window. In addition to providing a warning, lane departure prevention (LDP) provides steering inputs to keep a vehicle in its lane of travel. Had the school bus included an LDP system, the initial road departure may have been avoided altogether.\n\nESC is another vehicle-based technology that could have assisted the bus driver after the lane departure occurred. ESC systems work to automatically intervene in situations in which a deviation from the steered path due to loss of traction is detected. ESC uses differential braking at individual wheels and/or engine throttle adjustments to control the vehicle yaw rate. Had the bus been equipped with ESC, it may have reduced the increasing yaw resulting from the severity of the driver\u2019s inputs, potentially preventing the loss of control and subsequent rollover.\n\nThe NTSB has previously recommended that NHTSA require LDP systems to be equipped on all commercial motor vehicles weighing more than 10,000 pounds. The NTSB has also recommended that NHTSA develop ESC performance standards for these vehicles. IC school buses manufactured since late 2018 now come with ESC as a standard feature. Although not standard, driver assistance features such as LDW are available as options on new IC buses (Navistar 2023).\n\n[...]\n\n## 3. Conclusions\n\n## 3.1 Probable Cause\n\nThe National Transportation Safety Board determines that the probable cause of the Monaville, Texas, crash was the bus driver's failure to keep the vehicle in its travel lane due to being distracted by the vehicle's vent window. Contributing to the severity of the injuries was the lack of seat belt use by several school bus passengers.\n\n## 3.2 Lessons Learned: Seat Belt Use and Driver Assistance Systems on School Buses\n\nSchool buses are among the safest ways to travel, and school bus safety remains among the NTSB\u2019s special topics of advocacy (NTSB 2023). Ensuring that all passengers are properly wearing available seat belts further improves the safety of school buses. At the time of the crash, the Hempstead ISD had not implemented a mandatory seat belt policy as required by the state of Texas. Hempstead ISD has now updated its policy to require seat belt use for students and staff. Hempstead ISD has also hired additional staff to oversee necessary maintenance and driver qualification records. The NTSB has previously recommended that associations involved in student transport inform their members that onboard video systems should be used to help ensure that safe transportation behaviors\u2014including sitting properly and wearing seat belts\u2014are followed on school buses. Had the school district implemented a required seat belt policy and conducted periodic reviews of the onboard video, riders would have been more likely to be seated in position and wearing seat belts. Had the available lap belts been worn by all passengers, injuries would have been reduced and the ejection prevented in this crash.\n\nIn addition to occupant protection, driver assistance systems would likely have benefited the driver in this crash. Driver assistance features, such as LDW, may have alerted the driver and brought her attention back to the forward roadway instead of the bus vent window. LDP systems may have prevented the road departure altogether by providing steering correction before the bus departed the travel lane. ESC may have assisted the driver in maintaining control of the bus after the initial road departure. The NTSB has previously recommended that NHTSA require LDP systems to be equipped on all commercial motor vehicles above 10,000 pounds. The NTSB has also recommended that NHTSA develop ESC performance standards for vehicles above 10,000 pounds. The IC Bus manufacturing company now includes ESC as a standard feature, and LDP is available as an option for buses manufactured from late 2018 to present.\n\n>>>\n\nThe rewrite:\n<<<\n# School Bus Crash: Bus Left the Road and Rolled Over\n\nMonaville, Texas\n\nDecember 17, 2021\n\n## What Happened\n\nThe crash happened on Friday, December 17, 2021, at about 12:10 p.m.\n\nThe bus belonged to Hempstead Independent School District (ISD). An ISD is a local public school district in Texas.\n\nThe bus was a 2018 model made by IC Bus. It could carry 43 passengers. Its seats had lap belts. A lap belt is a seat belt that goes across the hips only.\n\nThe bus was heading south on Farm to Market Road 1887. This is a rural road in Monaville, in Waller County, Texas. The speed limit was 55 miles per hour (mph). The weather was clear. The road was dry.\n\nSix people were on the bus:\n\n- the driver, age 59\n- a bus aide, age 59 (an aide is an adult helper who rides with students)\n- four students\n\nThe bus crossed a bridge near Holik Road. Then it drifted off the right side of its lane. The driver turned the wheel left, then right, then left again. She lost control. The bus left the road. It rolled over one full time.\n\n## Who Was Hurt\n\n- The aide was thrown out of the bus. The aide died.\n- The driver had minor injuries.\n- Three students had minor injuries.\n- One student was in a child safety seat. That student was not hurt.\n\n## Why It Happened\n\nThe National Transportation Safety Board (NTSB) looked into this crash. The NTSB is a U.S. government agency. It studies crashes to find out why they happen.\n\nThe NTSB found the main cause. The driver was distracted by the bus's vent window. A vent window is a small window that opens to let in air. Because of this distraction, the bus left its lane.\n\nInjuries were worse because several people were not wearing their seat belts.\n\n## Seat Belts on School Buses\n\nSchool buses are one of the safest ways to travel. The NTSB works to make them even safer. Wearing seat belts adds more safety.\n\nTexas law required the school district to have a rule that riders wear seat belts. At the time of the crash, the district did not have this rule.\n\nSince the crash, the district has made changes:\n\n- Students and staff must now wear seat belts.\n- The district hired more staff. They keep track of bus repairs. They also check that drivers meet job rules.\n\nMany buses have cameras inside. The NTSB says schools should check this video from time to time. This helps make sure riders stay seated and wear their belts.\n\nThe NTSB says a seat belt rule and video checks would likely have helped. More riders would have been seated and buckled.\n\n**If everyone had worn the lap belts, injuries would have been less severe. No one would have been thrown from the bus.**\n\n## Safety Technology That Could Have Helped\n\nNewer vehicles can have tools that help the driver. Three such tools could have helped in this crash.\n\n**Lane departure warning.** This system uses cameras to watch the lines on the road. It beeps and flashes when the vehicle starts to drift out of its lane. It might have pulled the driver's attention back to the road.\n\n**Lane departure prevention.** This system also warns the driver. But it goes one step further. It can steer the vehicle back into its lane by itself. It might have kept the bus on the road in the first place.\n\n**Electronic stability control (ESC).** This system helps when a vehicle starts to slide or skid. It can brake single wheels. It can also ease off the engine power. This helps stop the vehicle from spinning sideways. After the bus left its lane, the driver turned the wheel very hard. ESC might have kept the bus steady. It might have stopped the rollover.\n\nThe bus in this crash did not have any of these systems.\n\n## What Has Changed Since Then\n\nThe NTSB has asked the National Highway Traffic Safety Administration (NHTSA) to act. NHTSA is the U.S. agency that sets safety rules for vehicles. The NTSB has asked NHTSA to:\n\n- require lane departure prevention on large work vehicles over 10,000 pounds, including school buses\n- set clear standards for how well ESC must work on these vehicles\n\nIC Bus is the company that made this bus. It now puts ESC on all its new school buses. This started in late 2018. Lane warning and lane-keeping features are not standard. But schools can choose to add them to new buses.\n\n## Questions a Parent Might Ask the School\n\n- Does our district require students to wear seat belts on the bus?\n- Do staff check bus video to see if students stay buckled?\n- Do our buses have ESC or lane warning systems?\n\n>>>\n\nThe items:\n1. \"2018\" (original line 7: On Friday, December 17, 2021, about 12:10 p.m., a 2018 IC 43-passenger, lap belt-equipped school bus, operated by Hempstead Independent School District (ISD), was traveling south on Farm to Market Road (FM) 1887 in the unincorporated community of Monaville, Waller County, Texas. The posted speed limit was 55 mph, the weather was clear, and the roadway was dry. After crossing over a bridge near the intersection of Holik Road and FM 1887, the bus departed the southbound lane to the right. The driver initiated a series of steering maneuvers to the left, back to the right, and again to the left, a)\n2. \"1887\" (original line 7: On Friday, December 17, 2021, about 12:10 p.m., a 2018 IC 43-passenger, lap belt-equipped school bus, operated by Hempstead Independent School District (ISD), was traveling south on Farm to Market Road (FM) 1887 in the unincorporated community of Monaville, Waller County, Texas. The posted speed limit was 55 mph, the weather was clear, and the roadway was dry. After crossing over a bridge near the intersection of Holik Road and FM 1887, the bus departed the southbound lane to the right. The driver initiated a series of steering maneuvers to the left, back to the right, and again to the left, a)\n3. \"2.2\" (original line 11: ## 2.2 Driver Assistance Systems)\n4. \"10,000\" (original line 17: The NTSB has previously recommended that NHTSA require LDP systems to be equipped on all commercial motor vehicles weighing more than 10,000 pounds. The NTSB has also recommended that NHTSA develop ESC performance standards for these vehicles. IC school buses manufactured since late 2018 now come with ESC as a standard feature. Although not standard, driver assistance features such as LDW are available as options on new IC buses (Navistar 2023).)\n5. \"2023\" (original line 17: The NTSB has previously recommended that NHTSA require LDP systems to be equipped on all commercial motor vehicles weighing more than 10,000 pounds. The NTSB has also recommended that NHTSA develop ESC performance standards for these vehicles. IC school buses manufactured since late 2018 now come with ESC as a standard feature. Although not standard, driver assistance features such as LDW are available as options on new IC buses (Navistar 2023).)\n6. \"3\" (original line 21: ## 3. Conclusions)\n7. \"3.1\" (original line 23: ## 3.1 Probable Cause)\n8. \"3.2\" (original line 27: ## 3.2 Lessons Learned: Seat Belt Use and Driver Assistance Systems on School Buses)\n",
+ "tries": [
+  {
+   "result": "{\"items\": [{\"n\": 1, \"verdict\": \"restated\", \"quote\": \"The bus was a 2018 model made by IC Bus.\"}, {\"n\": 2, \"verdict\": \"restated\", \"quote\": \"The bus was heading south on Farm to Market Road 1887.\"}, {\"n\": 3, \"verdict\": \"lost\", \"quote\": null}, {\"n\": 4, \"verdict\": \"restated\", \"quote\": \"require lane departure prevention on large work vehicles over 10,000 pounds, including school buses\"}, {\"n\": 5, \"verdict\": \"lost\", \"quote\": null}, {\"n\": 6, \"verdict\": \"lost\", \"quote\": null}, {\"n\": 7, \"verdict\": \"lost\", \"quote\": null}, {\"n\": 8, \"verdict\": \"lost\", \"quote\": null}]}",
+   "total_cost_usd": 0.0520558,
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5815,
+    "cache_read_input_tokens": 1639,
+    "output_tokens": 260,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 5815,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 260,
+      "cache_read_input_tokens": 1639,
+      "cache_creation_input_tokens": 5815,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 5815
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "duration_ms": 6852,
+   "is_error": false
+  }
+ ],
+ "parsed": {
+  "items": [
+   {
+    "n": 1,
+    "verdict": "restated",
+    "quote": "The bus was a 2018 model made by IC Bus."
+   },
+   {
+    "n": 2,
+    "verdict": "restated",
+    "quote": "The bus was heading south on Farm to Market Road 1887."
+   },
+   {
+    "n": 3,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "n": 4,
+    "verdict": "restated",
+    "quote": "require lane departure prevention on large work vehicles over 10,000 pounds, including school buses"
+   },
+   {
+    "n": 5,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "n": 6,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "n": 7,
+    "verdict": "lost",
+    "quote": null
+   },
+   {
+    "n": 8,
+    "verdict": "lost",
+    "quote": null
+   }
+  ]
+ }
+}
