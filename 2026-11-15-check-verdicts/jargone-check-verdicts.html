@@ -260,6 +260,29 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 8px; }
   </div>
 </section>
 
+<section class="stack" aria-labelledby="other">
+  <h2 id="other">Another tool on the same texts</h2>
+  <p>To see whether these results are particular to jargone, the text audit from the open-source iso-24495 plugin was run on the same five government texts and judged the same way.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">What it checks</th><th scope="col">Findings</th><th scope="col">Right</th><th scope="col">jargone on the same texts</th></tr></thead>
+      <tbody>
+        <tr><td>Undefined acronyms (a word the reader may not know)</td><td class="num">15</td><td class="num">2 (13%)</td><td>J01: 17% to 31%</td></tr>
+        <tr><td>Plainer words (wordy phrases, complex words)</td><td class="num">10</td><td class="num">7 fit (70%)</td><td>J07: 5 of 6 fit</td></tr>
+        <tr><td>Sentences over 30 words</td><td class="num">40</td><td class="num">37 counted right</td><td>J03: the same misses at "Pub."</td></tr>
+        <tr><td>Paragraphs over 5 sentences</td><td class="num">10</td><td class="num">3 counted right, 4 false</td><td>no such check</td></tr>
+        <tr><td>Heading style</td><td class="num">7</td><td class="num">3</td><td>no such check</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul>
+    <li><strong>The same pattern holds.</strong> Its acronym rule was mostly wrong about what the reader would not understand, as J01 was. Its swap list worked on formal government writing, as J07's did. Its sentence counting worked, with the same weakness at abbreviations such as "Pub.".</li>
+    <li><strong>It claims no more than this.</strong> It calls its findings "mechanical proxies, not an ISO judgement", and that holds. The failure is in using word lists to judge what a particular reader understands, which no list can see.</li>
+    <li><strong>The checks that work here are already in a free tool.</strong> jargone does not need to rebuild long-sentence and plainer-word checks to offer them. Its one check with no counterpart there is J05, nothing lost.</li>
+  </ul>
+  <p class="note">Full results: <a href="https://github.com/wavemanco/mod-af/blob/claude/jargone-lab/2026-11-15-iso24495-audit/RESULTS.md" target="_blank" rel="noopener">the iso-24495 audit test</a>. Cost $0.45.</p>
+</section>
+
 <section class="stack" aria-labelledby="limits">
   <h2 id="limits">What these tests cannot tell us</h2>
   <ul>
