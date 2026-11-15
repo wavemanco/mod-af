@@ -53,3 +53,25 @@ table, which the audit read as headings because of a line of dashes under them.
 - **The audit claims no more than this.** It calls its findings "mechanical proxies, not an ISO judgement", and its
   code calls the 30-word cap "this project's own proxy". Those claims hold up. What fails is using such checks to
   judge what a particular reader understands, which neither tool can see.
+
+## Addendum: is jargone's check on par? (2026-11-15, after the results)
+
+At the maintainer's question, the audit was also run on the five long-form articles of
+`../2026-11-15-checks-longform/` (no model calls, so no judging), and its long-sentence and plainer-word findings
+were set beside J03's and J07's on the same articles.
+
+**Long sentences.** The audit flagged 169 sentences over 30 words: L1 37, L2 21, L3 32, L4 41, L5 38. J03 flagged 145.
+- **The audit ends a sentence at a full stop inside a closing quotation mark; J03 does not (JAR-005).** At the places
+  the long-form test checked by hand, the audit splits L3's 91-word "sentence" into its real 36 and 55 words. It
+  does not flag the three sentences J03 invented by joining two short ones: 31 words at L1 line 3, 51 at L3 line 55
+  and 43 at L3 line 71.
+- **The audit counts every word of a quotation; J03 counts a quotation as one word.** That accounts for most of the
+  audit's extra flags. A long quoted sentence is still long to read, so the audit's rule is closer to the reader;
+  J03's rule spares the writer quotations they cannot change.
+- **On the government texts,** both tools miss the long sentences at "Pub.". J03 reads "U.S." and "U.S.C." correctly,
+  so it caught one long sentence the audit missed and counted another right that the audit counted short.
+
+**Plainer words.** Both lists are small: the audit has 25 wordy phrases and 25 complex words; J07's trimmed list has
+39 entries. On the government texts, the audit made 10 suggestions with 7 fitting, and J07 made 6 with 5 fitting. On
+the long-form articles, the audit made 4 (among them "expedite" to "hasten", which is not plainer) and J07 made 3.
+The long-form suggestions were not judged.
