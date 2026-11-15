@@ -281,7 +281,8 @@ mode. Run the method with these changes:
   - J03: no sentence is over 30 words, or over 20 inside a numbered list of steps.
   - J04: the first paragraph after the title uses only common words, other than the project's name.
   - J05: each number, inline code span, code block and link target of the original is unchanged in
-    the rewrite or the reference file. Each heading that a link you can see points to is unchanged.
+    the rewrite or the reference file. A thousands separator added or dropped, a date written another
+    way, and numbering that opens a paragraph do not count as changes. Each heading that a link you can see points to is unchanged.
 - **No readability scores.** They need code, so do not estimate them, and leave them out of the
   report.
 - **The report says, at the top:** "The checks were done by hand by the model, not run by code."

@@ -111,7 +111,11 @@ Each check has its own test, shown to fail when the check is removed.
   list, compared as in J01. A word defined in the opening itself still fails.
 - **J05 nothing lost.** Every number, inline code span, fenced code block and link target of the
   saved original appears unchanged in the rewrite, or in the reference file `<name>-reference.md`
-  beside it when `.jargone/moves/<file>.json` lists that file.
+  beside it when `.jargone/moves/<file>.json` lists that file. Three changes are not losses (JAR-004):
+  a thousands separator added or dropped ("2,300" and "2300"); a date written another way ("10-01-03"
+  and "October 1, 2003" are one date, not three numbers); and numbering that opens a paragraph or
+  heading ("(1)", "3."), which is structure, like a list marker. A number still in the rewrite, but
+  used fewer times than in the original, is still reported, saying how many uses are missing.
   Every link to the document or to one of its headings, from inside it or from elsewhere in the
   repository, still resolves. A heading may be reworded only if no link points to it; jargone does
   not edit other files' links.

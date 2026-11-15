@@ -662,6 +662,61 @@ function parseTextBlocks(text: string): Blocks {
 
 const NUMBER = /\d+(?:[.,]\d+)*/g
 
+// J05 reads three kinds of number differently, so a rewrite that restates one is not reported as losing it.
+// A date is one fact, whether written in numbers ("10-01-03", "2003-10-01") or words ("October 1, 2003", "1
+// October 2003"). Numbering that opens a block, as the parser reads the blocks ("(1)" starting a paragraph, "3." a
+// heading), is structure, like a list marker; anywhere else, a wrapped line included, it is a number.
+// A comma between groups of three digits is a thousands separator: "2,300" and "2300" are one number.
+const MONTH = '(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+const DATE_ISO = /\b(\d{4})-(\d{1,2})-(\d{1,2})\b/g
+const DATE_NUMERIC = /\b(\d{1,2})[-/](\d{1,2})[-/](\d{4}|\d{2})\b/g
+const DATE_MONTH_FIRST = new RegExp(`\\b${MONTH}\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(\\d{4})\\b`, 'gi')
+const DATE_DAY_FIRST = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+${MONTH}\\.?,?\\s+(\\d{4})\\b`, 'gi')
+const OPENING_NUMBERING = /^([ \t]*)(\(\d{1,3}\)|\d{1,3}[.)])(?=[ \t])/
+const THOUSANDS = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/
+
+/** A date as `date:YYYY-MM-DD`, or undefined when the parts are not a real calendar date. */
+function dateKey(year: number, month: number, day: number): string | undefined {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return undefined
+  return `date:${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+const fullYear = (y: string) => y.length === 2 ? (Number(y) < 50 ? 2000 : 1900) + Number(y) : Number(y)
+const monthOf = (name: string) => MONTHS.indexOf(name.slice(0, 3).toLowerCase()) + 1
+
+/**
+ * The numbers J05 counts in one block's prose, each with its key (what is compared), how it was written, and
+ * where it starts. A numeric date is read month first ("10-01-03" is October 1, 2003) unless the first part
+ * cannot be a month; a two-digit year below 50 is in the 2000s.
+ */
+function numbersIn(text: string): { value: string; shown: string; index: number }[] {
+  const found: { value: string; shown: string; index: number; end: number }[] = []
+  const take = (re: RegExp, key: (m: RegExpMatchArray) => string | undefined) => {
+    for (const m of text.matchAll(re)) {
+      const start = m.index!, end = start + m[0].length
+      if (found.some(f => start < f.end && f.index < end)) continue
+      const k = key(m)
+      if (k) found.push({ value: k, shown: m[0], index: start, end })
+    }
+  }
+  take(DATE_ISO, m => dateKey(Number(m[1]), Number(m[2]), Number(m[3])))
+  take(DATE_MONTH_FIRST, m => dateKey(Number(m[3]), monthOf(m[1]), Number(m[2])))
+  take(DATE_DAY_FIRST, m => dateKey(Number(m[3]), monthOf(m[2]), Number(m[1])))
+  take(DATE_NUMERIC, m => {
+    const a = Number(m[1]), b = Number(m[2])
+    return a > 12 && b <= 12 ? dateKey(fullYear(m[3]), b, a) : dateKey(fullYear(m[3]), a, b)
+  })
+  // what is left: blank out the dates and the numbering that opens the block, keeping every index in place
+  let rest = text
+  const blank = (start: number, end: number) => { rest = rest.slice(0, start) + rest.slice(start, end).replace(/[^\n]/g, ' ') + rest.slice(end) }
+  for (const f of found) blank(f.index, f.end)
+  const opening = rest.match(OPENING_NUMBERING)
+  if (opening) blank(opening[1].length, opening[1].length + opening[2].length)
+  const out: { value: string; shown: string; index: number }[] = found.map(({ value, shown, index }) => ({ value, shown, index }))
+  for (const m of rest.matchAll(NUMBER)) out.push({ value: THOUSANDS.test(m[0]) ? m[0].replace(/,/g, '') : m[0], shown: m[0], index: m.index! })
+  return out.sort((x, y) => x.index - y.index)
+}
+
 function newlines(s: string): number {
   let n = 0
   for (let j = 0; j < s.length; j++) if (s.charCodeAt(j) === 10) n++
@@ -1408,7 +1463,8 @@ type Doc = {
   links: { target: string; line: number }[]
   ids: string[]
   headings: { text: string; line: number }[]
-  numbers: { value: string; line: number }[]
+  /** J05's numbers: `value` is what is compared, `shown` how the text wrote it. */
+  numbers: { value: string; shown: string; line: number }[]
 }
 
 function parse(md: string, format: Format = 'markdown'): Doc {
@@ -1429,7 +1485,7 @@ function parse(md: string, format: Format = 'markdown'): Doc {
     }
     const r = plainText ? inlineText(text, sink) : inline(text, p.defs, false, sink)
     const nlAt = lineIndex(r.numbersFrom)
-    for (const m of r.numbersFrom.matchAll(NUMBER)) doc.numbers.push({ value: m[0], line: lineOf(nlAt(m.index!)) })
+    for (const n of numbersIn(r.numbersFrom)) doc.numbers.push({ value: n.value, shown: n.shown, line: lineOf(nlAt(n.index)) })
     doc.firstSentence.push(doc.sentences.length)
     doc.nav.push(r.nav)
     sentencesOf(r.text, r.quotes, lineOf, b, bi, b.quote ? doc.quoted : doc.sentences)
@@ -2126,7 +2182,8 @@ type MovedFile = { path: string; text: string; doc: Doc }
 /**
  * J05: every number (in prose), inline code span, code block and link target of the original is in
  * the rewrite or in what the moved-to file gained (`referenceBefore`). Numbers are counted: an
- * original that says 3 twice needs 3 twice. Numbers are read from prose on both sides (headings,
+ * original that says 3 twice needs 3 twice. A date counts as one, in numbers or in words; numbering that
+ * opens a block does not count; and "2,300" is the same number as "2300" (see `numbersIn`). Numbers are read from prose on both sides (headings,
  * table cells and quotations included; list markers, link targets, web addresses, HTML comments,
  * code and front matter not), so a number elsewhere in the file cannot stand in for one lost. A code
  * span also counts as kept inside a code block. Every link to a heading still resolves.
@@ -2171,10 +2228,11 @@ function j05(orig: Doc, origText: string, rew: Doc, moved: MovedFile[], before: 
   const moves = { numbers: 0, spans: 0, blocks: 0, links: 0 }
 
   const byValue = new Map<string, number[]>()
+  const shownAs = new Map<string, string>()
   for (const n of orig.numbers) {
     const lines = byValue.get(n.value)
     if (lines) lines.push(n.line)
-    else byValue.set(n.value, [n.line])
+    else { byValue.set(n.value, [n.line]); shownAs.set(n.value, n.shown) }
   }
   for (const [v, lines] of byValue) {
     const need = lines.length
@@ -2183,10 +2241,13 @@ function j05(orig: Doc, origText: string, rew: Doc, moved: MovedFile[], before: 
     moves.numbers += Math.max(0, Math.min(need, have) - Math.min(need, inRew))
     if (have >= need) continue
     const where = [...new Set(lines)]
+    const shown = shownAs.get(v) ?? v
+    const kind = v.startsWith('date:') ? 'date' : 'number'
+    const missing = need - have
     out.push(finding('J05', lines[0], need === 1
-      ? `The number ${v} on line ${lines[0]} of the original is ${nowhere}.`
-      : `The number ${v} is in the original ${need} times (line${where.length > 1 ? 's' : ''} ${where.join(', ')}), but ${have === 0 ? 'not at all' : have === 1 ? 'once' : `${have} times`} in the rewrite${moved.length && copies < moved.length ? ' and what the reference file gained' : ''}. Each use is a fact to keep.`,
-    v))
+      ? `The ${kind} ${shown} on line ${lines[0]} of the original is ${nowhere}.`
+      : `The ${kind} ${shown} is in the original ${need} times (line${where.length > 1 ? 's' : ''} ${where.join(', ')}), but ${have === 0 ? 'not at all' : have === 1 ? 'once' : `${have} times`} in the rewrite${moved.length && copies < moved.length ? ' and what the reference file gained' : ''}. ${have === 0 ? 'Each use is a fact to keep.' : `It is still there, but ${missing === 1 ? '1 use is' : `${missing} uses are`} missing. Check whether each missing use was a separate fact to keep.`}`,
+    shown))
   }
   const seen = new Set<string>()
   const first = (k: string) => !seen.has(k) && !!seen.add(k)

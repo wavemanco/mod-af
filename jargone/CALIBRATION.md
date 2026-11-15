@@ -122,7 +122,7 @@ The kinds of text so far:
 | J04, the opening uses only common words | 0 of 5 true | not run | 1 of 2, then 0 of 2: too few to judge | **Drop** for software documents; **no verdict** for government texts |
 | J07, a plainer word is available | 5 of 18 swaps fit (0.1's list) | 0 of 88 fit, 47 would change the meaning (0.1's list) | 5 of 6 fit, none would change the meaning (0.2's list) | **Keep** for government texts; **untested** with 0.2's list on software text |
 | J03, long sentences | earned its place (trial) | 18 of 35 true | misses long sentences at legal abbreviations such as "Pub." | **Keep**, with the fix JAR-003 |
-| J05, nothing lost | earned its place (trial) | not run | 54 of 75 real losses on one-shot rewrites; 21 restated | **Keep** as the core check, with the fix JAR-004 |
+| J05, nothing lost | earned its place (trial) | not run | 54 of 75 real losses on one-shot rewrites; 21 restated | **Keep** as the core check; the fix JAR-004 is done |
 | J02, one thing, one name | not tested | not tested | not tested | Kept: it only fires on word pairs the person declares |
 | J06, readability scores | for information | for information | for information | Kept: for information only |
 

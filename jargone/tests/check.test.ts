@@ -496,9 +496,39 @@ describe('J05 nothing lost', () => {
   const j05 = (original: string, text: string, more: Partial<CheckInput> = {}) =>
     run(text, { original, codes: ['J05'], ...more }).findings
 
-  test('a number from the original must appear unchanged', () => {
-    expect(j05('A queue holds 1,500 jobs.', 'A queue holds 1500 jobs.').map(f => [f.code, f.severity, f.term, f.line])).toEqual([['J05', 'error', '1,500', 1]])
+  test('a number from the original must appear: "2,300" and "2300" are one number, a different number is not', () => {
+    expect(j05('A queue holds 1,500 jobs.', 'A queue holds 1,050 jobs.').map(f => [f.code, f.severity, f.term, f.line])).toEqual([['J05', 'error', '1,500', 1]])
     expect(j05('A queue holds 1,500 jobs.', 'Up to 1,500 jobs wait.')).toEqual([])
+    // a thousands separator added or dropped is the same number (JAR-004)
+    expect(j05('A queue holds 1,500 jobs.', 'A queue holds 1500 jobs.')).toEqual([])
+    expect(j05('She owed about $2300 in unpaid taxes.', 'She owed about $2,300 in unpaid taxes.')).toEqual([])
+    // a comma that does not separate thousands keeps the number apart
+    expect(termsOf(j05('Steps 1,2 come first.', 'Step 12 comes first.'))).toEqual(['1,2'])
+  })
+
+  test('a date is one fact, written in numbers or in words (JAR-004)', () => {
+    expect(j05('(Rev. 1, 10-01-03)', 'Revision 1, October 1, 2003')).toEqual([])
+    expect(j05('Issued: 08-06-21, Effective: 11-08-21.', 'Issued August 6, 2021. It took effect on November 8, 2021.')).toEqual([])
+    expect(j05('It has applied since December 5, 1980.', 'It has applied since 12/05/1980.')).toEqual([])
+    expect(j05('It began on 2003-10-01.', 'It began on 1 October 2003.')).toEqual([])
+    // a lost date is reported once, as a date, not as three numbers
+    expect(j05('Effective: 11-08-21.', 'It took effect in 2021.').map(f => [f.severity, f.term, f.message]))
+      .toEqual([['error', '11-08-21', 'The date 11-08-21 on line 1 of the original is not in the rewrite.']])
+    // a different date is a lost date
+    expect(termsOf(j05('It has applied since December 5, 1980.', 'It has applied since December 6, 1980.'))).toEqual(['December 5, 1980'])
+    // parts that cannot be a calendar date stay three numbers
+    expect(termsOf(j05('Use 13-14-15 here.', 'Use it here.'))).toEqual(['13', '14', '15'])
+  })
+
+  test('numbering that opens a paragraph is structure, not a number (JAR-004)', () => {
+    expect(j05('(1) Has been employed for 12 months, and\n\n(2) Has worked 1,250 hours.', '1. **Time:** 12 months.\n2. **Hours:** 1,250 hours.')).toEqual([])
+    expect(j05('(1) Has been employed for 12 months, and\n\n(2) Has worked 1,250 hours.', 'Has been employed for 12 months and has worked 1,250 hours.', { format: 'text' })).toEqual([])
+    // numbering inside a sentence is still a number
+    expect(termsOf(j05('See paragraph (2) of this section.', 'See this section.'))).toEqual(['2'])
+    // and so is numbering on a wrapped line inside a paragraph: only the block's opening is structure
+    expect(termsOf(j05('The rule in\n(2) applies here.', 'The rule applies here.'))).toEqual(['2'])
+    // a number that starts a line but is not numbering is still a number
+    expect(termsOf(j05('2018 was the year.', 'That was the year.'))).toEqual(['2018'])
   })
 
   test('a number counts only in the rewrite\'s prose: not in a list marker, a link target, a web address, an HTML comment, code or front matter', () => {
@@ -516,7 +546,11 @@ describe('J05 nothing lost', () => {
   test('numbers are counted: a number the original uses twice must be there twice', () => {
     const r = j05('It retries 3 times.\n\nIt waits 3 seconds.', 'It retries 3 times.')
     expect(r.map(f => [f.term, f.line])).toEqual([['3', 1]])
-    expect(r[0].message).toBe('The number 3 is in the original 2 times (lines 1, 3), but once in the rewrite. Each use is a fact to keep.')
+    expect(r[0].message).toBe('The number 3 is in the original 2 times (lines 1, 3), but once in the rewrite. It is still there, but 1 use is missing. Check whether each missing use was a separate fact to keep.')
+    // still an error: a missing use can be a separate fact lost (JAR-004 kept this)
+    expect(r[0].severity).toBe('error')
+    expect(j05('It retries 3 times.\n\nIt waits 3 seconds.', 'It retries.')[0].message)
+      .toBe('The number 3 is in the original 2 times (lines 1, 3), but not at all in the rewrite. Each use is a fact to keep.')
     expect(j05('It retries 3 times.\n\nIt waits 3 seconds.', 'It waits 3 seconds and retries 3 times.')).toEqual([])
   })
 
