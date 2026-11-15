@@ -1,0 +1,686 @@
+{
+ "L1.md": [
+  {
+   "code": "J04",
+   "term": "jackbooted",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "haul",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "picket",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "decree",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "detainments",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "Vandals",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "Matteo",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "Salvini",
+   "line": 1
+  },
+  {
+   "code": "J01",
+   "term": "existential",
+   "line": 5
+  },
+  {
+   "code": "J01",
+   "term": "precarious",
+   "line": 7
+  },
+  {
+   "code": "J01",
+   "term": "generational",
+   "line": 9
+  },
+  {
+   "code": "J01",
+   "term": "gerontocracies",
+   "line": 9
+  },
+  {
+   "code": "J01",
+   "term": "disproportionate",
+   "line": 17
+  },
+  {
+   "code": "J01",
+   "term": "disengaged",
+   "line": 31
+  },
+  {
+   "code": "J01",
+   "term": "nihilism",
+   "line": 37
+  },
+  {
+   "code": "J01",
+   "term": "communique",
+   "line": 37
+  },
+  {
+   "code": "J01",
+   "term": "disillusioned",
+   "line": 47
+  }
+ ],
+ "L2.md": [
+  {
+   "code": "J04",
+   "term": "Verona",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "Bruges",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "Taipei",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "Hong",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "Kong",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "nondescript",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "enchantment",
+   "line": 1
+  },
+  {
+   "code": "J01",
+   "term": "modernism",
+   "line": 5
+  },
+  {
+   "code": "J01",
+   "term": "inhospitable",
+   "line": 9
+  },
+  {
+   "code": "J01",
+   "term": "Colonnades",
+   "line": 19
+  },
+  {
+   "code": "J01",
+   "term": "weakly",
+   "line": 21
+  },
+  {
+   "code": "J01",
+   "term": "de",
+   "line": 23
+  },
+  {
+   "code": "J01",
+   "term": "la",
+   "line": 23
+  },
+  {
+   "code": "J01",
+   "term": "monumental",
+   "line": 29
+  },
+  {
+   "code": "J01",
+   "term": "miniaturized",
+   "line": 29
+  },
+  {
+   "code": "J01",
+   "term": "harmonious",
+   "line": 37
+  },
+  {
+   "code": "J01",
+   "term": "backdrop",
+   "line": 45
+  },
+  {
+   "code": "J01",
+   "term": "advantageous",
+   "line": 49
+  },
+  {
+   "code": "J07",
+   "term": "numerous",
+   "line": 49,
+   "suggestion": [
+    "many"
+   ]
+  },
+  {
+   "code": "J01",
+   "term": "vernacular",
+   "line": 59
+  },
+  {
+   "code": "J01",
+   "term": "adjoined",
+   "line": 59
+  },
+  {
+   "code": "J01",
+   "term": "freestanding",
+   "line": 59
+  },
+  {
+   "code": "J01",
+   "term": "facade",
+   "line": 63
+  },
+  {
+   "code": "J01",
+   "term": "DC",
+   "line": 67
+  },
+  {
+   "code": "J01",
+   "term": "modernist",
+   "line": 75
+  }
+ ],
+ "L3.md": [
+  {
+   "code": "J01",
+   "term": "trope",
+   "line": 7
+  },
+  {
+   "code": "J01",
+   "term": "NPCs",
+   "line": 9
+  },
+  {
+   "code": "J01",
+   "term": "recounted",
+   "line": 11
+  },
+  {
+   "code": "J01",
+   "term": "gamification",
+   "line": 29
+  },
+  {
+   "code": "J01",
+   "term": "ludic",
+   "line": 29
+  },
+  {
+   "code": "J01",
+   "term": "sakes",
+   "line": 39
+  },
+  {
+   "code": "J01",
+   "term": "encode",
+   "line": 57
+  },
+  {
+   "code": "J01",
+   "term": "worldviews",
+   "line": 57
+  },
+  {
+   "code": "J01",
+   "term": "malleable",
+   "line": 63
+  },
+  {
+   "code": "J01",
+   "term": "agentic",
+   "line": 65
+  },
+  {
+   "code": "J07",
+   "term": "expedite",
+   "line": 67,
+   "suggestion": [
+    "speed up"
+   ]
+  }
+ ],
+ "L4.md": [
+  {
+   "code": "J04",
+   "term": "accreted",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "hellish",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "molten",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "bombarded",
+   "line": 1
+  },
+  {
+   "code": "J01",
+   "term": "probed",
+   "line": 7
+  },
+  {
+   "code": "J01",
+   "term": "mused",
+   "line": 7
+  },
+  {
+   "code": "J01",
+   "term": "lipids",
+   "line": 11
+  },
+  {
+   "code": "J01",
+   "term": "astrobiologist",
+   "line": 13
+  },
+  {
+   "code": "J01",
+   "term": "precursors",
+   "line": 15
+  },
+  {
+   "code": "J01",
+   "term": "lineage",
+   "line": 15
+  },
+  {
+   "code": "J01",
+   "term": "emergence",
+   "line": 17
+  },
+  {
+   "code": "J01",
+   "term": "lifelike",
+   "line": 17
+  },
+  {
+   "code": "J01",
+   "term": "biochemical",
+   "line": 17
+  },
+  {
+   "code": "J01",
+   "term": "nonliving",
+   "line": 17
+  },
+  {
+   "code": "J01",
+   "term": "self-replication",
+   "line": 21
+  },
+  {
+   "code": "J01",
+   "term": "primordial",
+   "line": 21
+  },
+  {
+   "code": "J01",
+   "term": "amino",
+   "line": 25
+  },
+  {
+   "code": "J01",
+   "term": "Prebiotic",
+   "line": 27
+  },
+  {
+   "code": "J01",
+   "term": "genome",
+   "line": 35
+  },
+  {
+   "code": "J01",
+   "term": "strand",
+   "line": 41
+  },
+  {
+   "code": "J01",
+   "term": "catalyze",
+   "line": 41
+  },
+  {
+   "code": "J01",
+   "term": "hydrothermal",
+   "line": 43
+  },
+  {
+   "code": "J01",
+   "term": "vents",
+   "line": 43
+  },
+  {
+   "code": "J01",
+   "term": "arose",
+   "line": 43
+  },
+  {
+   "code": "J01",
+   "term": "membranes",
+   "line": 45
+  },
+  {
+   "code": "J01",
+   "term": "rifts",
+   "line": 61
+  },
+  {
+   "code": "J01",
+   "term": "MRC",
+   "line": 63
+  },
+  {
+   "code": "J01",
+   "term": "biochemist",
+   "line": 65
+  },
+  {
+   "code": "J01",
+   "term": "nucleobases",
+   "line": 71
+  },
+  {
+   "code": "J01",
+   "term": "biomolecules",
+   "line": 79
+  },
+  {
+   "code": "J01",
+   "term": "postdoc",
+   "line": 85
+  },
+  {
+   "code": "J01",
+   "term": "KU",
+   "line": 87
+  },
+  {
+   "code": "J01",
+   "term": "LUCA",
+   "line": 101
+  },
+  {
+   "code": "J01",
+   "term": "genomic",
+   "line": 105
+  },
+  {
+   "code": "J01",
+   "term": "metabolizing",
+   "line": 129
+  },
+  {
+   "code": "J01",
+   "term": "JPL",
+   "line": 135
+  },
+  {
+   "code": "J01",
+   "term": "deconstructs",
+   "line": 145
+  },
+  {
+   "code": "J01",
+   "term": "constrain",
+   "line": 161
+  },
+  {
+   "code": "J01",
+   "term": "replication",
+   "line": 169
+  },
+  {
+   "code": "J01",
+   "term": "nucleotides",
+   "line": 169
+  },
+  {
+   "code": "J01",
+   "term": "Benzene",
+   "line": 171
+  },
+  {
+   "code": "J01",
+   "term": "liposomes",
+   "line": 187
+  },
+  {
+   "code": "J01",
+   "term": "crude",
+   "line": 189
+  },
+  {
+   "code": "J01",
+   "term": "biosignatures",
+   "line": 209
+  }
+ ],
+ "L5.md": [
+  {
+   "code": "J01",
+   "term": "schooner",
+   "line": 1
+  },
+  {
+   "code": "J01",
+   "term": "en",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "dire",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "Puritan",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "four-masted",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "schooner",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "en",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "San",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "Francisco",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "agonizing",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "roiling",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "shoal",
+   "line": 1
+  },
+  {
+   "code": "J04",
+   "term": "hull",
+   "line": 1
+  },
+  {
+   "code": "J01",
+   "term": "crewmen",
+   "line": 3
+  },
+  {
+   "code": "J01",
+   "term": "mariners",
+   "line": 5
+  },
+  {
+   "code": "J01",
+   "term": "churning",
+   "line": 7
+  },
+  {
+   "code": "J01",
+   "term": "haul",
+   "line": 7
+  },
+  {
+   "code": "J01",
+   "term": "crewman",
+   "line": 9
+  },
+  {
+   "code": "J01",
+   "term": "kayakers",
+   "line": 11
+  },
+  {
+   "code": "J01",
+   "term": "manikins",
+   "line": 13
+  },
+  {
+   "code": "J01",
+   "term": "BC",
+   "line": 15
+  },
+  {
+   "code": "J01",
+   "term": "ashore",
+   "line": 17
+  },
+  {
+   "code": "J01",
+   "term": "cohort",
+   "line": 21
+  },
+  {
+   "code": "J01",
+   "term": "lodge",
+   "line": 21
+  },
+  {
+   "code": "J01",
+   "term": "dispatch",
+   "line": 21
+  },
+  {
+   "code": "J01",
+   "term": "PFD",
+   "line": 23
+  },
+  {
+   "code": "J01",
+   "term": "responder",
+   "line": 27
+  },
+  {
+   "code": "J01",
+   "term": "flare",
+   "line": 29
+  },
+  {
+   "code": "J01",
+   "term": "II",
+   "line": 29
+  },
+  {
+   "code": "J01",
+   "term": "VHF",
+   "line": 29
+  },
+  {
+   "code": "J01",
+   "term": "spurred",
+   "line": 33
+  },
+  {
+   "code": "J01",
+   "term": "formalized",
+   "line": 33
+  },
+  {
+   "code": "J01",
+   "term": "Coroners",
+   "line": 41
+  },
+  {
+   "code": "J01",
+   "term": "HMS",
+   "line": 43
+  },
+  {
+   "code": "J01",
+   "term": "RHIOT",
+   "line": 63
+  },
+  {
+   "code": "J07",
+   "term": "numerous",
+   "line": 83,
+   "suggestion": [
+    "many"
+   ]
+  }
+ ]
+}

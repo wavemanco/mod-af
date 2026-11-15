@@ -1,0 +1,642 @@
+{
+ "L1.md": {
+  "scores": {
+   "flesch": 43.8,
+   "grade": 12.7,
+   "avgSentence": 22.4,
+   "longestSentence": 60,
+   "words": 2844,
+   "sentences": 127
+  },
+  "findings": [
+   {
+    "line": 1,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 3,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 7,
+    "message": "A sentence has 44 words; the limit is 30. Split it."
+   },
+   {
+    "line": 7,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 11,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 11,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 13,
+    "message": "A sentence has 34 words; the limit is 30. Split it."
+   },
+   {
+    "line": 13,
+    "message": "A sentence has 43 words; the limit is 30. Split it."
+   },
+   {
+    "line": 15,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 17,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 19,
+    "message": "A sentence has 34 words; the limit is 30. Split it."
+   },
+   {
+    "line": 21,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 23,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 23,
+    "message": "A sentence has 37 words; the limit is 30. Split it."
+   },
+   {
+    "line": 25,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 27,
+    "message": "A sentence has 38 words; the limit is 30. Split it."
+   },
+   {
+    "line": 29,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 31,
+    "message": "A sentence has 56 words; the limit is 30. Split it."
+   },
+   {
+    "line": 33,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 33,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 33,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 35,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 35,
+    "message": "A sentence has 41 words; the limit is 30. Split it."
+   },
+   {
+    "line": 35,
+    "message": "A sentence has 39 words; the limit is 30. Split it."
+   },
+   {
+    "line": 41,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 41,
+    "message": "A sentence has 37 words; the limit is 30. Split it."
+   },
+   {
+    "line": 43,
+    "message": "A sentence has 37 words; the limit is 30. Split it."
+   },
+   {
+    "line": 45,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 45,
+    "message": "A sentence has 60 words; the limit is 30. Split it."
+   },
+   {
+    "line": 47,
+    "message": "A sentence has 59 words; the limit is 30. Split it."
+   },
+   {
+    "line": 49,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 51,
+    "message": "A sentence has 42 words; the limit is 30. Split it."
+   }
+  ]
+ },
+ "L2.md": {
+  "scores": {
+   "flesch": 46.2,
+   "grade": 11.8,
+   "avgSentence": 20.1,
+   "longestSentence": 52,
+   "words": 3073,
+   "sentences": 153
+  },
+  "findings": [
+   {
+    "line": 3,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 3,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 3,
+    "message": "A sentence has 34 words; the limit is 30. Split it."
+   },
+   {
+    "line": 13,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 17,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 21,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 23,
+    "message": "A sentence has 34 words; the limit is 30. Split it."
+   },
+   {
+    "line": 25,
+    "message": "A sentence has 34 words; the limit is 30. Split it."
+   },
+   {
+    "line": 29,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 29,
+    "message": "A sentence has 52 words; the limit is 30. Split it."
+   },
+   {
+    "line": 33,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 33,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 39,
+    "message": "A sentence has 43 words; the limit is 30. Split it."
+   },
+   {
+    "line": 51,
+    "message": "A sentence has 37 words; the limit is 30. Split it."
+   },
+   {
+    "line": 71,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 73,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 75,
+    "message": "A sentence has 38 words; the limit is 30. Split it."
+   },
+   {
+    "line": 75,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 79,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   }
+  ]
+ },
+ "L3.md": {
+  "scores": {
+   "flesch": 49.3,
+   "grade": 12,
+   "avgSentence": 22.5,
+   "longestSentence": 91,
+   "words": 2658,
+   "sentences": 118
+  },
+  "findings": [
+   {
+    "line": 3,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 5,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 7,
+    "message": "A sentence has 38 words; the limit is 30. Split it."
+   },
+   {
+    "line": 11,
+    "message": "A sentence has 62 words; the limit is 30. Split it."
+   },
+   {
+    "line": 13,
+    "message": "A sentence has 60 words; the limit is 30. Split it."
+   },
+   {
+    "line": 15,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 17,
+    "message": "A sentence has 38 words; the limit is 30. Split it."
+   },
+   {
+    "line": 17,
+    "message": "A sentence has 40 words; the limit is 30. Split it."
+   },
+   {
+    "line": 21,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 21,
+    "message": "A sentence has 34 words; the limit is 30. Split it."
+   },
+   {
+    "line": 23,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 23,
+    "message": "A sentence has 34 words; the limit is 30. Split it."
+   },
+   {
+    "line": 27,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 31,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 33,
+    "message": "A sentence has 37 words; the limit is 30. Split it."
+   },
+   {
+    "line": 35,
+    "message": "A sentence has 44 words; the limit is 30. Split it."
+   },
+   {
+    "line": 37,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 39,
+    "message": "A sentence has 46 words; the limit is 30. Split it."
+   },
+   {
+    "line": 39,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 43,
+    "message": "A sentence has 53 words; the limit is 30. Split it."
+   },
+   {
+    "line": 43,
+    "message": "A sentence has 37 words; the limit is 30. Split it."
+   },
+   {
+    "line": 45,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 49,
+    "message": "A sentence has 91 words; the limit is 30. Split it."
+   },
+   {
+    "line": 51,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 55,
+    "message": "A sentence has 51 words; the limit is 30. Split it."
+   },
+   {
+    "line": 57,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 59,
+    "message": "A sentence has 48 words; the limit is 30. Split it."
+   },
+   {
+    "line": 59,
+    "message": "A sentence has 34 words; the limit is 30. Split it."
+   },
+   {
+    "line": 61,
+    "message": "A sentence has 41 words; the limit is 30. Split it."
+   },
+   {
+    "line": 65,
+    "message": "A sentence has 41 words; the limit is 30. Split it."
+   },
+   {
+    "line": 69,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 71,
+    "message": "A sentence has 43 words; the limit is 30. Split it."
+   }
+  ]
+ },
+ "L4.md": {
+  "scores": {
+   "flesch": 43.4,
+   "grade": 11.6,
+   "avgSentence": 17.7,
+   "longestSentence": 59,
+   "words": 5648,
+   "sentences": 319
+  },
+  "findings": [
+   {
+    "line": 7,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 15,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 17,
+    "message": "A sentence has 40 words; the limit is 30. Split it."
+   },
+   {
+    "line": 17,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 21,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 23,
+    "message": "A sentence has 41 words; the limit is 30. Split it."
+   },
+   {
+    "line": 41,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 41,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 43,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 43,
+    "message": "A sentence has 45 words; the limit is 30. Split it."
+   },
+   {
+    "line": 75,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 79,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 99,
+    "message": "A sentence has 40 words; the limit is 30. Split it."
+   },
+   {
+    "line": 107,
+    "message": "A sentence has 34 words; the limit is 30. Split it."
+   },
+   {
+    "line": 119,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 121,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 129,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 135,
+    "message": "A sentence has 46 words; the limit is 30. Split it."
+   },
+   {
+    "line": 135,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 141,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 149,
+    "message": "A sentence has 59 words; the limit is 30. Split it."
+   },
+   {
+    "line": 153,
+    "message": "A sentence has 42 words; the limit is 30. Split it."
+   },
+   {
+    "line": 177,
+    "message": "A sentence has 34 words; the limit is 30. Split it."
+   },
+   {
+    "line": 181,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 183,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 191,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 193,
+    "message": "A sentence has 42 words; the limit is 30. Split it."
+   },
+   {
+    "line": 199,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 213,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 217,
+    "message": "A sentence has 39 words; the limit is 30. Split it."
+   }
+  ]
+ },
+ "L5.md": {
+  "scores": {
+   "flesch": 51.2,
+   "grade": 11.3,
+   "avgSentence": 21,
+   "longestSentence": 68,
+   "words": 4132,
+   "sentences": 197
+  },
+  "findings": [
+   {
+    "line": 1,
+    "message": "A sentence has 56 words; the limit is 30. Split it."
+   },
+   {
+    "line": 5,
+    "message": "A sentence has 45 words; the limit is 30. Split it."
+   },
+   {
+    "line": 15,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 17,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 17,
+    "message": "A sentence has 38 words; the limit is 30. Split it."
+   },
+   {
+    "line": 17,
+    "message": "A sentence has 40 words; the limit is 30. Split it."
+   },
+   {
+    "line": 17,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 19,
+    "message": "A sentence has 37 words; the limit is 30. Split it."
+   },
+   {
+    "line": 19,
+    "message": "A sentence has 38 words; the limit is 30. Split it."
+   },
+   {
+    "line": 25,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 29,
+    "message": "A sentence has 55 words; the limit is 30. Split it."
+   },
+   {
+    "line": 29,
+    "message": "A sentence has 40 words; the limit is 30. Split it."
+   },
+   {
+    "line": 29,
+    "message": "A sentence has 64 words; the limit is 30. Split it."
+   },
+   {
+    "line": 31,
+    "message": "A sentence has 68 words; the limit is 30. Split it."
+   },
+   {
+    "line": 33,
+    "message": "A sentence has 46 words; the limit is 30. Split it."
+   },
+   {
+    "line": 33,
+    "message": "A sentence has 39 words; the limit is 30. Split it."
+   },
+   {
+    "line": 35,
+    "message": "A sentence has 38 words; the limit is 30. Split it."
+   },
+   {
+    "line": 37,
+    "message": "A sentence has 39 words; the limit is 30. Split it."
+   },
+   {
+    "line": 37,
+    "message": "A sentence has 35 words; the limit is 30. Split it."
+   },
+   {
+    "line": 39,
+    "message": "A sentence has 39 words; the limit is 30. Split it."
+   },
+   {
+    "line": 43,
+    "message": "A sentence has 55 words; the limit is 30. Split it."
+   },
+   {
+    "line": 51,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 53,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 57,
+    "message": "A sentence has 67 words; the limit is 30. Split it."
+   },
+   {
+    "line": 59,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 67,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 69,
+    "message": "A sentence has 36 words; the limit is 30. Split it."
+   },
+   {
+    "line": 73,
+    "message": "A sentence has 31 words; the limit is 30. Split it."
+   },
+   {
+    "line": 77,
+    "message": "A sentence has 41 words; the limit is 30. Split it."
+   },
+   {
+    "line": 81,
+    "message": "A sentence has 32 words; the limit is 30. Split it."
+   },
+   {
+    "line": 95,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   },
+   {
+    "line": 99,
+    "message": "A sentence has 33 words; the limit is 30. Split it."
+   }
+  ]
+ }
+}
