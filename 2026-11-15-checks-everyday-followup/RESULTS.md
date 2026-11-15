@@ -66,3 +66,43 @@ $1.15 for 20 model calls: 10 for part 1, 5 rewrites and 5 J05 judgments. Part 2 
 The `claude` command's default model had changed since the first study, and that model had reached its usage
 limit. The calls name the first study's model at run time instead, so the judge is the same as in the first
 study. The model's name is kept out of the files.
+
+## Retest of part 3 after the J05 fix
+
+Run under [`RETEST-PLAN.md`](./RETEST-PLAN.md) (commit 9f3ebe7, fixed before the run), with J05 from commit feb399c
+on the same five rewrites. Figures from [`retest-results.json`](./retest-results.json), built by
+`scripts/score_retest.py`.
+
+**J05 now reports 64 findings: 51 lost and 13 restated (20%).** Before the fix it was 75: 54 lost and 21 restated.
+
+| Kind of finding | Lost | Restated |
+|---|---|---|
+| A number used once, gone from the rewrite | 44 | 0 |
+| A number used several times, none left | 6 | 2 |
+| A number used several times, still there but fewer times | 1 | 11 |
+
+**What changed, finding by finding:**
+- **Gone, as expected:** 9 of the 11 restatements the fix aimed at: 6 date parts, 2 list numbers and the thousands
+  separator ("2300").
+- **Still reported, but now meaning something else:** f1's "2" and f3's "01". The fix took away their dates and
+  list numbers. What is left are other uses of the same numbers: the cross-references "paragraph (b)(2)" and
+  "(c)(2)" in f1, and "Pub. 100-01" in f3. Judged again, both are restated: the rewrites state the exceptions
+  themselves, and name the manual instead of its number.
+- **New:** "11-08-21", the same date twice in the original and once in the rewrite (restated), and "July 27, 1966",
+  now one lost date instead of two lost numbers.
+- **Gone that had been judged lost:**
+  - f4's "3", heading numbering, as the plan expected.
+  - f3's "1966" and "27", now the one lost date above.
+  - f1's "4". This is the label "(4)" opening a paragraph. The plan named only headings here, but the fix treats a
+    paragraph's opening numbering the same way. The paragraph's content is in the rewrite ("An employer may
+    decide to count work from before a break of more than seven years"), so this is not a real loss. The plan's
+    rule to reopen the fix is not triggered.
+
+**What remains is one choice.** 11 of the 13 restatements are numbers still in the rewrite, used fewer times.
+The fix kept these as errors, saying "it is still there". Made warnings instead:
+- J05's errors would be 52, of which 50 are real losses (96%);
+- the one real loss among the 12 would still be shown, as a warning.
+
+That choice is the maintainer's.
+
+**Cost:** $0.10 for two judge calls.

@@ -1,0 +1,547 @@
+{
+ "findings": 64,
+ "verdicts": {
+  "restated": 13,
+  "lost": 51
+ },
+ "by_kind": {
+  "one use, gone": {
+   "lost": 44
+  },
+  "several uses, none left": {
+   "restated": 2,
+   "lost": 6
+  },
+  "several uses, still there": {
+   "restated": 11,
+   "lost": 1
+  }
+ },
+ "gone": [
+  {
+   "text": "f1",
+   "term": "1",
+   "verdict_before": "restated"
+  },
+  {
+   "text": "f1",
+   "term": "3",
+   "verdict_before": "restated"
+  },
+  {
+   "text": "f1",
+   "term": "4",
+   "verdict_before": "lost"
+  },
+  {
+   "text": "f2",
+   "term": "2300",
+   "verdict_before": "restated"
+  },
+  {
+   "text": "f3",
+   "term": "03",
+   "verdict_before": "restated"
+  },
+  {
+   "text": "f3",
+   "term": "06",
+   "verdict_before": "restated"
+  },
+  {
+   "text": "f3",
+   "term": "08",
+   "verdict_before": "restated"
+  },
+  {
+   "text": "f3",
+   "term": "10",
+   "verdict_before": "restated"
+  },
+  {
+   "text": "f3",
+   "term": "11",
+   "verdict_before": "restated"
+  },
+  {
+   "text": "f3",
+   "term": "1966",
+   "verdict_before": "lost"
+  },
+  {
+   "text": "f3",
+   "term": "21",
+   "verdict_before": "restated"
+  },
+  {
+   "text": "f3",
+   "term": "27",
+   "verdict_before": "lost"
+  },
+  {
+   "text": "f4",
+   "term": "3",
+   "verdict_before": "lost"
+  }
+ ],
+ "new": [
+  [
+   "f3",
+   "11-08-21"
+  ],
+  [
+   "f3",
+   "July 27, 1966"
+  ]
+ ],
+ "rows": [
+  {
+   "text": "f1",
+   "term": "12",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": false
+  },
+  {
+   "text": "f1",
+   "term": "75",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": false
+  },
+  {
+   "text": "f1",
+   "term": "2",
+   "kind": "several uses, none left",
+   "verdict": "restated",
+   "rejudged": true
+  },
+  {
+   "text": "f1",
+   "term": "38",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f1",
+   "term": "4301",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "273.01",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "2022",
+   "kind": "several uses, none left",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "279.02",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "279.03",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "279.18",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "280.01",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "281.17",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "281.18",
+   "kind": "several uses, none left",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "281.70",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "282.07",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "282.01",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "3",
+   "kind": "several uses, none left",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "282.08",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "5",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "505",
+   "kind": "several uses, none left",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "879",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "883",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "2020",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "26",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "4",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "789",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "790",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "793",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "794",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "895",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "899",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "598",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "2023",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "364",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "49",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f2",
+   "term": "27",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f3",
+   "term": "11-08-21",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": true
+  },
+  {
+   "text": "f3",
+   "term": "31",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f3",
+   "term": "10116",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f3",
+   "term": "10118",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f3",
+   "term": "19",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f3",
+   "term": "July 27, 1966",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": true
+  },
+  {
+   "text": "f3",
+   "term": "100",
+   "kind": "several uses, none left",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f3",
+   "term": "04",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f3",
+   "term": "01",
+   "kind": "several uses, none left",
+   "verdict": "restated",
+   "rejudged": true
+  },
+  {
+   "text": "f3",
+   "term": "5",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": false
+  },
+  {
+   "text": "f3",
+   "term": "02",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f4",
+   "term": "2018",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": false
+  },
+  {
+   "text": "f4",
+   "term": "1887",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": false
+  },
+  {
+   "text": "f4",
+   "term": "2.2",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f4",
+   "term": "10,000",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": false
+  },
+  {
+   "text": "f4",
+   "term": "2023",
+   "kind": "several uses, none left",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f4",
+   "term": "3.1",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f4",
+   "term": "3.2",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f5",
+   "term": "673",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f5",
+   "term": "2",
+   "kind": "several uses, still there",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f5",
+   "term": "1981",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f5",
+   "term": "42",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": false
+  },
+  {
+   "text": "f5",
+   "term": "9902",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": false
+  },
+  {
+   "text": "f5",
+   "term": "2026",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": false
+  },
+  {
+   "text": "f5",
+   "term": "2025",
+   "kind": "several uses, still there",
+   "verdict": "restated",
+   "rejudged": false
+  },
+  {
+   "text": "f5",
+   "term": "1798",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f5",
+   "term": "1966",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  },
+  {
+   "text": "f5",
+   "term": "1970",
+   "kind": "one use, gone",
+   "verdict": "lost",
+   "rejudged": false
+  }
+ ]
+}

@@ -1,0 +1,30 @@
+{
+ "f1": [
+  {
+   "line": 13,
+   "term": "2",
+   "message": "The number 2 is in the original 2 times (lines 13, 27), but not at all in the rewrite. Each use is a fact to keep.",
+   "severity": "error"
+  }
+ ],
+ "f3": [
+  {
+   "line": 11,
+   "term": "11-08-21",
+   "message": "The date 11-08-21 is in the original 2 times (line 11), but once in the rewrite. It is still there, but 1 use is missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 15,
+   "term": "July 27, 1966",
+   "message": "The date July 27, 1966 on line 15 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 21,
+   "term": "01",
+   "message": "The number 01 is in the original 5 times (lines 21, 23), but not at all in the rewrite. Each use is a fact to keep.",
+   "severity": "error"
+  }
+ ]
+}

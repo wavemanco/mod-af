@@ -83,7 +83,21 @@ def judge_j05(fid):
     (D / 'j05-judge' / f'{fid}.json').write_text(json.dumps({'prompt': pj, **j}, indent=1))
     return fid, bool(j['parsed'])
 
-fn = {'explain': explain, 'rewrite': rewrite, 'judge-j05': judge_j05}[STEP]
+def judge_j05_retest(fid):
+    # The retest after the JAR-004 fix: only the findings that are new or now mean something else.
+    todo = json.loads((D / 'j05-retest-tojudge.json').read_text())
+    if fid not in todo: return fid, 'nothing to judge'
+    original = (FIRST / 'texts' / TEXTS[fid]).read_text()
+    rew = (D / 'rewrites' / f'{fid}.md').read_text()
+    olines = original.split('\n')
+    items = [f'{n}. "{f["term"]}" (original line {f["line"]}: {olines[f["line"] - 1].strip()[:600]})' for n, f in enumerate(todo[fid], 1)]
+    pj = P('j05.txt').replace('{original}', original).replace('{rewrite}', rew).replace('{items}', '\n'.join(items))
+    j = json_call(pj, len(items))
+    (D / 'j05-retest-judge').mkdir(exist_ok=True)
+    (D / 'j05-retest-judge' / f'{fid}.json').write_text(json.dumps({'prompt': pj, **j}, indent=1))
+    return fid, bool(j['parsed'])
+
+fn = {'explain': explain, 'rewrite': rewrite, 'judge-j05': judge_j05, 'judge-j05-retest': judge_j05_retest}[STEP]
 with ThreadPoolExecutor(5) as ex:
     for r in ex.map(fn, sorted(READERS)):
         print(STEP, r)

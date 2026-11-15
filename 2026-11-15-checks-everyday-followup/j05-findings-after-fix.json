@@ -1,0 +1,396 @@
+{
+ "f1": [
+  {
+   "line": 5,
+   "term": "12",
+   "message": "The number 12 is in the original 11 times (lines 5, 7, 11, 13, 15, 17, 21, 23, 31), but 9 times in the rewrite. It is still there, but 2 uses are missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 9,
+   "term": "75",
+   "message": "The number 75 is in the original 3 times (lines 9, 33), but 2 times in the rewrite. It is still there, but 1 use is missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "2",
+   "message": "The number 2 is in the original 2 times (lines 13, 27), but not at all in the rewrite. Each use is a fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 17,
+   "term": "38",
+   "message": "The number 38 on line 17 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 17,
+   "term": "4301",
+   "message": "The number 4301 on line 17 of the original is not in the rewrite.",
+   "severity": "error"
+  }
+ ],
+ "f2": [
+  {
+   "line": 13,
+   "term": "273.01",
+   "message": "The number 273.01 on line 13 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "2022",
+   "message": "The number 2022 is in the original 2 times (lines 13, 19), but not at all in the rewrite. Each use is a fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "279.02",
+   "message": "The number 279.02 on line 13 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "279.03",
+   "message": "The number 279.03 on line 13 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "279.18",
+   "message": "The number 279.18 on line 13 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "280.01",
+   "message": "The number 280.01 on line 13 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "281.17",
+   "message": "The number 281.17 on line 13 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "281.18",
+   "message": "The number 281.18 is in the original 2 times (line 13), but not at all in the rewrite. Each use is a fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "281.70",
+   "message": "The number 281.70 on line 13 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "282.07",
+   "message": "The number 282.07 on line 13 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "282.01",
+   "message": "The number 282.01 on line 13 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "3",
+   "message": "The number 3 is in the original 3 times (lines 13, 19), but not at all in the rewrite. Each use is a fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 13,
+   "term": "282.08",
+   "message": "The number 282.08 on line 13 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 15,
+   "term": "5",
+   "message": "The number 5 on line 15 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "505",
+   "message": "The number 505 is in the original 2 times (line 19), but not at all in the rewrite. Each use is a fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "879",
+   "message": "The number 879 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "883",
+   "message": "The number 883 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "2020",
+   "message": "The number 2020 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "26",
+   "message": "The number 26 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "4",
+   "message": "The number 4 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "789",
+   "message": "The number 789 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "790",
+   "message": "The number 790 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "793",
+   "message": "The number 793 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "794",
+   "message": "The number 794 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "895",
+   "message": "The number 895 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "899",
+   "message": "The number 899 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 21,
+   "term": "598",
+   "message": "The number 598 on line 21 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 21,
+   "term": "2023",
+   "message": "The number 2023 on line 21 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 25,
+   "term": "364",
+   "message": "The number 364 on line 25 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 25,
+   "term": "49",
+   "message": "The number 49 on line 25 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 27,
+   "term": "27",
+   "message": "The number 27 on line 27 of the original is not in the rewrite.",
+   "severity": "error"
+  }
+ ],
+ "f3": [
+  {
+   "line": 11,
+   "term": "11-08-21",
+   "message": "The date 11-08-21 is in the original 2 times (line 11), but once in the rewrite. It is still there, but 1 use is missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 15,
+   "term": "31",
+   "message": "The number 31 on line 15 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 15,
+   "term": "10116",
+   "message": "The number 10116 on line 15 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 15,
+   "term": "10118",
+   "message": "The number 10118 on line 15 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 15,
+   "term": "19",
+   "message": "The number 19 on line 15 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 15,
+   "term": "July 27, 1966",
+   "message": "The date July 27, 1966 on line 15 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "100",
+   "message": "The number 100 is in the original 7 times (lines 19, 21, 23), but not at all in the rewrite. Each use is a fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 19,
+   "term": "04",
+   "message": "The number 04 on line 19 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 21,
+   "term": "01",
+   "message": "The number 01 is in the original 5 times (lines 21, 23), but not at all in the rewrite. Each use is a fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 23,
+   "term": "5",
+   "message": "The number 5 is in the original 4 times (line 23), but once in the rewrite. It is still there, but 3 uses are missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 23,
+   "term": "02",
+   "message": "The number 02 on line 23 of the original is not in the rewrite.",
+   "severity": "error"
+  }
+ ],
+ "f4": [
+  {
+   "line": 7,
+   "term": "2018",
+   "message": "The number 2018 is in the original 3 times (lines 7, 17, 31), but 2 times in the rewrite. It is still there, but 1 use is missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 7,
+   "term": "1887",
+   "message": "The number 1887 is in the original 2 times (line 7), but once in the rewrite. It is still there, but 1 use is missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 11,
+   "term": "2.2",
+   "message": "The number 2.2 on line 11 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 17,
+   "term": "10,000",
+   "message": "The number 10,000 is in the original 3 times (lines 17, 31), but once in the rewrite. It is still there, but 2 uses are missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 17,
+   "term": "2023",
+   "message": "The number 2023 is in the original 2 times (lines 17, 29), but not at all in the rewrite. Each use is a fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 23,
+   "term": "3.1",
+   "message": "The number 3.1 on line 23 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 27,
+   "term": "3.2",
+   "message": "The number 3.2 on line 27 of the original is not in the rewrite.",
+   "severity": "error"
+  }
+ ],
+ "f5": [
+  {
+   "line": 23,
+   "term": "673",
+   "message": "The number 673 on line 23 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 23,
+   "term": "2",
+   "message": "The number 2 is in the original 6 times (lines 23, 24, 65, 83, 101, 131), but 4 times in the rewrite. It is still there, but 2 uses are missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 24,
+   "term": "1981",
+   "message": "The number 1981 on line 24 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 24,
+   "term": "42",
+   "message": "The number 42 is in the original 2 times (lines 24, 130), but once in the rewrite. It is still there, but 1 use is missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 24,
+   "term": "9902",
+   "message": "The number 9902 is in the original 2 times (lines 24, 131), but once in the rewrite. It is still there, but 1 use is missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 36,
+   "term": "2026",
+   "message": "The number 2026 is in the original 6 times (lines 36, 50, 52, 58, 77, 95), but once in the rewrite. It is still there, but 5 uses are missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 37,
+   "term": "2025",
+   "message": "The number 2025 is in the original 2 times (lines 37, 51), but once in the rewrite. It is still there, but 1 use is missing. Check whether each missing use was a separate fact to keep.",
+   "severity": "error"
+  },
+  {
+   "line": 47,
+   "term": "1798",
+   "message": "The number 1798 on line 47 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 114,
+   "term": "1966",
+   "message": "The number 1966 on line 114 of the original is not in the rewrite.",
+   "severity": "error"
+  },
+  {
+   "line": 114,
+   "term": "1970",
+   "message": "The number 1970 on line 114 of the original is not in the rewrite.",
+   "severity": "error"
+  }
+ ]
+}
